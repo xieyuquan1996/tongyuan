@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import * as svc from '../../services/models.js'
 
 export const v1Models = new Hono()
+// TODO(Task 24): gate with requireApiKey once middleware/auth-api-key.ts exists
 
 v1Models.get('/', async (c) => {
   const rows = await svc.list({ enabledOnly: true })

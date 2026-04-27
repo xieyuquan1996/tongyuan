@@ -35,7 +35,7 @@ adminModelsRoutes.patch('/:id', zValidator('json', z.object({
   cache_write_price_usd_per_mtok: z.string().optional(),
 })), async (c) => {
   const b = c.req.valid('json')
-  const patch: any = {}
+  const patch: Parameters<typeof svc.patch>[1] = {}
   if (b.display_name !== undefined) patch.displayName = b.display_name
   if (b.markup_pct !== undefined) patch.markupPct = b.markup_pct
   if (b.enabled !== undefined) patch.enabled = b.enabled

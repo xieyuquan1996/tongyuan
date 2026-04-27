@@ -18,7 +18,14 @@ export async function getById(id: string) {
   return row
 }
 
-export async function patch(id: string, p: Partial<Pick<ModelRow, 'displayName' | 'markupPct' | 'enabled' | 'recommended' | 'note'>>) {
+export async function patch(
+  id: string,
+  p: Partial<Pick<ModelRow,
+    | 'displayName' | 'markupPct' | 'enabled' | 'recommended' | 'note'
+    | 'inputPriceUsdPerMtok' | 'outputPriceUsdPerMtok'
+    | 'cacheReadPriceUsdPerMtok' | 'cacheWritePriceUsdPerMtok'
+  >>,
+) {
   const [row] = await db.update(models).set(p).where(eq(models.id, id)).returning()
   if (!row) throw new AppError('not_found')
   return row
@@ -48,6 +55,7 @@ export async function sync(upstreamApiKey: string): Promise<{ added: string[]; u
       })
       added.push(m.id)
     } else {
+      // Preserve admin's display_name override; only bump syncedAt on re-sync.
       await db.update(models).set({ syncedAt: new Date(), displayName: existing.displayName }).where(eq(models.id, m.id))
       updated.push(m.id)
     }
