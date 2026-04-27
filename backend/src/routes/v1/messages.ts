@@ -11,6 +11,7 @@ import { commitRequest } from '../../gateway/biller.js'
 import { AppError } from '../../shared/errors.js'
 import { extractUsage, iterSSE } from '../../gateway/sse.js'
 import type { UpstreamRow } from '../../services/upstream-keys.js'
+import type { ModelRow } from '../../services/models.js'
 
 export const v1Messages = new Hono()
 
@@ -30,7 +31,7 @@ v1Messages.post('/', async (c) => {
   const model = await getModel(body.model)
   if (!model.enabled) throw new AppError('unknown_model', `${body.model} disabled`)
   if (body.stream === true) {
-    return streamHandler(c, body, rawBody, started, user, apiKey)
+    return streamHandler(c, body, rawBody, started, user, apiKey, model)
   }
 
   const requestHash = hashBody(body)
@@ -130,10 +131,8 @@ v1Messages.post('/', async (c) => {
 
 async function streamHandler(
   c: any, body: any, rawBody: string, started: number,
-  user: any, apiKey: any,
+  user: any, apiKey: any, model: ModelRow,
 ) {
-  const model = await getModel(body.model)
-  if (!model.enabled) throw new AppError('unknown_model')
 
   const requestHash = hashBody(body)
   const forwardBody = rawBody
@@ -196,13 +195,18 @@ async function streamHandler(
         await outStream.write(new Uint8Array())
         return
       }
-      for await (const ev of iterSSE(response!.body)) {
-        if (ttfbMs === null) ttfbMs = Date.now() - started
-        usage.observe(ev.event, ev.data)
-        if (ev.event === 'message_start' && ev.data?.message?.model) {
-          upstreamModel = ev.data.message.model
+      try {
+        for await (const ev of iterSSE(response!.body)) {
+          if (ttfbMs === null) ttfbMs = Date.now() - started
+          usage.observe(ev.event, ev.data)
+          if (ev.event === 'message_start' && ev.data?.message?.model) {
+            upstreamModel = ev.data.message.model
+          }
+          await outStream.write(new TextEncoder().encode(ev.raw))
         }
-        await outStream.write(new TextEncoder().encode(ev.raw))
+      } finally {
+        // Fix 4: cancel upstream stream on client disconnect so TCP conn is released
+        try { await response!.body?.cancel() } catch {}
       }
     } finally {
       const snap = usage.snapshot()

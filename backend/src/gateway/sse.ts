@@ -30,24 +30,48 @@ export async function* iterSSE(stream: ReadableStream<Uint8Array>): AsyncGenerat
   const decoder = new TextDecoder()
   const reader = stream.getReader()
   let buf = ''
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buf += decoder.decode(value, { stream: true })
+
+  function* parseEvents(b: string): Generator<{ event: string; data: any; raw: string; remaining: string }> {
     let idx: number
-    while ((idx = buf.indexOf('\n\n')) !== -1) {
-      const chunk = buf.slice(0, idx)
-      buf = buf.slice(idx + 2)
+    while ((idx = b.indexOf('\n\n')) !== -1) {
+      const chunk = b.slice(0, idx)
+      b = b.slice(idx + 2)
       let event = 'message'
       let data = ''
       for (const line of chunk.split('\n')) {
         if (line.startsWith('event:')) event = line.slice(6).trim()
-        else if (line.startsWith('data:')) data += line.slice(5).trim()
+        // Fix 2: join multiple data: lines with \n per SSE spec
+        else if (line.startsWith('data:')) data += (data ? '\n' : '') + line.slice(5).trim()
       }
       if (!data) continue
       let parsed: any = null
       try { parsed = JSON.parse(data) } catch {}
-      yield { event, data: parsed, raw: chunk + '\n\n' }
+      yield { event, data: parsed, raw: chunk + '\n\n', remaining: b }
     }
+    // yield a sentinel with the unconsumed remainder
+    yield { event: '', data: null, raw: '', remaining: b }
+  }
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) {
+        // Fix 1: flush decoder for any buffered multibyte chars
+        buf += decoder.decode()
+        break
+      }
+      buf += decoder.decode(value, { stream: true })
+      for (const ev of parseEvents(buf)) {
+        buf = ev.remaining
+        if (ev.raw) yield { event: ev.event, data: ev.data, raw: ev.raw }
+      }
+    }
+    // Fix 1: process any trailing complete events after flush
+    for (const ev of parseEvents(buf)) {
+      buf = ev.remaining
+      if (ev.raw) yield { event: ev.event, data: ev.data, raw: ev.raw }
+    }
+  } finally {
+    reader.releaseLock()
   }
 }

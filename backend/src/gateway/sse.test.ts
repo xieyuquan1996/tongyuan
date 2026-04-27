@@ -16,6 +16,25 @@ describe('extractUsage', () => {
 })
 
 describe('iterSSE', () => {
+  it('joins multiple data: lines with newline per SSE spec', async () => {
+    const raw = 'event: test\ndata: {"part":\ndata: "value"}\n\n'
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode(raw))
+        controller.close()
+      },
+    })
+    const events: { event: string; data: any }[] = []
+    for await (const ev of iterSSE(stream)) {
+      events.push({ event: ev.event, data: ev.data })
+    }
+    expect(events).toHaveLength(1)
+    expect(events[0]!.event).toBe('test')
+    // joined data should be '{"part":\n"value"}' — valid JSON
+    expect(events[0]!.data).toEqual({ part: 'value' })
+  })
+
   it('yields parsed events from a ReadableStream', async () => {
     const raw = 'event: message_start\ndata: {"type":"message_start"}\n\nevent: content_block_delta\ndata: {"type":"delta"}\n\n'
     const encoder = new TextEncoder()
