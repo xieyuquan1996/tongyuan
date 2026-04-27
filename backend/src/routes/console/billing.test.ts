@@ -26,13 +26,17 @@ async function req(path: string, init: RequestInit = {}) {
 }
 
 describe('billing routes', () => {
-  it('GET /billing returns plan and balance', async () => {
+  it('GET /billing returns plan and dual-currency balance', async () => {
     const r = await req('/api/console/billing')
     expect(r.status).toBe(200)
     const j = await r.json()
     expect(j.plan).toBe('Starter')
     expect(j.billing.balance_usd).toBe('10.000000')
-    expect(j.billing.balance).toBe('$10.00')
+    expect(j.billing.balance_cny).toBe('72.000000')
+    expect(j.billing.used_usd).toBe('0.000000')
+    expect(j.billing.used_cny).toBe('0.000000')
+    expect(j.billing.balance.startsWith('¥')).toBe(true)
+    expect(j.billing.used.startsWith('¥')).toBe(true)
   })
 
   it('POST /recharge returns 501', async () => {

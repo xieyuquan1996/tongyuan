@@ -69,4 +69,42 @@ describe('alerts routes', () => {
     const j = await r.json()
     expect(j.alerts).toHaveLength(0)
   })
+
+  it('rejects invalid kind with 400 (zod validation)', async () => {
+    const r = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({ kind: 'invalid_kind', threshold: '5.00', channel: 'email', enabled: true }),
+    })
+    expect(r.status).toBe(400)
+  })
+
+  it('cross-user DELETE returns 404 and leaves alert intact', async () => {
+    // User A creates an alert (using existing token)
+    const cr = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'email', enabled: true }),
+    })
+    expect(cr.status).toBe(201)
+    const aAlertId = (await cr.json()).id
+
+    // Register user B
+    const emailB = `alerts-test-b-${Date.now()}@example.com`
+    const rb = await app.fetch(new Request('http://x/api/console/register', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: emailB, password: 'secret123', name: 'B' }),
+    }))
+    const tokenB = (await rb.json()).session.token
+
+    // User B tries to delete A's alert → 404
+    const dr = await app.fetch(new Request(`http://x/api/console/alerts/${aAlertId}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${tokenB}`, 'content-type': 'application/json' },
+    }))
+    expect(dr.status).toBe(404)
+
+    // A's alert still exists
+    const lr = await req('/api/console/alerts')
+    const lj = await lr.json()
+    expect(lj.alerts.some((a: any) => a.id === aAlertId)).toBe(true)
+  })
 })

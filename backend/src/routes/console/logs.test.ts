@@ -91,4 +91,38 @@ describe('logs routes', () => {
     const r = await req('/api/console/logs/req_nonexistent_id')
     expect(r.status).toBe(404)
   })
+
+  it('GET /:id cross-user access returns 404', async () => {
+    // Register user B
+    const emailB = `logs-test-b-${Date.now()}@example.com`
+    const rb = await app.fetch(new Request('http://x/api/console/register', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: emailB, password: 'secret123', name: 'B' }),
+    }))
+    const jb = await rb.json()
+    const tokenB = jb.session.token
+    const userIdB = jb.user.id
+
+    // Give B an API key and insert a log owned by B
+    const kr = await app.fetch(new Request('http://x/api/console/keys', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenB}` },
+      body: JSON.stringify({ name: 'b-key' }),
+    }))
+    const apiKeyIdB = (await kr.json()).id
+
+    const logIdB = `req_logs_b_${Date.now()}`
+    await db.insert(requestLogs).values({
+      id: logIdB, userId: userIdB, apiKeyId: apiKeyIdB,
+      model: 'claude-3-5-sonnet-20241022', upstreamModel: 'claude-3-5-sonnet-20241022',
+      endpoint: '/v1/messages', stream: false, status: '200',
+      latencyMs: '100', inputTokens: '10', outputTokens: '20',
+      cacheReadTokens: '0', cacheWriteTokens: '0', costUsd: '0.001',
+      requestHash: 'bhash', upstreamRequestHash: 'buhash', auditMatch: true,
+    })
+
+    // User A (token) tries to access B's log → 404
+    const r = await req(`/api/console/logs/${logIdB}`)
+    expect(r.status).toBe(404)
+  })
 })
