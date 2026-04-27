@@ -20,4 +20,10 @@ describe('AppError', () => {
     const body = toErrorBody(e)
     expect(body.error).toBe('internal_error')
   })
+
+  it('omits message when it equals the code (no custom message)', () => {
+    const body = toErrorBody(new AppError('unauthorized'))
+    expect(body.message).toBeUndefined()
+    expect(body.error).toBe('unauthorized')
+  })
 })
