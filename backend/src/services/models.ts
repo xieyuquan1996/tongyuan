@@ -32,10 +32,16 @@ export async function patch(
 }
 
 // SDK v0.30 does not expose client.models.list(); use direct fetch instead.
+// Note: the `authorization` header is redundant against real Anthropic (they only check
+// x-api-key) but some relay-style mocks gate /v1/models on Bearer. Dual-send is safe.
+// SDK v0.30 does not expose client.models.list(); use direct fetch instead.
+// `authorization` is redundant against real Anthropic (they only check x-api-key)
+// but some relay-style upstreams gate /v1/models on Bearer. Dual-send is safe.
 export async function sync(upstreamApiKey: string): Promise<{ added: string[]; updated: string[] }> {
   const res = await fetch(`${env.ANTHROPIC_UPSTREAM_BASE_URL}/v1/models?limit=100`, {
     headers: {
       'x-api-key': upstreamApiKey,
+      'authorization': `Bearer ${upstreamApiKey}`,
       'anthropic-version': '2023-06-01',
     },
   })
