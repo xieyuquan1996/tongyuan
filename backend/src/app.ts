@@ -12,6 +12,7 @@ import { logsRoutes } from './routes/console/logs.js'
 import { billingRoutes, invoicesRoutes, rechargesRoutes, rechargeRoutes } from './routes/console/billing.js'
 import { alertsRoutes } from './routes/console/alerts.js'
 import { playgroundRoutes } from './routes/console/playground.js'
+import { metricsRoutes } from './routes/metrics.js'
 
 export function createApp() {
   const app = new Hono()
@@ -27,6 +28,7 @@ export function createApp() {
   })
 
   app.get('/healthz', (c) => c.json({ ok: true }))
+  app.route('/metrics', metricsRoutes)
   app.route('/api/console', authRoutes)
   app.route('/api/console/keys', keysRoutes)
   app.route('/api/console/overview', overviewRoutes)

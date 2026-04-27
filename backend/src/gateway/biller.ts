@@ -2,6 +2,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { users, requestLogs, billingLedger } from '../db/schema.js'
+import { gatewayRequests, gatewayLatency, billingUsdConsumed } from '../observability/metrics.js'
 
 export type CommitInput = {
   id: string
@@ -70,4 +71,14 @@ export async function commitRequest(input: CommitInput): Promise<void> {
       })
     }
   })
+
+  // Metrics are best-effort and live outside the transaction.
+  gatewayRequests.inc({ model: input.model, status: String(input.status) })
+  gatewayLatency.observe({ model: input.model, phase: 'total' }, input.latencyMs)
+  if (input.ttfbMs !== null) {
+    gatewayLatency.observe({ model: input.model, phase: 'ttfb' }, input.ttfbMs)
+  }
+  if (Number(input.chargeUsd) > 0) {
+    billingUsdConsumed.inc({ model: input.model }, Number(input.chargeUsd))
+  }
 }
