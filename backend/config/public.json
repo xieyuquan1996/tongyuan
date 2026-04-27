@@ -1,0 +1,44 @@
+{
+  "stats": {
+    "uptime_30d": "99.97%",
+    "p50_latency": "187ms",
+    "p99_latency": "412ms",
+    "consistency": "100%",
+    "region": "cn-east-1"
+  },
+  "regions": [
+    { "id": "cn-east-1", "name": "上海", "status": "ok", "latency": "187ms" },
+    { "id": "hk-1", "name": "香港", "status": "ok", "latency": "84ms" },
+    { "id": "us-west-2", "name": "美西", "status": "ok", "latency": "412ms" }
+  ],
+  "plans": [
+    {
+      "name": "Starter",
+      "price": "¥0",
+      "per": "起步赠送 $10",
+      "cta": "免费开始",
+      "features": ["3 个 API 密钥", "每月 1M tokens 免费额度", "标准支持"]
+    },
+    {
+      "name": "Pro",
+      "price": "¥199",
+      "per": "/ 月起 · 按量计费",
+      "cta": "升级到 Pro",
+      "featured": true,
+      "features": ["无限密钥", "按量计费,无上限", "优先路由", "7×24 人工支持"]
+    }
+  ],
+  "status": {
+    "overall": "ok",
+    "components": [
+      { "id": "gateway", "name": "网关", "status": "ok", "note": "各区域正常" },
+      { "id": "anthropic", "name": "上游 · Anthropic", "status": "ok", "note": "" },
+      { "id": "console", "name": "控制台", "status": "ok", "note": "" }
+    ],
+    "incidents": []
+  },
+  "changelog": [
+    { "date": "2026-04-27", "tag": "feature", "title": "中转网关正式上线", "body": "稳定的 Claude API 中转,不掺水,指定模型即指定模型。" },
+    { "date": "2026-04-20", "tag": "feature", "title": "流式与审计哈希", "body": "全量 SSE 透传 + 请求载荷哈希可验。" }
+  ]
+}

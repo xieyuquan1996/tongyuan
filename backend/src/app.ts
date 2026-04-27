@@ -13,6 +13,12 @@ import { billingRoutes, invoicesRoutes, rechargesRoutes, rechargeRoutes } from '
 import { alertsRoutes } from './routes/console/alerts.js'
 import { playgroundRoutes } from './routes/console/playground.js'
 import { metricsRoutes } from './routes/metrics.js'
+import { publicStats } from './routes/public/stats.js'
+import { publicRegions } from './routes/public/regions.js'
+import { publicModels } from './routes/public/models.js'
+import { publicPlans } from './routes/public/plans.js'
+import { publicStatus } from './routes/public/status.js'
+import { publicChangelog } from './routes/public/changelog.js'
 
 export function createApp() {
   const app = new Hono()
@@ -44,6 +50,12 @@ export function createApp() {
   app.route('/v1/models', v1Models)
   app.route('/v1/messages', v1Messages)
   app.route('/v1/messages/count_tokens', v1CountTokens)
+  app.route('/api/public/stats', publicStats)
+  app.route('/api/public/regions', publicRegions)
+  app.route('/api/public/models', publicModels)
+  app.route('/api/public/plans', publicPlans)
+  app.route('/api/public/status', publicStatus)
+  app.route('/api/public/changelog', publicChangelog)
   app.notFound((c) => c.json({ error: 'route_not_found' }, 404))
   return app
 }
