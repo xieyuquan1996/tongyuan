@@ -1,0 +1,89 @@
+# Claude relay — production-ish single-host deployment.
+# Runs: postgres, redis, backend (Node), frontend (nginx serving built SPA + /api proxy).
+# Intended for a single VM or local prod-like testing. For real production, split DB/Redis to managed services.
+#
+# Usage (from this directory):
+#   cp .env.example .env   # fill secrets
+#   docker compose up -d --build
+#   curl http://localhost/healthz
+#
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-claude_link}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: ["node", "-e", "import('./dist/db/migrate.js')"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-claude_link}
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
+      UPSTREAM_KEY_KMS: ${UPSTREAM_KEY_KMS}
+      ANTHROPIC_UPSTREAM_BASE_URL: ${ANTHROPIC_UPSTREAM_BASE_URL:-https://api.anthropic.com}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-claude_link}
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
+      UPSTREAM_KEY_KMS: ${UPSTREAM_KEY_KMS}
+      ANTHROPIC_UPSTREAM_BASE_URL: ${ANTHROPIC_UPSTREAM_BASE_URL:-https://api.anthropic.com}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      METRICS_TOKEN: ${METRICS_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+  redis-data:
