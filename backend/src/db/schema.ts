@@ -42,6 +42,21 @@ export const apiKeys = pgTable('api_keys', {
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
 })
 
+export const models = pgTable('models', {
+  id: text('id').primaryKey(),
+  displayName: text('display_name').notNull(),
+  contextWindow: numeric('context_window').notNull().default('200000'),
+  inputPriceUsdPerMtok: numeric('input_price_usd_per_mtok', { precision: 12, scale: 4 }).notNull().default('0'),
+  outputPriceUsdPerMtok: numeric('output_price_usd_per_mtok', { precision: 12, scale: 4 }).notNull().default('0'),
+  cacheReadPriceUsdPerMtok: numeric('cache_read_price_usd_per_mtok', { precision: 12, scale: 4 }),
+  cacheWritePriceUsdPerMtok: numeric('cache_write_price_usd_per_mtok', { precision: 12, scale: 4 }),
+  markupPct: numeric('markup_pct', { precision: 6, scale: 4 }).notNull().default('0'),
+  enabled: boolean('enabled').notNull().default(true),
+  recommended: boolean('recommended').notNull().default(false),
+  note: text('note').notNull().default(''),
+  syncedAt: timestamp('synced_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const upstreamKeys = pgTable('upstream_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   alias: text('alias').notNull(),

@@ -3,6 +3,8 @@ import { AppError, toErrorBody } from './shared/errors.js'
 import { authRoutes } from './routes/console/auth.js'
 import { keysRoutes } from './routes/console/keys.js'
 import { upstreamKeysRoutes } from './routes/admin/upstream-keys.js'
+import { adminModelsRoutes } from './routes/admin/models.js'
+import { v1Models } from './routes/v1/models.js'
 
 export function createApp() {
   const app = new Hono()
@@ -21,6 +23,8 @@ export function createApp() {
   app.route('/api/console', authRoutes)
   app.route('/api/console/keys', keysRoutes)
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)
+  app.route('/api/admin/models', adminModelsRoutes)
+  app.route('/v1/models', v1Models)
   app.notFound((c) => c.json({ error: 'route_not_found' }, 404))
   return app
 }
