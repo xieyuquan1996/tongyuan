@@ -37,5 +37,10 @@ export class AppError extends Error {
 
 export function toErrorBody(e: unknown): { error: ErrorCode; message?: string } {
   if (e instanceof AppError) return { error: e.code, message: e.message !== e.code ? e.message : undefined }
+  // duck-type fallback for ESM module instance mismatch
+  const a = e as any
+  if (a && typeof a.code === 'string' && typeof a.status === 'number' && a.code in STATUS) {
+    return { error: a.code as ErrorCode, message: a.message !== a.code ? a.message : undefined }
+  }
   return { error: 'internal_error', message: e instanceof Error ? e.message : String(e) }
 }
