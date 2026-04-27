@@ -11,6 +11,8 @@ import type { UserRow } from '../services/users.js'
 declare module 'hono' {
   interface ContextVariableMap {
     apiKey: ApiKeyRow
+    // `user: UserRow` is also declared in auth-bearer.ts; TS merges the two augmentations.
+    user: UserRow
   }
 }
 

@@ -22,6 +22,22 @@ describe('commitRequest', () => {
     apiKeyId = k!.id
   })
 
+  it('zero charge writes log but no ledger row', async () => {
+    await commitRequest({
+      id: 'req_zero_' + Date.now(),
+      userId, apiKeyId, upstreamKeyId: null,
+      model: 'claude-opus-4-7', upstreamModel: 'claude-opus-4-7',
+      endpoint: '/v1/messages', stream: false, status: 200,
+      errorCode: null, latencyMs: 50, ttfbMs: null,
+      inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      chargeUsd: '0.000000', costUsd: '0.000000',
+      requestHash: 'a', upstreamRequestHash: 'a', auditMatch: true,
+      idempotencyKey: null,
+    })
+    const [u] = await db.select().from(users).where(eq(users.id, userId))
+    expect(u!.balanceUsd).toBe('10.000000')   // unchanged
+  })
+
   it('debits balance and writes log + ledger', async () => {
     await commitRequest({
       id: 'req_01',

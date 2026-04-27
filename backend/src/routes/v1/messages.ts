@@ -8,6 +8,7 @@ import { forwardNonStream } from '../../gateway/proxy.js'
 import { computeCost } from '../../gateway/meter.js'
 import { commitRequest } from '../../gateway/biller.js'
 import { AppError } from '../../shared/errors.js'
+import type { UpstreamRow } from '../../services/upstream-keys.js'
 
 export const v1Messages = new Hono()
 
@@ -32,11 +33,51 @@ v1Messages.post('/', async (c) => {
 
   const requestHash = hashBody(body)
   const forwardBody = JSON.stringify(body)
-  const upstreamRequestHash = hashBody(JSON.parse(forwardBody))
+  // Fix 4: hashBody canonicalizes internally, no need to re-parse forwardBody
+  const upstreamRequestHash = hashBody(body)
 
-  const { upstream, response } = await forwardNonStream('/v1/messages', {
-    'anthropic-version': c.req.header('anthropic-version') ?? '2023-06-01',
-  }, forwardBody)
+  const id = 'req_' + ulid()
+  let upstream: UpstreamRow | null = null
+  let response: Response | null = null
+  let errorCode: string | null = null
+
+  try {
+    const att = await forwardNonStream('/v1/messages', {
+      'anthropic-version': c.req.header('anthropic-version') ?? '2023-06-01',
+    }, forwardBody)
+    upstream = att.upstream
+    response = att.response
+  } catch (e) {
+    if (e instanceof AppError) {
+      errorCode = e.code
+    } else {
+      errorCode = 'upstream_error'
+    }
+  }
+
+  if (!response || !upstream) {
+    // Fix 1: log the failure so there is always an audit trail, then re-throw
+    await commitRequest({
+      id,
+      userId: user.id,
+      apiKeyId: apiKey.id,
+      upstreamKeyId: null,
+      model: body.model,
+      upstreamModel: body.model,
+      endpoint: '/v1/messages',
+      stream: false,
+      status: 502,
+      errorCode,
+      latencyMs: Date.now() - started,
+      ttfbMs: null,
+      inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      chargeUsd: '0', costUsd: '0',
+      requestHash, upstreamRequestHash,
+      auditMatch: requestHash === upstreamRequestHash,
+      idempotencyKey: c.req.header('idempotency-key') ?? null,
+    })
+    throw new AppError((errorCode as any) ?? 'all_upstreams_down')
+  }
 
   const text = await response.text()
   let parsed: any = null
@@ -60,7 +101,7 @@ v1Messages.post('/', async (c) => {
   })
 
   await commitRequest({
-    id: 'req_' + ulid(),
+    id,
     userId: user.id,
     apiKeyId: apiKey.id,
     upstreamKeyId: upstream.id,
