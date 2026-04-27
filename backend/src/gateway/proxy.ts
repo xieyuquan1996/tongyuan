@@ -1,5 +1,5 @@
 // backend/src/gateway/proxy.ts
-import { env } from '../env.js'
+import { getAnthropicBaseUrl } from '../env.js'
 import { scheduler } from './scheduler.js'
 import { AppError } from '../shared/errors.js'
 import type { UpstreamRow } from '../services/upstream-keys.js'
@@ -23,7 +23,7 @@ export async function forwardNonStream(
   for (let i = 0; i < Math.min(pool.length, 3); i++) {
     const upstream = pool[i]!
     const apiKey = await scheduler.decrypt(upstream)
-    const url = new URL(path, env.ANTHROPIC_UPSTREAM_BASE_URL).toString()
+    const url = new URL(path, getAnthropicBaseUrl()).toString()
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -62,7 +62,7 @@ export async function forwardStream(
   for (let i = 0; i < Math.min(pool.length, 3); i++) {
     const upstream = pool[i]!
     const apiKey = await scheduler.decrypt(upstream)
-    const url = new URL(path, env.ANTHROPIC_UPSTREAM_BASE_URL).toString()
+    const url = new URL(path, getAnthropicBaseUrl()).toString()
     try {
       const res = await fetch(url, {
         method: 'POST',

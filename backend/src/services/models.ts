@@ -2,7 +2,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { models } from '../db/schema.js'
-import { env } from '../env.js'
+import { getAnthropicBaseUrl } from '../env.js'
 import { AppError } from '../shared/errors.js'
 
 export type ModelRow = typeof models.$inferSelect
@@ -38,7 +38,7 @@ export async function patch(
 // `authorization` is redundant against real Anthropic (they only check x-api-key)
 // but some relay-style upstreams gate /v1/models on Bearer. Dual-send is safe.
 export async function sync(upstreamApiKey: string): Promise<{ added: string[]; updated: string[] }> {
-  const res = await fetch(`${env.ANTHROPIC_UPSTREAM_BASE_URL}/v1/models?limit=100`, {
+  const res = await fetch(`${getAnthropicBaseUrl()}/v1/models?limit=100`, {
     headers: {
       'x-api-key': upstreamApiKey,
       'authorization': `Bearer ${upstreamApiKey}`,

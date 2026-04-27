@@ -30,3 +30,15 @@ export function getEnv(): Env {
   return _env
 }
 export const env: Env = new Proxy({} as Env, { get(_t, k) { return (getEnv() as any)[k] } })
+
+// Test-only override. Lets e2e tests point the upstream at a mock HTTP server
+// without having to reset the cached parsed env. Production code paths must
+// use getAnthropicBaseUrl() instead of reading env.ANTHROPIC_UPSTREAM_BASE_URL
+// directly so the override is honored.
+let _anthropicBaseUrlOverride: string | undefined
+export function setAnthropicBaseUrlOverride(url: string | undefined): void {
+  _anthropicBaseUrlOverride = url
+}
+export function getAnthropicBaseUrl(): string {
+  return _anthropicBaseUrlOverride ?? getEnv().ANTHROPIC_UPSTREAM_BASE_URL
+}
