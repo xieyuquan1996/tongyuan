@@ -9,8 +9,18 @@ import { AppError } from '../shared/errors.js'
 export type ApiKeyRow = typeof apiKeys.$inferSelect
 
 export function toPublicKey(row: ApiKeyRow) {
-  const { secretHash: _omit, ...rest } = row
-  return rest
+  return {
+    id: row.id,
+    user_id: row.userId,
+    name: row.name,
+    prefix: row.prefix,
+    state: row.state,
+    rpm_limit: row.rpmLimit,
+    tpm_limit: row.tpmLimit,
+    created_at: row.createdAt,
+    last_used_at: row.lastUsedAt,
+    revoked_at: row.revokedAt,
+  }
 }
 
 export async function createKey(userId: string, name: string) {

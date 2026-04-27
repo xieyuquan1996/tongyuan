@@ -85,6 +85,10 @@ describe('logs routes', () => {
     expect(j.audit).toBeDefined()
     expect(j.audit.request_hash).toBe('lhash1')
     expect(j.audit.upstream_endpoint).toContain('/v1/messages')
+    expect(j.audit.system_len).toBe(0)
+    expect(j.audit.messages_len).toBe(0)
+    expect(j.audit.max_tokens).toBe(0)
+    expect(j.audit.model_hash).toMatch(/^sha256:/)
   })
 
   it('GET /:id with non-owned id returns 404', async () => {

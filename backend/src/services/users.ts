@@ -30,6 +30,21 @@ export async function authenticate(email: string, password: string): Promise<Use
 }
 
 export function toPublicUser(row: UserRow) {
-  const { passwordHash: _omit, ...rest } = row
-  return rest
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    status: row.status,
+    plan: row.plan,
+    balance_usd: row.balanceUsd,
+    limit_monthly_usd: row.limitMonthlyUsd,
+    theme: row.theme,
+    company: row.company,
+    phone: row.phone,
+    notify_email: row.notifyEmail,
+    notify_browser: row.notifyBrowser,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  }
 }

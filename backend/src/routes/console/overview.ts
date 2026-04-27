@@ -3,6 +3,7 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import { requireBearer } from '../../middleware/auth-bearer.js'
 import { db } from '../../db/client.js'
 import { requestLogs } from '../../db/schema.js'
+import { fmtCny, toCny } from '../../shared/fx.js'
 
 export const overviewRoutes = new Hono()
 overviewRoutes.use('*', requireBearer)
@@ -33,14 +34,16 @@ overviewRoutes.get('/', async (c) => {
 
   const total = Number(stats!.count)
   const uptime = total === 0 ? '100.00%' : ((1 - Number(stats!.errors) / total) * 100).toFixed(2) + '%'
+  const spentUsd = Number(stats!.spent)
 
   return c.json({
     metrics: {
       uptime_30d: uptime,
       p99_live_ms: stats!.p99,
       requests_30d: String(total),
-      spent: `$${Number(stats!.spent).toFixed(2)}`,
-      projection: `$${(Number(stats!.spent) * 2).toFixed(2)}`,
+      spent: fmtCny(toCny(spentUsd)),
+      projection: fmtCny(toCny(spentUsd * 2)),
+      spent_usd: spentUsd.toFixed(6),
     },
     latency_series: latencyRows.reverse().map((r) => Number(r.latency)),
     recent_requests: recent.map((r) => ({

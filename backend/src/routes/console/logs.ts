@@ -56,6 +56,12 @@ logsRoutes.get('/:id', async (c) => {
       request_hash: row.requestHash,
       upstream_request_hash: row.upstreamRequestHash,
       match: row.auditMatch,
+      // Derived / stub fields for the audit drawer. Real values require
+      // persisting request body metadata at log time (deferred).
+      model_hash: `sha256:${row.requestHash.slice(0, 16)}...${row.requestHash.slice(-8)}`,
+      max_tokens: 0,
+      system_len: 0,
+      messages_len: 0,
     },
   })
 })
