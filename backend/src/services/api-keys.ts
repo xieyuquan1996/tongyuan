@@ -33,6 +33,15 @@ export async function revokeKey(userId: string, id: string): Promise<ApiKeyRow> 
   return row
 }
 
+export async function ensurePlaygroundKey(userId: string): Promise<ApiKeyRow> {
+  const existing = await db.query.apiKeys.findFirst({
+    where: and(eq(apiKeys.userId, userId), eq(apiKeys.name, 'playground'), eq(apiKeys.state, 'active')),
+  })
+  if (existing) return existing
+  const { row } = await createKey(userId, 'playground')
+  return row
+}
+
 export async function resolveKey(secret: string): Promise<ApiKeyRow> {
   if (!secret.startsWith('sk-relay-')) throw new AppError('unauthorized')
   const prefix = secret.slice(0, 16)
