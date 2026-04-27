@@ -93,6 +93,16 @@ export const billingLedger = pgTable('billing_ledger', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const alerts = pgTable('alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind').notNull(),        // 'balance_low' | 'spend_daily' | 'error_rate'
+  threshold: text('threshold').notNull(),
+  channel: text('channel').notNull(),  // 'email' | 'browser'
+  enabled: boolean('enabled').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const upstreamKeys = pgTable('upstream_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   alias: text('alias').notNull(),
