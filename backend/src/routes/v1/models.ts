@@ -1,9 +1,10 @@
 // backend/src/routes/v1/models.ts
 import { Hono } from 'hono'
 import * as svc from '../../services/models.js'
+import { requireApiKey } from '../../middleware/auth-api-key.js'
 
 export const v1Models = new Hono()
-// TODO(Task 24): gate with requireApiKey once middleware/auth-api-key.ts exists
+v1Models.use('*', requireApiKey)
 
 v1Models.get('/', async (c) => {
   const rows = await svc.list({ enabledOnly: true })
