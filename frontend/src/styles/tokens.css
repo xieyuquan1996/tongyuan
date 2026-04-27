@@ -1,0 +1,302 @@
+/* ============================================================
+   同源 — Design tokens.
+
+   Color system rules:
+   ─────────────────────────────────────────────────────────────
+   1. Components ONLY reference semantic tokens below (never raw
+      hex/rgba, and never the raw palette --paper-N or --ink-N).
+
+   2. Surface tiers (layering, low → high):
+        --surface-1            base page background
+        --surface-2            card on page
+        --surface-3            nested / hover / highlight row
+        --surface-glass        sticky blurred header
+        --surface-emphasis     "hero" card (e.g. 本月费用)
+        --surface-inverse      intentional inverse block (rare — e.g.
+                               avatar chip, active range-picker button)
+
+   3. Text tiers:
+        --text                 primary
+        --text-2               secondary
+        --text-3               muted / hint
+        --text-4               disabled
+        --text-on-emphasis[-2,-3]   text on --surface-emphasis
+        --text-on-inverse[-2,-3]    text on --surface-inverse
+        --on-clay              text/icon on --clay / --clay-hover
+
+   4. Borders:
+        --border               default
+        --border-strong        emphasized
+        --divider              hairline between rows
+        --track                progress-bar trough
+        --border-on-inverse    border inside --surface-inverse
+
+   5. State colors: each state has (bg-soft, text, accent):
+        --ok / --ok-soft / --ok-text
+        --warn / --warn-soft / --warn-text
+        --err / --err-soft / --err-text
+        --info / --info-soft / --info-text
+
+   6. Brand accent:
+        --clay, --clay-hover, --clay-press, --clay-soft
+        --on-clay              always-white foreground for clay fills
+
+   7. Buttons:
+        --btn-disabled-bg      disabled fill (NOT --text-4)
+        --btn-disabled-fg      disabled label
+
+   Raw palette (--paper-*, --ink-*) is defined below for internal
+   use only — do not reference it from components.
+   ============================================================ */
+
+:root {
+  /* Raw palette — light (internal use only) */
+  --paper: #F5F1EA;
+  --paper-2: #EDE8DE;
+  --paper-3: #E2DCCF;
+  --ink: #1A1814;
+  --ink-2: #4A453E;
+  --ink-3: #7A736A;
+  --ink-4: #A89F92;
+
+  --ink-04: rgba(26, 24, 20, 0.04);
+  --ink-08: rgba(26, 24, 20, 0.08);
+  --ink-12: rgba(26, 24, 20, 0.12);
+  --ink-24: rgba(26, 24, 20, 0.24);
+  --ink-40: rgba(26, 24, 20, 0.40);
+  --ink-64: rgba(26, 24, 20, 0.64);
+
+  /* Semantic surfaces */
+  --surface-1: #F5F1EA;
+  --surface-2: #FDFCF8;
+  --surface-3: #EDE8DE;
+  --surface-glass: rgba(245, 241, 234, 0.85);
+  --surface-emphasis: #E8E0D4;
+  --surface-inverse: #1B1916;
+
+  /* Semantic text */
+  --text: #1A1814;
+  --text-2: #4A453E;
+  --text-3: #7A736A;
+  --text-4: #A89F92;
+  --text-on-emphasis: #1A1814;
+  --text-on-emphasis-2: #4A453E;
+  --text-on-emphasis-3: #7A736A;
+  --text-on-inverse: #EFE9DC;
+  --text-on-inverse-2: rgba(239, 233, 220, 0.72);
+  --text-on-inverse-3: rgba(239, 233, 220, 0.45);
+  --text-on-inverse-4: rgba(239, 233, 220, 0.30);
+
+  /* Borders */
+  --border: rgba(26, 24, 20, 0.12);
+  --border-strong: rgba(26, 24, 20, 0.24);
+  --divider: rgba(26, 24, 20, 0.08);
+  --track: rgba(26, 24, 20, 0.06);
+  --border-on-inverse: rgba(239, 233, 220, 0.12);
+
+  /* Overlay */
+  --overlay-bg: rgba(26, 24, 20, 0.48);
+
+  /* Code blocks — follow theme. Light mode uses a tinted warm surface
+     that reads as "code" next to cards on surface-2; dark mode uses
+     an elevated dark block. */
+  --code-bg: #EDE6D8;
+  --code-fg: #1A1814;
+  --code-header-bg: #E2DACA;
+  --code-header-fg: rgba(26, 24, 20, 0.55);
+
+  /* Brand */
+  --clay: #C8553D;
+  --clay-hover: #B14732;
+  --clay-press: #9C3C2A;
+  --clay-soft: #F2DAD2;
+  --on-clay: #FFFFFF;
+
+  /* Buttons */
+  --btn-disabled-bg: rgba(26, 24, 20, 0.08);
+  --btn-disabled-fg: rgba(26, 24, 20, 0.35);
+
+  /* States */
+  --ok: #5A8A5A;
+  --ok-soft: #DCE8DA;
+  --ok-text: #3D6B3D;
+  --warn: #C8954A;
+  --warn-soft: #F2E4CC;
+  --warn-text: #8C6630;
+  --err: #B0413E;
+  --err-soft: #F2D6D4;
+  --err-text: #7A2C2A;
+  --info: #4A6B8A;
+  --info-soft: #D8E2EC;
+  --info-text: #3D5470;
+
+  /* Typography */
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  --font-sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radii / shadows / motion */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --shadow-pop: 0 1px 2px rgba(26, 24, 20, 0.06), 0 8px 24px rgba(26, 24, 20, 0.08);
+  --shadow-modal: 0 4px 12px rgba(26, 24, 20, 0.10), 0 24px 48px rgba(26, 24, 20, 0.14);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 240ms;
+
+  --content-max: 1280px;
+  --nav-h: 64px;
+  --sidebar-w: 240px;
+  --gutter: 32px;
+}
+
+:root[data-theme="dark"] {
+  /* Raw palette — dark (internal use only) */
+  --paper: #14120F;
+  --paper-2: #1E1A15;
+  --paper-3: #2A2520;
+  --ink: #EFE9DC;
+  --ink-2: #BFB6A3;
+  --ink-3: #8C8474;
+  --ink-4: #5C5648;
+
+  --ink-04: rgba(239, 233, 220, 0.04);
+  --ink-08: rgba(239, 233, 220, 0.08);
+  --ink-12: rgba(239, 233, 220, 0.12);
+  --ink-24: rgba(239, 233, 220, 0.24);
+  --ink-40: rgba(239, 233, 220, 0.40);
+  --ink-64: rgba(239, 233, 220, 0.64);
+
+  /* Semantic surfaces — each tier is LIGHTER than the last (elevation up). */
+  --surface-1: #14120F;
+  --surface-2: #1E1A15;
+  --surface-3: #2A2520;
+  --surface-glass: rgba(20, 18, 15, 0.85);
+  --surface-emphasis: #2E2218;
+  --surface-inverse: #F5F1EA;
+
+  /* Semantic text */
+  --text: #EFE9DC;
+  --text-2: #BFB6A3;
+  --text-3: #8C8474;
+  --text-4: #5C5648;
+  --text-on-emphasis: #EFE9DC;
+  --text-on-emphasis-2: #BFB6A3;
+  --text-on-emphasis-3: #8C8474;
+  --text-on-inverse: #1A1814;
+  --text-on-inverse-2: rgba(26, 24, 20, 0.72);
+  --text-on-inverse-3: rgba(26, 24, 20, 0.55);
+  --text-on-inverse-4: rgba(26, 24, 20, 0.40);
+
+  /* Borders */
+  --border: rgba(239, 233, 220, 0.12);
+  --border-strong: rgba(239, 233, 220, 0.24);
+  --divider: rgba(239, 233, 220, 0.08);
+  --track: rgba(239, 233, 220, 0.06);
+  --border-on-inverse: rgba(26, 24, 20, 0.12);
+
+  --overlay-bg: rgba(0, 0, 0, 0.60);
+
+  /* Code blocks — dark mode: slightly elevated so they stand out */
+  --code-bg: #2A2520;
+  --code-fg: #EFE9DC;
+  --code-header-bg: #1E1A15;
+  --code-header-fg: rgba(239, 233, 220, 0.55);
+
+  /* Brand — dark. Hover slightly brighter. clay-press is used as a
+     link/accent color in this codebase (not as a button press state),
+     so in dark mode it must be BRIGHTER than base clay to read as a
+     link on a dark surface. */
+  --clay: #E06B52;
+  --clay-hover: #F07D64;
+  --clay-press: #F08A74;
+  --clay-soft: #3A2520;
+  --on-clay: #FFFFFF;
+
+  /* Buttons */
+  --btn-disabled-bg: rgba(239, 233, 220, 0.08);
+  --btn-disabled-fg: rgba(239, 233, 220, 0.35);
+
+  /* States — dark. `*-text` brightened to stay legible. */
+  --ok: #6FA86F;
+  --ok-soft: #1F2E1F;
+  --ok-text: #9CC79C;
+  --warn: #D6A55F;
+  --warn-soft: #2E2418;
+  --warn-text: #E8C38A;
+  --err: #C65552;
+  --err-soft: #2E1C1C;
+  --err-text: #E89692;
+  --info: #6F8FAB;
+  --info-soft: #1D2632;
+  --info-text: #A6BCD2;
+
+  --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background: var(--surface-1);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  margin: 0;
+}
+
+p, li, dd { margin: 0; }
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; color: inherit; }
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--dur) var(--ease);
+}
+a:hover { text-decoration-color: var(--clay); }
+
+::selection { background: var(--clay); color: var(--on-clay); }
+
+*:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
