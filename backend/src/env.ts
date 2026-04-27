@@ -20,5 +20,13 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
 }
 
 let _env: Env | null = null
-export function getEnv(): Env { return _env ??= parseEnv(process.env) }
+export function getEnv(): Env {
+  if (_env) return _env
+  _env = parseEnv(process.env)
+  if (_env.NODE_ENV === 'production' && !_env.METRICS_TOKEN) {
+    // eslint-disable-next-line no-console
+    console.warn('[env] WARN: NODE_ENV=production but METRICS_TOKEN is empty — /metrics is publicly accessible')
+  }
+  return _env
+}
 export const env: Env = new Proxy({} as Env, { get(_t, k) { return (getEnv() as any)[k] } })

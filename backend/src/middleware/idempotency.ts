@@ -33,9 +33,22 @@ export function idempotency(getKey: IdemKeyFn): MiddlewareHandler {
     }
 
     // We own the key — run the handler, then persist the response.
-    await next()
+    // If the handler throws or returns 5xx, clear the sentinel so retries work.
+    try {
+      await next()
+    } catch (e) {
+      await redis.del(key).catch(() => {})
+      throw e
+    }
     const res = c.res
-    if (!res) return
+    if (!res) {
+      await redis.del(key).catch(() => {})
+      return
+    }
+    if (res.status >= 500) {
+      await redis.del(key).catch(() => {})
+      return
+    }
     const body = await res.clone().text()
     const payload = JSON.stringify({
       status: res.status,

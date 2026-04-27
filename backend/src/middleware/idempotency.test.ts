@@ -77,4 +77,74 @@ describe('idempotency', () => {
     await app.fetch(new Request('http://x/', { method: 'POST', headers: { 'idempotency-key': 'skip-me' } }))
     expect(n).toBe(2)
   })
+
+  it('handler-throws → sentinel cleared, retry runs again', async () => {
+    const app = new Hono()
+    let n = 0
+    app.use('*', idempotency((c) => {
+      const h = c.req.header('idempotency-key')
+      return h ? `${prefix}:${h}` : null
+    }))
+    app.onError((_err, c) => c.json({ error: 'boom' }, 500))
+    app.post('/', () => { n++; throw new Error('boom') })
+
+    const r1 = await app.fetch(new Request('http://x/', {
+      method: 'POST', headers: { 'idempotency-key': 'throw-key' },
+    }))
+    expect(r1.status).toBe(500)
+    // Key should NOT remain in redis after a throw
+    const stored = await redis.get(`${prefix}:throw-key`)
+    expect(stored).toBeNull()
+
+    const r2 = await app.fetch(new Request('http://x/', {
+      method: 'POST', headers: { 'idempotency-key': 'throw-key' },
+    }))
+    expect(r2.status).toBe(500)
+    expect(n).toBe(2)  // handler ran both times
+  })
+
+  it('handler returns 5xx → not cached, retry runs again', async () => {
+    const app = new Hono()
+    let n = 0
+    app.use('*', idempotency((c) => {
+      const h = c.req.header('idempotency-key')
+      return h ? `${prefix}:${h}` : null
+    }))
+    app.post('/', (c) => { n++; return c.json({ err: 1 }, 500) })
+
+    const r1 = await app.fetch(new Request('http://x/', {
+      method: 'POST', headers: { 'idempotency-key': '5xx-key' },
+    }))
+    expect(r1.status).toBe(500)
+
+    const r2 = await app.fetch(new Request('http://x/', {
+      method: 'POST', headers: { 'idempotency-key': '5xx-key' },
+    }))
+    expect(r2.status).toBe(500)
+    expect(r2.headers.get('x-idempotent-replay')).toBeNull()
+    expect(n).toBe(2)
+  })
+
+  it('handler returns 4xx → CACHED, retry replays', async () => {
+    const app = new Hono()
+    let n = 0
+    app.use('*', idempotency((c) => {
+      const h = c.req.header('idempotency-key')
+      return h ? `${prefix}:${h}` : null
+    }))
+    app.post('/', (c) => { n++; return c.json({ error: 'bad' }, 400) })
+
+    const r1 = await app.fetch(new Request('http://x/', {
+      method: 'POST', headers: { 'idempotency-key': '4xx-key' },
+    }))
+    expect(r1.status).toBe(400)
+    expect(r1.headers.get('x-idempotent-replay')).toBeNull()
+
+    const r2 = await app.fetch(new Request('http://x/', {
+      method: 'POST', headers: { 'idempotency-key': '4xx-key' },
+    }))
+    expect(r2.status).toBe(400)
+    expect(r2.headers.get('x-idempotent-replay')).toBe('true')
+    expect(n).toBe(1)  // replayed, handler did not run twice
+  })
 })
