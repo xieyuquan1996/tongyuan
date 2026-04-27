@@ -5,6 +5,7 @@ import { keysRoutes } from './routes/console/keys.js'
 import { upstreamKeysRoutes } from './routes/admin/upstream-keys.js'
 import { adminModelsRoutes } from './routes/admin/models.js'
 import { v1Models } from './routes/v1/models.js'
+import { v1Messages } from './routes/v1/messages.js'
 
 export function createApp() {
   const app = new Hono()
@@ -25,6 +26,7 @@ export function createApp() {
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)
   app.route('/api/admin/models', adminModelsRoutes)
   app.route('/v1/models', v1Models)
+  app.route('/v1/messages', v1Messages)
   app.notFound((c) => c.json({ error: 'route_not_found' }, 404))
   return app
 }
