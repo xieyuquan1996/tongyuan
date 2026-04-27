@@ -9,6 +9,7 @@ import { v1Messages } from './routes/v1/messages.js'
 import { v1CountTokens } from './routes/v1/count-tokens.js'
 import { overviewRoutes } from './routes/console/overview.js'
 import { logsRoutes } from './routes/console/logs.js'
+import { billingRoutes, invoicesRoutes, rechargesRoutes, rechargeRoutes } from './routes/console/billing.js'
 
 export function createApp() {
   const app = new Hono()
@@ -28,6 +29,10 @@ export function createApp() {
   app.route('/api/console/keys', keysRoutes)
   app.route('/api/console/overview', overviewRoutes)
   app.route('/api/console/logs', logsRoutes)
+  app.route('/api/console/billing', billingRoutes)
+  app.route('/api/console/invoices', invoicesRoutes)
+  app.route('/api/console/recharges', rechargesRoutes)
+  app.route('/api/console/recharge', rechargeRoutes)
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)
   app.route('/api/admin/models', adminModelsRoutes)
   app.route('/v1/models', v1Models)
