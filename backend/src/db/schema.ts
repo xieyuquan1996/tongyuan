@@ -41,3 +41,18 @@ export const apiKeys = pgTable('api_keys', {
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
 })
+
+export const upstreamKeys = pgTable('upstream_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  alias: text('alias').notNull(),
+  provider: text('provider').notNull().default('anthropic_official'),
+  keyCiphertext: text('key_ciphertext').notNull(),   // base64
+  keyPrefix: text('key_prefix').notNull(),
+  state: text('state').notNull().default('active'),  // 'active' | 'cooldown' | 'disabled'
+  priority: numeric('priority').notNull().default('100'),
+  cooldownUntil: timestamp('cooldown_until', { withTimezone: true }),
+  lastErrorCode: text('last_error_code'),
+  lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
+  quotaHintUsd: numeric('quota_hint_usd', { precision: 12, scale: 2 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
