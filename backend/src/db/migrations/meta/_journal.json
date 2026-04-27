@@ -8,6 +8,13 @@
       "when": 1777324341501,
       "tag": "0000_equal_inhumans",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777325034726,
+      "tag": "0001_furry_millenium_guard",
+      "breakpoints": true
     }
   ]
 }
