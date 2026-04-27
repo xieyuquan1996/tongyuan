@@ -8,6 +8,7 @@ import { v1Models } from './routes/v1/models.js'
 import { v1Messages } from './routes/v1/messages.js'
 import { v1CountTokens } from './routes/v1/count-tokens.js'
 import { overviewRoutes } from './routes/console/overview.js'
+import { logsRoutes } from './routes/console/logs.js'
 
 export function createApp() {
   const app = new Hono()
@@ -26,6 +27,7 @@ export function createApp() {
   app.route('/api/console', authRoutes)
   app.route('/api/console/keys', keysRoutes)
   app.route('/api/console/overview', overviewRoutes)
+  app.route('/api/console/logs', logsRoutes)
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)
   app.route('/api/admin/models', adminModelsRoutes)
   app.route('/v1/models', v1Models)
