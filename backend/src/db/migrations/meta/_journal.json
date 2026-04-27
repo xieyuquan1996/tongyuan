@@ -36,6 +36,13 @@
       "when": 1777326467915,
       "tag": "0004_hard_cargill",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777327034955,
+      "tag": "0005_sturdy_havok",
+      "breakpoints": true
     }
   ]
 }

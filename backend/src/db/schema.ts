@@ -57,6 +57,42 @@ export const models = pgTable('models', {
   syncedAt: timestamp('synced_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const requestLogs = pgTable('request_logs', {
+  id: text('id').primaryKey(),                          // 'req_' + ulid
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  apiKeyId: uuid('api_key_id').notNull().references(() => apiKeys.id, { onDelete: 'set null' }),
+  upstreamKeyId: uuid('upstream_key_id').references(() => upstreamKeys.id, { onDelete: 'set null' }),
+  model: text('model').notNull(),
+  upstreamModel: text('upstream_model').notNull(),
+  endpoint: text('endpoint').notNull(),
+  stream: boolean('stream').notNull().default(false),
+  status: numeric('status').notNull(),
+  errorCode: text('error_code'),
+  latencyMs: numeric('latency_ms').notNull().default('0'),
+  ttfbMs: numeric('ttfb_ms'),
+  inputTokens: numeric('input_tokens').notNull().default('0'),
+  outputTokens: numeric('output_tokens').notNull().default('0'),
+  cacheReadTokens: numeric('cache_read_tokens').notNull().default('0'),
+  cacheWriteTokens: numeric('cache_write_tokens').notNull().default('0'),
+  costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+  requestHash: text('request_hash').notNull(),
+  upstreamRequestHash: text('upstream_request_hash').notNull(),
+  auditMatch: boolean('audit_match').notNull(),
+  idempotencyKey: text('idempotency_key'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const billingLedger = pgTable('billing_ledger', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  requestLogId: text('request_log_id').references(() => requestLogs.id, { onDelete: 'set null' }),
+  kind: text('kind').notNull(),                         // debit_usage | credit_signup | credit_admin_adjust
+  amountUsd: numeric('amount_usd', { precision: 12, scale: 6 }).notNull(),
+  balanceAfterUsd: numeric('balance_after_usd', { precision: 12, scale: 6 }).notNull(),
+  note: text('note').notNull().default(''),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const upstreamKeys = pgTable('upstream_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
   alias: text('alias').notNull(),
