@@ -6,9 +6,10 @@ import { session } from "../../lib/api.js";
 
 const SECTIONS = [
   ["入门", [
-    ["quickstart", "快速开始"],
-    ["auth",       "认证与密钥"],
-    ["regions",    "区域选择"],
+    ["quickstart",  "快速开始"],
+    ["claude-code", "接入 Claude Code"],
+    ["auth",        "认证与密钥"],
+    ["regions",     "区域选择"],
   ]],
   ["API 参考", [
     ["messages",  "messages.create"],
@@ -30,6 +31,13 @@ const TOC = {
     { id: "call", label: "3 · 第一次调用" },
     { id: "verify", label: "4 · 验证保真" },
     { id: "next", label: "下一步" },
+  ],
+  "claude-code": [
+    { id: "top", label: "接入 Claude Code" },
+    { id: "install", label: "方式 A · 自动安装" },
+    { id: "manual", label: "方式 B · 手动配置" },
+    { id: "verify", label: "验证接入成功" },
+    { id: "troubleshoot", label: "常见问题" },
   ],
   auth: [
     { id: "top", label: "认证与密钥" },

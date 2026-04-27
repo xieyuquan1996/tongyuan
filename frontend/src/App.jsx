@@ -7,6 +7,7 @@ import StatusPage from "./pages/Status.jsx";
 import Changelog from "./pages/Changelog.jsx";
 import DocsLayout from "./pages/docs/Layout.jsx";
 import QuickstartArticle from "./pages/docs/Quickstart.jsx";
+import ClaudeCodeArticle from "./pages/docs/ClaudeCode.jsx";
 import MessagesArticle from "./pages/docs/Messages.jsx";
 import AuditArticle from "./pages/docs/Audit.jsx";
 import AuthArticle from "./pages/docs/Auth.jsx";
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/docs" element={<DocsLayout />}>
           <Route index element={<Navigate to="quickstart" replace />} />
           <Route path="quickstart" element={<QuickstartArticle />} />
+          <Route path="claude-code" element={<ClaudeCodeArticle />} />
           <Route path="auth" element={<AuthArticle />} />
           <Route path="regions" element={<RegionsArticle />} />
           <Route path="messages" element={<MessagesArticle />} />
