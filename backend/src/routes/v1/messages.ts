@@ -1,6 +1,7 @@
 // backend/src/routes/v1/messages.ts
 import { Hono } from 'hono'
 import { requireApiKey } from '../../middleware/auth-api-key.js'
+import { rateLimit, DEFAULT_RPM } from '../../middleware/rate-limit.js'
 import { getById as getModel } from '../../services/models.js'
 import { handleNonStream, handleStream } from '../../gateway/handle-messages.js'
 import { AppError } from '../../shared/errors.js'
@@ -8,6 +9,15 @@ import { AppError } from '../../shared/errors.js'
 export const v1Messages = new Hono()
 
 v1Messages.use('*', requireApiKey)
+v1Messages.use('*', rateLimit((c) => {
+  const apiKey = c.get('apiKey')
+  const bucket = Math.floor(Date.now() / 60_000)
+  return {
+    key: `rl:api_key:${apiKey.id}:${bucket}`,
+    limit: apiKey.rpmLimit ? Number(apiKey.rpmLimit) : DEFAULT_RPM,
+    windowSec: 60,
+  }
+}))
 
 v1Messages.post('/', async (c) => {
   const user = c.get('user')
