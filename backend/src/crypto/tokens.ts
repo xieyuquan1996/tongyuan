@@ -13,9 +13,16 @@ export function hashSessionToken(token: string): string {
 
 const BASE62 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 function randBase62(n: number): string {
-  const buf = randomBytes(n)
+  // Rejection sampling to avoid modulo bias. Uniform threshold = floor(256/62)*62 = 248.
+  const THRESHOLD = 248
   let out = ''
-  for (let i = 0; i < n; i++) out += BASE62[buf[i]! % 62]
+  while (out.length < n) {
+    const buf = randomBytes(n - out.length + 8)  // slight overdraw to reduce retries
+    for (let i = 0; i < buf.length && out.length < n; i++) {
+      const b = buf[i]!
+      if (b < THRESHOLD) out += BASE62[b % 62]
+    }
+  }
   return out
 }
 

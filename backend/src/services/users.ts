@@ -23,9 +23,9 @@ export async function createUser(input: { email: string; password: string; name:
 export async function authenticate(email: string, password: string): Promise<UserRow> {
   const row = await db.query.users.findFirst({ where: eq(users.email, email.trim().toLowerCase()) })
   if (!row) throw new AppError('invalid_credentials')
+  if (row.status === 'suspended') throw new AppError('account_suspended')
   const ok = await verifyPassword(password, row.passwordHash)
   if (!ok) throw new AppError('invalid_credentials')
-  if (row.status === 'suspended') throw new AppError('account_suspended')
   return row
 }
 
