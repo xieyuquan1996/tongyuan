@@ -55,6 +55,11 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
+    # Needed on Linux so host.docker.internal resolves to the host gateway.
+    # macOS/Windows Docker Desktop already provides this name; keeping it here
+    # is a no-op on those platforms and a must-have on Linux servers.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       NODE_ENV: production
       PORT: 8080
