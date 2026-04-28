@@ -26,6 +26,7 @@ import { publicModels } from './routes/public/models.js'
 import { publicPlans } from './routes/public/plans.js'
 import { publicStatus } from './routes/public/status.js'
 import { publicChangelog } from './routes/public/changelog.js'
+import { analyticsRoutes } from './routes/console/analytics.js'
 import { installRoutes } from './routes/install.js'
 
 export function createApp() {
@@ -53,6 +54,7 @@ export function createApp() {
   app.route('/api/console/recharge', rechargeRoutes)
   app.route('/api/console/alerts', alertsRoutes)
   app.route('/api/console/playground', playgroundRoutes)
+  app.route('/api/console/analytics', analyticsRoutes)
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)
   app.route('/api/admin/models', adminModelsRoutes)
   app.route('/api/admin/overview', adminOverviewRoutes)

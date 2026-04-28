@@ -202,7 +202,7 @@ function StatusStrip() {
         <div style={{ display: "flex", alignItems: "baseline", marginBottom: 24, gap: 16 }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--clay)" }}>● LIVE</div>
           <h3 style={{ fontSize: 18, fontWeight: 500, margin: 0, color: "var(--text-on-emphasis)", whiteSpace: "nowrap" }}>各区域实时延迟 · 每 10 秒刷新</h3>
-          <a href="#" style={{ marginLeft: "auto", color: "var(--text-on-emphasis-3)", fontSize: 13, textDecoration: "none" }}>查看完整状态页 →</a>
+          <a href="/status" style={{ marginLeft: "auto", color: "var(--text-on-emphasis-3)", fontSize: 13, textDecoration: "none" }}>查看完整状态页 →</a>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, regions.length)}, 1fr)`, borderTop: "1px solid var(--track)" }}>
           {regions.map(r => (
@@ -231,7 +231,7 @@ function ModelsTable() {
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 8px" }}>
           全系 Claude 模型 · 与官方同步上架
         </h2>
-        <p style={{ fontSize: 15, color: "var(--text-3)", margin: "0 0 32px" }}>价格按 Anthropic 官方 USD / 1M tokens 标价 · 我们加 5% 服务费 · 无最低消费</p>
+        <p style={{ fontSize: 15, color: "var(--text-3)", margin: "0 0 32px" }}>按量计费 · 无最低消费</p>
         <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>

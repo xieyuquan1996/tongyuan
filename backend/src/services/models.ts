@@ -22,6 +22,7 @@ export async function patch(
   id: string,
   p: Partial<Pick<ModelRow,
     | 'displayName' | 'markupPct' | 'enabled' | 'recommended' | 'note'
+    | 'contextWindow'
     | 'inputPriceUsdPerMtok' | 'outputPriceUsdPerMtok'
     | 'cacheReadPriceUsdPerMtok' | 'cacheWritePriceUsdPerMtok'
   >>,

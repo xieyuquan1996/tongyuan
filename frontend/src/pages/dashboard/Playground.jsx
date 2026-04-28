@@ -148,7 +148,28 @@ export default function Playground() {
                     <Pill dot mono>{resp.audit_id}</Pill>
                     <Pill tone="clay" dot>{resp.usage.input_tokens + resp.usage.output_tokens} tokens</Pill>
                   </div>
-                  <Code>{resp.content?.[0]?.text || ""}</Code>
+                  {(() => {
+                    const blocks = Array.isArray(resp.content) ? resp.content : [];
+                    const thinking = blocks.filter(b => b?.type === "thinking").map(b => b.thinking).join("\n\n").trim();
+                    const text = blocks.filter(b => b?.type === "text").map(b => b.text).join("\n\n").trim();
+                    return (
+                      <>
+                        {thinking && (
+                          <details style={{ marginBottom: 12, fontSize: 13 }}>
+                            <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
+                              思考过程（thinking）
+                            </summary>
+                            <Code>{thinking}</Code>
+                          </details>
+                        )}
+                        {text
+                          ? <Code>{text}</Code>
+                          : (!thinking && <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13, border: "1px dashed var(--border)", borderRadius: 12 }}>
+                              响应里没有 text 块。
+                            </div>)}
+                      </>
+                    );
+                  })()}
                   <details style={{ marginTop: 16, fontSize: 13 }}>
                     <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>完整 JSON 响应</summary>
                     <Code mono>{JSON.stringify(resp, null, 2)}</Code>
@@ -167,9 +188,10 @@ export default function Playground() {
 
 function toCurl({ model, maxTokens, temperature, systemPrompt, messages }) {
   const body = JSON.stringify({ model, max_tokens: maxTokens, temperature, system: systemPrompt, messages }, null, 2);
-  return `curl https://api.tongyuan.ai/v1/messages \\
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://your-relay.example.com";
+  return `curl ${origin}/v1/messages \\
   -H "content-type: application/json" \\
-  -H "x-api-key: $TONGYUAN_API_KEY" \\
+  -H "x-api-key: $RELAY_API_KEY" \\
   -H "anthropic-version: 2023-06-01" \\
   -d '${body.replace(/'/g, "'\\''")}'`;
 }

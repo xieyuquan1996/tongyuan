@@ -8,8 +8,9 @@ import { requireBearer } from '../../middleware/auth-bearer.js'
 import { hashPassword, verifyPassword } from '../../crypto/password.js'
 import { AppError } from '../../shared/errors.js'
 import { db } from '../../db/client.js'
-import { users } from '../../db/schema.js'
-import { eq } from 'drizzle-orm'
+import { users, billingLedger } from '../../db/schema.js'
+import { eq, and, gte, sql } from 'drizzle-orm'
+import { toCny, USD_TO_CNY } from '../../shared/fx.js'
 
 export const authRoutes = new Hono()
 
@@ -46,7 +47,22 @@ authRoutes.post('/logout', requireBearer, async (c) => {
   return c.json({ ok: true })
 })
 
-authRoutes.get('/me', requireBearer, (c) => c.json(toPublicUser(c.get('user'))))
+authRoutes.get('/me', requireBearer, async (c) => {
+  const u = c.get('user')
+  // Compute MTD spending to populate the sidebar usage widget.
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const [row] = await db.select({
+    spentUsd: sql<string>`coalesce(sum(-amount_usd), 0)::text`,
+  }).from(billingLedger)
+    .where(and(eq(billingLedger.userId, u.id), eq(billingLedger.kind, 'debit_usage'), gte(billingLedger.createdAt, monthStart)))
+
+  const spentUsd = Number(row!.spentUsd)
+  const limitUsd = u.limitMonthlyUsd ? Number(u.limitMonthlyUsd) : 200 / USD_TO_CNY
+  const pub = toPublicUser(u) as Record<string, unknown>
+  pub.spent_this_month = toCny(spentUsd).toFixed(2)
+  pub.limit_this_month = toCny(limitUsd).toFixed(2)
+  return c.json(pub)
+})
 
 const profileBody = z.object({
   name: z.string().optional(),
