@@ -115,7 +115,7 @@ adminModelsRoutes.patch('/:id', zValidator('json', z.object({
 })
 
 adminModelsRoutes.delete('/:id', async (c) => {
-  await svc.patch(c.req.param('id'), { enabled: false })
+  await svc.remove(c.req.param('id'))
   return c.json({ ok: true })
 })
 

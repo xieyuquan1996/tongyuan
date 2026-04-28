@@ -21,7 +21,8 @@ playgroundRoutes.post('/', async (c) => {
   if (!model.enabled) throw new AppError('unknown_model')
 
   const apiKey = await ensurePlaygroundKey(user.id)
-  return handleNonStream(c, {
+  const started = Date.now()
+  const res = await handleNonStream(c, {
     user,
     apiKey,
     body,
@@ -30,4 +31,11 @@ playgroundRoutes.post('/', async (c) => {
     idempotencyKey: c.req.header('idempotency-key') ?? null,
     anthropicVersion: c.req.header('anthropic-version') ?? '2023-06-01',
   })
+  const latencyMs = Date.now() - started
+  const text = await res.text()
+  let parsed: any = null
+  try { parsed = JSON.parse(text) } catch {}
+  if (!parsed) return new Response(text, { status: res.status, headers: { 'content-type': 'application/json' } })
+  parsed.latencyMs = latencyMs
+  return c.json(parsed, res.status as any)
 })

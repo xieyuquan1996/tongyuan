@@ -7,7 +7,7 @@ import { Pill } from "../../components/primitives.jsx";
 const DEFAULT_SYSTEM = "你是一个乐于助人的助手。回答要简洁。";
 
 export default function Playground() {
-  const [model, setModel] = useState("claude-sonnet-4.5");
+  const [model, setModel] = useState("");
   const [maxTokens, setMaxTokens] = useState(1024);
   const [temperature, setTemperature] = useState(1.0);
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM);
@@ -21,7 +21,11 @@ export default function Playground() {
   const [tab, setTab] = useState("response");
 
   useEffect(() => {
-    api("/api/public/models").then((r) => setModels(r.models || [])).catch(() => {});
+    api("/api/public/models").then((r) => {
+      const list = r.models || [];
+      setModels(list);
+      if (list.length > 0) setModel(list[0].id);
+    }).catch(() => {});
   }, []);
 
   function addMessage() {
@@ -144,8 +148,8 @@ export default function Playground() {
                 <div>
                   <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
                     <Pill tone="ok" dot>200 OK</Pill>
-                    <Pill dot>{resp.latency_ms}ms</Pill>
-                    <Pill dot mono>{resp.audit_id}</Pill>
+                    <Pill dot>{resp.latency_ms ?? resp.latencyMs}ms</Pill>
+                    {(resp.audit_id ?? resp.id) && <Pill dot mono>{(resp.audit_id ?? resp.id)?.slice(0, 16)}…</Pill>}
                     <Pill tone="clay" dot>{resp.usage.input_tokens + resp.usage.output_tokens} tokens</Pill>
                   </div>
                   {(() => {
