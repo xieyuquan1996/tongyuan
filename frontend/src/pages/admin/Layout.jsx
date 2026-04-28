@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard, Users, KeyRound, List, CreditCard, Cpu, Globe2,
   Megaphone, History, ShieldCheck, ChevronDown, LogOut, User, Sun, Moon,
-  Command, AlertTriangle,
+  Command, Key,
 } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
 import { api, session, logout } from "../../lib/api.js";
@@ -95,6 +95,7 @@ export default function AdminLayout() {
           <SideItem to="/admin/logs" icon={List}>全部请求</SideItem>
           <SideItem to="/admin/billing" icon={CreditCard}>账单 / 收入</SideItem>
           <Group style={{ marginTop: 16 }}>平台配置</Group>
+          <SideItem to="/admin/upstream-keys" icon={Key}>上游密钥</SideItem>
           <SideItem to="/admin/models" icon={Cpu}>模型</SideItem>
           <SideItem to="/admin/regions" icon={Globe2}>区域 / 状态</SideItem>
           <SideItem to="/admin/announcements" icon={Megaphone}>公告</SideItem>

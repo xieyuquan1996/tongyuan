@@ -8,8 +8,8 @@ export default function Login() {
   const nav = useNavigate();
   const loc = useLocation();
   const from = loc.state?.from || "/dashboard";
-  const [email, setEmail] = useState("demo@tongyuan.ai");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -57,16 +57,6 @@ export default function Login() {
           <Link to="/forgot" style={{ color: "var(--text-2)" }}>忘记密码？</Link>
         </div>
       </form>
-      <div style={{
-        marginTop: 28, paddingTop: 20,
-        borderTop: "1px solid var(--divider)",
-        fontFamily: "var(--font-mono)", fontSize: 11,
-        color: "var(--text-3)", lineHeight: 1.7,
-      }}>
-        <div style={{ marginBottom: 4, letterSpacing: "0.12em", textTransform: "uppercase" }}>DEMO CREDENTIALS</div>
-        user:  demo@tongyuan.ai / demo1234<br/>
-        admin: admin@tongyuan.ai / admin1234
-      </div>
     </AuthShell>
   );
 }
