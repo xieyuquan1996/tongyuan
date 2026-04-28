@@ -13,12 +13,17 @@ export default function DashboardLayout() {
   const nav = useNavigate();
   const [user, setUser] = useState(session.user);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [banners, setBanners] = useState([]);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("ty.dismissed_banners") || "[]"); } catch { return []; }
+  });
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     api("/api/console/me")
       .then((u) => { setUser(u); session.save(u, JSON.parse(localStorage.getItem("ty.session") || "{}")); })
       .catch((err) => { if (err.status === 401) { session.clear(); nav("/login", { replace: true }); } });
+    api("/api/public/announcements").then((r) => setBanners(r.announcements || [])).catch(() => {});
   }, [nav]);
 
   useEffect(() => {
@@ -41,6 +46,13 @@ export default function DashboardLayout() {
 
   return (
     <div>
+      {banners.filter(b => !dismissed.includes(b.id)).map(b => (
+        <AnnouncementBanner key={b.id} banner={b} onDismiss={() => {
+          const next = [...dismissed, b.id];
+          setDismissed(next);
+          localStorage.setItem("ty.dismissed_banners", JSON.stringify(next));
+        }}/>
+      ))}
       <header style={topNav}>
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={26}/>
@@ -259,3 +271,31 @@ const miniLabel = {
   fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em",
   textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6,
 };
+
+const SEVERITY_COLORS = {
+  info: { bg: "var(--info-soft)", border: "var(--info)", text: "var(--info-text)" },
+  warn: { bg: "var(--warn-soft)", border: "var(--warn)", text: "var(--warn-text)" },
+  err:  { bg: "var(--err-soft)",  border: "var(--err)",  text: "var(--err-text)"  },
+};
+
+function AnnouncementBanner({ banner, onDismiss }) {
+  const c = SEVERITY_COLORS[banner.severity] || SEVERITY_COLORS.info;
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 12,
+      padding: "10px 24px",
+      background: c.bg,
+      borderBottom: `1px solid ${c.border}`,
+      fontSize: 13, color: c.text,
+    }}>
+      <span style={{ flex: 1 }}>
+        <b>{banner.title}</b>
+        {banner.body ? <span style={{ marginLeft: 8, opacity: 0.85 }}>{banner.body}</span> : null}
+      </span>
+      <button onClick={onDismiss} style={{
+        background: "transparent", border: "none", cursor: "pointer",
+        color: c.text, opacity: 0.6, padding: "2px 6px", fontSize: 16, lineHeight: 1,
+      }}>×</button>
+    </div>
+  );
+}

@@ -117,3 +117,14 @@ export const upstreamKeys = pgTable('upstream_keys', {
   quotaHintUsd: numeric('quota_hint_usd', { precision: 12, scale: 2 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const announcements = pgTable('announcements', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  body: text('body').notNull().default(''),
+  severity: text('severity').notNull().default('info'), // 'info' | 'warn' | 'err'
+  pinned: boolean('pinned').notNull().default(false),
+  visible: boolean('visible').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+})

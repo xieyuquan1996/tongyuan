@@ -11,6 +11,7 @@ import { adminBillingRoutes } from './routes/admin/billing.js'
 import { adminRegionsRoutes } from './routes/admin/regions.js'
 import { adminAnnouncementsRoutes } from './routes/admin/announcements.js'
 import { adminAuditRoutes } from './routes/admin/audit.js'
+import { adminKeysRoutes } from './routes/admin/keys.js'
 import { v1Models } from './routes/v1/models.js'
 import { v1Messages } from './routes/v1/messages.js'
 import { v1CountTokens } from './routes/v1/count-tokens.js'
@@ -26,6 +27,7 @@ import { publicModels } from './routes/public/models.js'
 import { publicPlans } from './routes/public/plans.js'
 import { publicStatus } from './routes/public/status.js'
 import { publicChangelog } from './routes/public/changelog.js'
+import { publicAnnouncements } from './routes/public/announcements.js'
 import { analyticsRoutes } from './routes/console/analytics.js'
 import { installRoutes } from './routes/install.js'
 
@@ -64,6 +66,7 @@ export function createApp() {
   app.route('/api/admin/regions', adminRegionsRoutes)
   app.route('/api/admin/announcements', adminAnnouncementsRoutes)
   app.route('/api/admin/audit', adminAuditRoutes)
+  app.route('/api/admin/keys', adminKeysRoutes)
   app.route('/v1/models', v1Models)
   app.route('/v1/messages', v1Messages)
   app.route('/v1/messages/count_tokens', v1CountTokens)
@@ -73,6 +76,7 @@ export function createApp() {
   app.route('/api/public/plans', publicPlans)
   app.route('/api/public/status', publicStatus)
   app.route('/api/public/changelog', publicChangelog)
+  app.route('/api/public/announcements', publicAnnouncements)
   app.route('/api', installRoutes)
   app.notFound((c) => c.json({ error: 'route_not_found' }, 404))
   return app
