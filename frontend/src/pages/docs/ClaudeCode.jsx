@@ -35,17 +35,16 @@ claude`,
   };
 
   const tabStyle = (active) => ({
-    padding: "6px 2px",
+    padding: "5px 12px",
     fontFamily: "var(--font-mono)",
     fontSize: 11,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    background: "transparent",
-    color: active ? "var(--text)" : "var(--text-3)",
-    border: "none",
-    borderBottom: active ? "2px solid var(--clay)" : "2px solid transparent",
+    letterSpacing: "0.08em",
+    background: active ? "var(--text)" : "transparent",
+    color: active ? "var(--paper)" : "var(--text-2)",
+    border: `1px solid ${active ? "var(--text)" : "var(--border)"}`,
+    borderRadius: 999,
     cursor: "pointer",
-    transition: "color 120ms ease",
+    transition: "background 120ms ease, color 120ms ease, border-color 120ms ease",
   });
 
   return (
@@ -58,20 +57,15 @@ claude`,
       </Lead>
 
       <div style={{
-        display: "flex",
+        display: "inline-flex",
         alignItems: "center",
-        gap: 20,
-        margin: "20px 0 24px",
-        paddingBottom: 2,
-        borderBottom: "1px solid var(--divider)",
+        gap: 6,
+        margin: "4px 0 0",
+        padding: "4px",
+        borderRadius: 999,
+        background: "var(--surface-2)",
+        border: "1px solid var(--border)",
       }}>
-        <span style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          letterSpacing: "0.16em",
-          textTransform: "uppercase",
-          color: "var(--text-3)",
-        }}>OS</span>
         <button type="button" onClick={() => setOs("linux")} style={tabStyle(os === "linux")}>Linux</button>
         <button type="button" onClick={() => setOs("mac")} style={tabStyle(os === "mac")}>macOS</button>
         <button type="button" onClick={() => setOs("win")} style={tabStyle(os === "win")}>Windows</button>
