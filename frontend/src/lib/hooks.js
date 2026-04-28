@@ -3,17 +3,21 @@ import { useEffect, useRef, useState, useCallback } from "react";
 export function useAsync(fn, deps = []) {
   const [state, setState] = useState({ loading: true, data: null, error: null });
   const [tick, setTick] = useState(0);
+  const isReload = useRef(false);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
-    setState((s) => ({ ...s, loading: true, error: null }));
+    if (!isReload.current) {
+      setState((s) => ({ ...s, loading: true, error: null }));
+    }
+    isReload.current = false;
     fn()
       .then((data) => mounted.current && setState({ loading: false, data, error: null }))
       .catch((error) => mounted.current && setState({ loading: false, data: null, error }));
     return () => { mounted.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
-  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const reload = useCallback(() => { isReload.current = true; setTick((t) => t + 1); }, []);
   return { ...state, reload };
 }
 
