@@ -34,8 +34,10 @@ export default function DashboardLayout() {
 
   if (!user) return null;
   const spent = parseFloat(user.spent_this_month || "0");
-  const limit = parseFloat(user.limit_this_month || "200");
-  const pct = Math.min(100, Math.round((spent / limit) * 100));
+  const limitRaw = user.limit_this_month;
+  const hasLimit = limitRaw && parseFloat(limitRaw) > 0;
+  const limit = hasLimit ? parseFloat(limitRaw) : 0;
+  const pct = hasLimit ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
 
   return (
     <div>
@@ -102,7 +104,7 @@ export default function DashboardLayout() {
               <div style={{ width: pct + "%", height: "100%", background: "var(--clay)" }}/>
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>
-              {pct}% · 上限 ¥{user.limit_this_month}
+              {pct}% · 上限 {hasLimit ? "¥" + user.limit_this_month : "∞"}
             </div>
           </div>
         </aside>
