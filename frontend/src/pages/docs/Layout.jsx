@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom";
-import { Search, ChevronRight, Copy, Check } from "lucide-react";
+import { Search, ChevronRight, Copy, Check, Menu, X } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
 import { session } from "../../lib/api.js";
+import { useIsMobile } from "../../lib/hooks.js";
 
 const SECTIONS = [
   ["入门", [
@@ -98,63 +99,72 @@ export default function DocsLayout() {
   const loc = useLocation();
   const page = loc.pathname.split("/").filter(Boolean)[1] || "quickstart";
   const tocItems = TOC[page] || [];
-  useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
+  const mobile = useIsMobile(900);
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => { window.scrollTo(0, 0); setNavOpen(false); }, [loc.pathname]);
 
   return (
     <div>
       <header style={{
         position: "sticky", top: 0, zIndex: 10,
         height: 64, display: "flex", alignItems: "center",
-        padding: "0 32px", gap: 32,
+        padding: mobile ? "0 16px" : "0 32px", gap: mobile ? 8 : 32,
         background: "var(--surface-glass)",
         backdropFilter: "blur(8px)",
         borderBottom: "1px solid var(--border)",
       }}>
+        {mobile && (
+          <button onClick={() => setNavOpen(o => !o)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-2)", padding: 4 }}>
+            {navOpen ? <X size={20}/> : <Menu size={20}/>}
+          </button>
+        )}
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={26} />
           <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>同源</span>
-          <span style={{ color: "var(--text-4)", margin: "0 4px" }}>/</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-2)" }}>docs</span>
+          {!mobile && <>
+            <span style={{ color: "var(--text-4)", margin: "0 4px" }}>/</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-2)" }}>docs</span>
+          </>}
         </Link>
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent("ty:open-palette"))}
-          title="打开搜索 ⌘K"
-          style={{
-            flex: 1, maxWidth: 480, position: "relative",
-            display: "flex", alignItems: "center",
-            padding: "8px 12px 8px 34px",
-            border: "1px solid var(--border)", borderRadius: 6,
-            background: "var(--surface-2)", fontSize: 13,
-            color: "var(--text-3)", cursor: "pointer",
-            textAlign: "left", fontFamily: "inherit",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--border-strong)")}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-        >
-          <Search size={14} color="var(--text-3)" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-          搜索文档、跳转页面…
-          <span style={{
-            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-            fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)",
-            padding: "2px 6px", border: "1px solid var(--border)",
-            borderRadius: 4, background: "var(--surface-3)",
-          }}>⌘K</span>
-        </button>
+        {!mobile && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("ty:open-palette"))}
+            title="打开搜索 ⌘K"
+            style={{
+              flex: 1, maxWidth: 480, position: "relative",
+              display: "flex", alignItems: "center",
+              padding: "8px 12px 8px 34px",
+              border: "1px solid var(--border)", borderRadius: 6,
+              background: "var(--surface-2)", fontSize: 13,
+              color: "var(--text-3)", cursor: "pointer",
+              textAlign: "left", fontFamily: "inherit",
+            }}
+          >
+            <Search size={14} color="var(--text-3)" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+            搜索文档、跳转页面…
+            <span style={{
+              position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+              fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)",
+              padding: "2px 6px", border: "1px solid var(--border)",
+              borderRadius: 4, background: "var(--surface-3)",
+            }}>⌘K</span>
+          </button>
+        )}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-          <Link to="/" style={{ fontSize: 14, color: "var(--text-2)", textDecoration: "none" }}>主页</Link>
+          {!mobile && <Link to="/" style={{ fontSize: 14, color: "var(--text-2)", textDecoration: "none" }}>主页</Link>}
           <Link to={session.isAuthed() ? "/dashboard" : "/login"} style={{ fontSize: 14, color: "var(--text)", textDecoration: "none" }}>
             {session.isAuthed() ? "控制台 →" : "登录 →"}
           </Link>
         </div>
       </header>
 
-      <div style={{ display: "flex", maxWidth: 1440, margin: "0 auto" }}>
-        <aside style={{
-          width: 240, padding: "24px 16px",
-          borderRight: "1px solid var(--border)",
-          minHeight: "calc(100vh - 64px)",
-          position: "sticky", top: 64, alignSelf: "flex-start",
-          background: "var(--surface-2)",
+      {/* Mobile nav drawer */}
+      {mobile && navOpen && (
+        <div style={{
+          position: "fixed", top: 64, left: 0, right: 0, bottom: 0,
+          background: "var(--surface-2)", zIndex: 9, overflowY: "auto",
+          padding: "16px",
+          borderTop: "1px solid var(--border)",
         }}>
           {SECTIONS.map(([title, items]) => (
             <div key={title} style={{ marginBottom: 20 }}>
@@ -165,30 +175,54 @@ export default function DocsLayout() {
               {items.map(([key, label]) => <DocsLink key={key} to={key}>{label}</DocsLink>)}
             </div>
           ))}
-        </aside>
+        </div>
+      )}
 
-        <main style={{ flex: 1, padding: "48px 48px 96px", maxWidth: 760, minWidth: 0 }}>
+      <div style={{ display: "flex", maxWidth: 1440, margin: "0 auto" }}>
+        {!mobile && (
+          <aside style={{
+            width: 240, padding: "24px 16px",
+            borderRight: "1px solid var(--border)",
+            minHeight: "calc(100vh - 64px)",
+            position: "sticky", top: 64, alignSelf: "flex-start",
+            background: "var(--surface-2)",
+          }}>
+            {SECTIONS.map(([title, items]) => (
+              <div key={title} style={{ marginBottom: 20 }}>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em",
+                  textTransform: "uppercase", color: "var(--text-3)", padding: "0 12px 8px",
+                }}>{title}</div>
+                {items.map(([key, label]) => <DocsLink key={key} to={key}>{label}</DocsLink>)}
+              </div>
+            ))}
+          </aside>
+        )}
+
+        <main style={{ flex: 1, padding: mobile ? "24px 16px 64px" : "48px 48px 96px", maxWidth: 760, minWidth: 0 }}>
           <Outlet />
         </main>
 
-        <aside style={{
-          width: 200, padding: "32px 16px 32px 24px",
-          position: "sticky", top: 64, alignSelf: "flex-start",
-        }}>
-          <div style={{
-            fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em",
-            textTransform: "uppercase", color: "var(--text-3)", marginBottom: 12,
-          }}>本页内容</div>
-          {tocItems.map((it, i) => (
-            <a key={i} href={`#${it.id}`} style={{
-              display: "block", padding: "4px 0", fontSize: 12,
-              color: i === 0 ? "var(--text)" : "var(--text-3)",
-              textDecoration: "none",
-              borderLeft: i === 0 ? "2px solid var(--clay)" : "2px solid transparent",
-              paddingLeft: 12, marginLeft: -2,
-            }}>{it.label}</a>
-          ))}
-        </aside>
+        {!mobile && (
+          <aside style={{
+            width: 200, padding: "32px 16px 32px 24px",
+            position: "sticky", top: 64, alignSelf: "flex-start",
+          }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em",
+              textTransform: "uppercase", color: "var(--text-3)", marginBottom: 12,
+            }}>本页内容</div>
+            {tocItems.map((it, i) => (
+              <a key={i} href={`#${it.id}`} style={{
+                display: "block", padding: "4px 0", fontSize: 12,
+                color: i === 0 ? "var(--text)" : "var(--text-3)",
+                textDecoration: "none",
+                borderLeft: i === 0 ? "2px solid var(--clay)" : "2px solid transparent",
+                paddingLeft: 12, marginLeft: -2,
+              }}>{it.label}</a>
+            ))}
+          </aside>
+        )}
       </div>
     </div>
   );

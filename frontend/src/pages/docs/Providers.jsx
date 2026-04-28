@@ -10,50 +10,54 @@ export default function ProvidersArticle() {
     <article>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--clay-press)", marginBottom: 8 }}>扩展接入</div>
       <h1 id="top" style={{ fontFamily: "var(--font-serif)", fontSize: 36, fontWeight: 700, margin: "8px 0 16px", letterSpacing: "-0.02em" }}>
-        接入第三方模型
+        在第三方工具里使用同源
       </h1>
       <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--text-2)", margin: "0 0 40px", maxWidth: 680 }}>
-        同源支持将任何兼容 Anthropic API 格式的上游接入密钥池。管理员在后台配置好 Base URL 和 Key 后，用户侧无需任何改动。
+        任何使用 Anthropic SDK 的工具，只需设置两个环境变量，就能把请求路由到同源。以下是两个常见工具的接入示例。
       </p>
 
-      <h2 id="lobster" style={h2}>龙虾（Lobster）</h2>
+      <h2 id="lobster" style={h2}>OpenClaw（龙虾）</h2>
       <p style={prose}>
-        Lobster 是一个兼容 Anthropic SDK 格式的第三方中转服务。接入方式：在后台管理 → 上游密钥 → 添加密钥，填入：
+        <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener" style={{ color: "var(--clay-press)" }}>OpenClaw</a> 是一个本地优先的 AI 助手，支持 WhatsApp、Telegram、Slack 等 20+ 平台。它底层调用 Anthropic SDK，因此直接设置环境变量即可接入同源：
       </p>
-      <Code language="TEXT">{`别名:       lobster-key-1
-API Key:    sk-lob-xxxxxxxxxxxxxxxx
-Base URL:   https://api.lobsterapi.com   （以实际地址为准）
-优先级:     50   （数字越小越优先）`}</Code>
+      <Code language="BASH">{`export ANTHROPIC_BASE_URL=https://your-domain.com
+export ANTHROPIC_API_KEY=sk-relay-xxxxxxxx`}</Code>
       <p style={prose}>
-        添加后网关会按优先级自动调度。Lobster 支持的模型 ID 需在后台 → 模型 页面手动上架，填写对应的模型 ID 即可。
+        或者在 OpenClaw 的配置文件 <code style={ic}>~/.openclaw/openclaw.json</code> 里指定模型：
       </p>
-
-      <h2 id="hermes" style={h2}>爱马仕（Hermes）</h2>
+      <Code language="JSON">{`{
+  "agent": {
+    "model": "anthropic/claude-sonnet-4-6"
+  }
+}`}</Code>
       <p style={prose}>
-        Hermes 同样提供 Anthropic 兼容接口。配置方式与 Lobster 相同，只需替换 Base URL 和 Key：
-      </p>
-      <Code language="TEXT">{`别名:       hermes-key-1
-API Key:    sk-hrm-xxxxxxxxxxxxxxxx
-Base URL:   https://api.hermes-ai.com   （以实际地址为准）
-优先级:     60`}</Code>
-
-      <h2 id="how" style={h2}>工作原理</h2>
-      <p style={prose}>
-        每个上游密钥可以绑定独立的 Base URL。网关在转发请求时，会用该密钥对应的 Base URL 替换默认的 <code style={ic}>https://api.anthropic.com</code>，其余请求头和 Body 保持不变。
-      </p>
-      <p style={prose}>
-        只要第三方服务实现了 Anthropic 的 <code style={ic}>POST /v1/messages</code> 接口格式，就可以无缝接入。
+        设置好环境变量后，OpenClaw 的所有 Claude 请求都会经过同源转发，享受多 Key 池高可用和审计哈希保证。
       </p>
 
-      <h2 id="failover" style={h2}>多源自动切换</h2>
+      <h2 id="hermes" style={h2}>Hermes Agent（爱马仕）</h2>
       <p style={prose}>
-        可以同时配置多个上游密钥（不同 Base URL），网关按优先级顺序尝试。某个上游返回 429 或 5xx 时自动进入冷却，切换到下一个。
+        <a href="https://github.com/nousresearch/hermes-agent" target="_blank" rel="noopener" style={{ color: "var(--clay-press)" }}>Hermes Agent</a> 是 Nous Research 开发的自进化 AI Agent，支持 CLI、Telegram、Discord 等多平台。接入同源同样只需两步：
       </p>
-      <Code language="TEXT">{`优先级 10 → anthropic-official（官方 Key）
-优先级 50 → lobster-key-1
-优先级 60 → hermes-key-1`}</Code>
+      <Code language="BASH">{`# 写入 ~/.hermes/.env
+ANTHROPIC_BASE_URL=https://your-domain.com
+ANTHROPIC_API_KEY=sk-relay-xxxxxxxx`}</Code>
       <p style={prose}>
-        官方 Key 优先，备用源兜底，用户侧完全无感知。
+        或者通过 Hermes 的配置命令：
+      </p>
+      <Code language="BASH">{`hermes config set model.provider anthropic
+hermes config set model.default claude-sonnet-4-6`}</Code>
+      <p style={prose}>
+        Hermes 会自动读取 <code style={ic}>ANTHROPIC_API_KEY</code> 和 <code style={ic}>ANTHROPIC_BASE_URL</code>，无需其他改动。
+      </p>
+
+      <h2 id="how" style={h2}>通用原理</h2>
+      <p style={prose}>
+        Anthropic 官方 SDK（Python / TypeScript）都支持通过环境变量覆盖 Base URL：
+      </p>
+      <Code language="BASH">{`export ANTHROPIC_BASE_URL=https://your-domain.com
+export ANTHROPIC_API_KEY=sk-relay-xxxxxxxx`}</Code>
+      <p style={prose}>
+        任何基于 Anthropic SDK 构建的工具，无论是 Claude Code、OpenClaw、Hermes 还是你自己的脚本，设置这两个变量后请求就会自动路由到同源。你的 <code style={ic}>sk-relay-*</code> 密钥从控制台 → API 密钥 页面创建。
       </p>
 
       <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", gap: 24, fontSize: 14 }}>
