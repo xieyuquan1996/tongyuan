@@ -14,7 +14,7 @@ const SECTIONS = [
     ["providers",   "接入第三方模型"],
   ]],
   ["API 参考", [
-    ["messages",  "messages.create"],
+    ["messages",  "Anthropic 原生接口"],
     ["openai",    "OpenAI 兼容接口"],
     ["streaming", "流式响应"],
     ["tools",     "工具调用"],
