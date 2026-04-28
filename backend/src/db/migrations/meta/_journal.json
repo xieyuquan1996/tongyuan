@@ -57,6 +57,13 @@
       "when": 1777341364263,
       "tag": "0007_reflective_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777400000000,
+      "tag": "0008_seed_models",
+      "breakpoints": true
     }
   ]
 }

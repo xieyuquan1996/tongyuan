@@ -57,10 +57,9 @@ authRoutes.get('/me', requireBearer, async (c) => {
     .where(and(eq(billingLedger.userId, u.id), eq(billingLedger.kind, 'debit_usage'), gte(billingLedger.createdAt, monthStart)))
 
   const spentUsd = Number(row!.spentUsd)
-  const limitUsd = u.limitMonthlyUsd ? Number(u.limitMonthlyUsd) : 200 / USD_TO_CNY
   const pub = toPublicUser(u) as Record<string, unknown>
   pub.spent_this_month = toCny(spentUsd).toFixed(2)
-  pub.limit_this_month = toCny(limitUsd).toFixed(2)
+  pub.limit_this_month = u.limitMonthlyUsd ? toCny(Number(u.limitMonthlyUsd)).toFixed(2) : null
   return c.json(pub)
 })
 
