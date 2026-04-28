@@ -35,15 +35,17 @@ claude`,
   };
 
   const tabStyle = (active) => ({
-    padding: "6px 14px",
+    padding: "6px 2px",
     fontFamily: "var(--font-mono)",
-    fontSize: 12,
-    letterSpacing: "0.04em",
-    background: active ? "var(--surface-3)" : "transparent",
+    fontSize: 11,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    background: "transparent",
     color: active ? "var(--text)" : "var(--text-3)",
-    border: "1px solid var(--border)",
-    borderRadius: 6,
+    border: "none",
+    borderBottom: active ? "2px solid var(--clay)" : "2px solid transparent",
     cursor: "pointer",
+    transition: "color 120ms ease",
   });
 
   return (
@@ -55,7 +57,21 @@ claude`,
         方式 B 适合本地已经有 Claude Code、只想换中转的情况。
       </Lead>
 
-      <div style={{ display: "flex", gap: 8, margin: "16px 0 24px" }}>
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 20,
+        margin: "20px 0 24px",
+        paddingBottom: 2,
+        borderBottom: "1px solid var(--divider)",
+      }}>
+        <span style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: "0.16em",
+          textTransform: "uppercase",
+          color: "var(--text-3)",
+        }}>OS</span>
         <button type="button" onClick={() => setOs("linux")} style={tabStyle(os === "linux")}>Linux</button>
         <button type="button" onClick={() => setOs("mac")} style={tabStyle(os === "mac")}>macOS</button>
         <button type="button" onClick={() => setOs("win")} style={tabStyle(os === "win")}>Windows</button>
