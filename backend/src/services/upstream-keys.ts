@@ -14,7 +14,7 @@ export function toPublic(row: UpstreamRow): UpstreamPublic {
   return rest
 }
 
-export async function create(input: { alias: string; secret: string; priority?: number; quotaHintUsd?: string }) {
+export async function create(input: { alias: string; secret: string; priority?: number; quotaHintUsd?: string; baseUrl?: string }) {
   const ct = encryptSecret(input.secret, env.UPSTREAM_KEY_KMS)
   const prefix = input.secret.slice(0, 20)
   const [row] = await db.insert(upstreamKeys).values({
@@ -23,6 +23,7 @@ export async function create(input: { alias: string; secret: string; priority?: 
     keyPrefix: prefix,
     priority: String(input.priority ?? 100),
     quotaHintUsd: input.quotaHintUsd,
+    baseUrl: input.baseUrl || null,
   }).returning()
   return row!
 }

@@ -11,6 +11,10 @@ export type ProxyAttempt = {
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
 
+function resolveBaseUrl(upstream: UpstreamRow): string {
+  return upstream.baseUrl ?? getAnthropicBaseUrl()
+}
+
 export async function forwardNonStream(
   path: string,
   headers: Record<string, string>,
@@ -23,7 +27,7 @@ export async function forwardNonStream(
   for (let i = 0; i < Math.min(pool.length, 3); i++) {
     const upstream = pool[i]!
     const apiKey = await scheduler.decrypt(upstream)
-    const url = new URL(path, getAnthropicBaseUrl()).toString()
+    const url = new URL(path, resolveBaseUrl(upstream)).toString()
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -62,7 +66,7 @@ export async function forwardStream(
   for (let i = 0; i < Math.min(pool.length, 3); i++) {
     const upstream = pool[i]!
     const apiKey = await scheduler.decrypt(upstream)
-    const url = new URL(path, getAnthropicBaseUrl()).toString()
+    const url = new URL(path, resolveBaseUrl(upstream)).toString()
     try {
       const res = await fetch(url, {
         method: 'POST',

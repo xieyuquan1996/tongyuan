@@ -114,6 +114,7 @@ function AddKeyForm({ onDone, onCancel }) {
   const [alias, setAlias] = useState("");
   const [secret, setSecret] = useState("");
   const [priority, setPriority] = useState("0");
+  const [baseUrl, setBaseUrl] = useState("https://api.anthropic.com");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -124,7 +125,7 @@ function AddKeyForm({ onDone, onCancel }) {
     try {
       await api("/api/admin/upstream-keys", {
         method: "POST",
-        body: { alias: alias.trim(), secret: secret.trim(), priority: parseInt(priority) || 0 },
+        body: { alias: alias.trim(), secret: secret.trim(), priority: parseInt(priority) || 0, ...(baseUrl.trim() ? { base_url: baseUrl.trim() } : {}) },
       });
       onDone();
     } catch (e) {
@@ -149,6 +150,10 @@ function AddKeyForm({ onDone, onCancel }) {
           <label style={labelStyle}>优先级</label>
           <input value={priority} onChange={e => setPriority(e.target.value)} type="number" style={inputStyle}/>
         </div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={labelStyle}>上游 Base URL（留空则用 https://api.anthropic.com）</label>
+        <input value={baseUrl} onChange={e => setBaseUrl(e.target.value)} placeholder="https://api.anthropic.com" style={{ ...inputStyle, width: "100%" }}/>
       </div>
       {err && <div style={{ color: "var(--err)", fontSize: 12, marginBottom: 8 }}>{err}</div>}
       <div style={{ display: "flex", gap: 8 }}>

@@ -115,6 +115,7 @@ export const upstreamKeys = pgTable('upstream_keys', {
   lastErrorCode: text('last_error_code'),
   lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
   quotaHintUsd: numeric('quota_hint_usd', { precision: 12, scale: 2 }),
+  baseUrl: text('base_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 

@@ -19,9 +19,10 @@ upstreamKeysRoutes.post('/', zValidator('json', z.object({
   secret: z.string().min(10),
   priority: z.number().int().optional(),
   quota_hint_usd: z.string().optional(),
+  base_url: z.string().url().optional(),
 })), async (c) => {
   const b = c.req.valid('json')
-  const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, quotaHintUsd: b.quota_hint_usd })
+  const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, quotaHintUsd: b.quota_hint_usd, baseUrl: b.base_url })
   return c.json(svc.toPublic(row), 201)
 })
 
