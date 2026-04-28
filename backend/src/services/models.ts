@@ -1,5 +1,5 @@
 // backend/src/services/models.ts
-import { eq } from 'drizzle-orm'
+import { eq, desc, asc } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { models } from '../db/schema.js'
 import { getAnthropicBaseUrl } from '../env.js'
@@ -9,6 +9,7 @@ export type ModelRow = typeof models.$inferSelect
 
 export async function list({ enabledOnly }: { enabledOnly: boolean }) {
   const rows = await db.select().from(models)
+    .orderBy(desc(models.recommended), asc(models.id))
   return enabledOnly ? rows.filter((r) => r.enabled) : rows
 }
 

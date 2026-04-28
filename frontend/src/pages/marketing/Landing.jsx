@@ -355,7 +355,7 @@ function Footer() {
           {[
             ["产品", [["定价", "#pricing"], ["模型", "#models"], ["状态页", "/status"], ["更新日志", "/changelog"]]],
             ["开发者", [["快速开始", "/docs"], ["API 参考", "/docs/messages"], ["流式", "/docs/streaming"], ["工具调用", "/docs/tools"]]],
-            ["公司", [["关于", "#"], ["联系", "#"], ["条款", "#"], ["隐私", "#"]]],
+            ["公司", [["关于", "/about"], ["联系", "/contact"], ["条款", "/terms"], ["隐私", "/privacy"]]],
           ].map(([title, links]) => (
             <div key={title}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 14 }}>{title}</div>

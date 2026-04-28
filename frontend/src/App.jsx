@@ -3,6 +3,7 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Forgot from "./pages/Forgot.jsx";
 import MarketingLanding from "./pages/marketing/Landing.jsx";
+import { AboutPage, ContactPage, TermsPage, PrivacyPage } from "./pages/marketing/StaticPages.jsx";
 import StatusPage from "./pages/Status.jsx";
 import Changelog from "./pages/Changelog.jsx";
 import DocsLayout from "./pages/docs/Layout.jsx";
@@ -54,6 +55,10 @@ export default function App() {
         <Route path="/forgot" element={<Forgot />} />
         <Route path="/status" element={<StatusPage />} />
         <Route path="/changelog" element={<Changelog />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
         <Route path="/docs" element={<DocsLayout />}>
           <Route index element={<Navigate to="quickstart" replace />} />

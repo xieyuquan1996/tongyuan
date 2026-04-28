@@ -6,8 +6,7 @@ import { Loading, ErrorBox, Pill } from "../../components/primitives.jsx";
 import { PageHeader } from "../../components/dashboard-widgets.jsx";
 
 export default function AdminModels() {
-  const [tick, setTick] = useState(0);
-  const { loading, data, error } = useAsync(() => api("/api/admin/models"), [tick]);
+  const { loading, data, error, reload } = useAsync(() => api("/api/admin/models"), []);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ id: "", context: "200k", price: "$0 / $0", note: "" });
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -22,14 +21,14 @@ export default function AdminModels() {
       await api("/api/admin/models", { method: "POST", body: draft });
       setAdding(false);
       setDraft({ id: "", context: "200k", price: "$0 / $0", note: "" });
-      setTick((t) => t + 1);
+      reload();
       setToast({ tone: "ok", text: "模型已上架" });
     } catch (err) { setToast({ tone: "err", text: err.message || "创建失败" }); }
   }
   async function patch(m, body, msg) {
     try {
       await api(`/api/admin/models/${encodeURIComponent(m.id)}`, { method: "PATCH", body });
-      setTick((t) => t + 1);
+      reload();
       setToast({ tone: "ok", text: msg || "已更新" });
     } catch (err) { setToast({ tone: "err", text: err.message || "更新失败" }); }
   }
@@ -37,7 +36,7 @@ export default function AdminModels() {
     try {
       await api(`/api/admin/models/${encodeURIComponent(m.id)}`, { method: "DELETE" });
       setDeleteTarget(null);
-      setTick((t) => t + 1);
+      reload();
       setToast({ tone: "ok", text: "模型已下架" });
     } catch (err) { setToast({ tone: "err", text: err.message || "删除失败" }); }
   }
