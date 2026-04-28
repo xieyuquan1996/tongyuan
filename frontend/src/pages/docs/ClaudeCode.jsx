@@ -2,19 +2,19 @@ import { useState } from "react";
 import { Breadcrumb, H1, H2, Lead, P, IC, Code, Callout } from "./Layout.jsx";
 
 const INSTALL_CMDS = {
-  linux: "curl -fsSL https://tongyuan.ai/api/install | bash",
-  mac: "curl -fsSL https://tongyuan.ai/api/install | bash",
-  win: 'powershell -c "irm https://tongyuan.ai/api/install.ps1 | iex"',
+  linux: "curl -fsSL https://cg.jinni.life/api/install | bash",
+  mac: "curl -fsSL https://cg.jinni.life/api/install | bash",
+  win: 'powershell -c "irm https://cg.jinni.life/api/install.ps1 | iex"',
 };
 
 const ENV_EXPORT = {
-  linux: `export ANTHROPIC_BASE_URL=https://api.tongyuan.ai
+  linux: `export ANTHROPIC_BASE_URL=https://cg.jinni.life/anthropic
 export ANTHROPIC_API_KEY=sk-relay-your-key
 claude`,
-  mac: `export ANTHROPIC_BASE_URL=https://api.tongyuan.ai
+  mac: `export ANTHROPIC_BASE_URL=https://cg.jinni.life/anthropic
 export ANTHROPIC_API_KEY=sk-relay-your-key
 claude`,
-  win: `$env:ANTHROPIC_BASE_URL = "https://api.tongyuan.ai"
+  win: `$env:ANTHROPIC_BASE_URL = "https://cg.jinni.life/anthropic"
 $env:ANTHROPIC_API_KEY = "sk-relay-your-key"
 claude`,
 };
