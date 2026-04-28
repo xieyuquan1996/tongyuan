@@ -4,6 +4,13 @@ import { authRoutes } from './routes/console/auth.js'
 import { keysRoutes } from './routes/console/keys.js'
 import { upstreamKeysRoutes } from './routes/admin/upstream-keys.js'
 import { adminModelsRoutes } from './routes/admin/models.js'
+import { adminOverviewRoutes } from './routes/admin/overview.js'
+import { adminUsersRoutes } from './routes/admin/users.js'
+import { adminLogsRoutes } from './routes/admin/logs.js'
+import { adminBillingRoutes } from './routes/admin/billing.js'
+import { adminRegionsRoutes } from './routes/admin/regions.js'
+import { adminAnnouncementsRoutes } from './routes/admin/announcements.js'
+import { adminAuditRoutes } from './routes/admin/audit.js'
 import { v1Models } from './routes/v1/models.js'
 import { v1Messages } from './routes/v1/messages.js'
 import { v1CountTokens } from './routes/v1/count-tokens.js'
@@ -48,6 +55,13 @@ export function createApp() {
   app.route('/api/console/playground', playgroundRoutes)
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)
   app.route('/api/admin/models', adminModelsRoutes)
+  app.route('/api/admin/overview', adminOverviewRoutes)
+  app.route('/api/admin/users', adminUsersRoutes)
+  app.route('/api/admin/logs', adminLogsRoutes)
+  app.route('/api/admin/billing', adminBillingRoutes)
+  app.route('/api/admin/regions', adminRegionsRoutes)
+  app.route('/api/admin/announcements', adminAnnouncementsRoutes)
+  app.route('/api/admin/audit', adminAuditRoutes)
   app.route('/v1/models', v1Models)
   app.route('/v1/messages', v1Messages)
   app.route('/v1/messages/count_tokens', v1CountTokens)
