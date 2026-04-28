@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useSyncExternalStore } from "react";
+
+function subscribe(cb) {
+  window.addEventListener("resize", cb);
+  return () => window.removeEventListener("resize", cb);
+}
+export function useIsMobile(bp = 640) {
+  return useSyncExternalStore(subscribe, () => window.innerWidth < bp, () => false);
+}
 
 export function useAsync(fn, deps = []) {
   const [state, setState] = useState({ loading: true, data: null, error: null });

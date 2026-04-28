@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./styles/tokens.css";
+import "./styles/responsive.css";
 import { installMock } from "./lib/mock.js";
 
 // Install the in-browser mock backend unless VITE_USE_MOCK is explicitly "false".

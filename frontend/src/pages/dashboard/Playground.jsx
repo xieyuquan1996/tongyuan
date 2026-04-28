@@ -155,11 +155,11 @@ export default function Playground() {
                     return (
                       <>
                         {thinking && (
-                          <details style={{ marginBottom: 12, fontSize: 13 }}>
-                            <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>
-                              思考过程（thinking）
+                          <details open style={{ marginBottom: 12, fontSize: 13, background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px" }}>
+                            <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, userSelect: "none" }}>
+                              ▸ 思考过程（thinking）
                             </summary>
-                            <Code>{thinking}</Code>
+                            <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.6, color: "var(--text-2)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{thinking}</div>
                           </details>
                         )}
                         {text

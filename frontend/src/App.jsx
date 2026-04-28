@@ -17,6 +17,7 @@ import StreamingArticle from "./pages/docs/Streaming.jsx";
 import ToolsArticle from "./pages/docs/Tools.jsx";
 import ModelsArticle from "./pages/docs/Models.jsx";
 import SlaArticle from "./pages/docs/Sla.jsx";
+import ProvidersArticle from "./pages/docs/Providers.jsx";
 import DashboardLayout from "./pages/dashboard/Layout.jsx";
 import Overview from "./pages/dashboard/Overview.jsx";
 import Keys from "./pages/dashboard/Keys.jsx";
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="audit" element={<AuditArticle />} />
           <Route path="models" element={<ModelsArticle />} />
           <Route path="sla" element={<SlaArticle />} />
+          <Route path="providers" element={<ProvidersArticle />} />
         </Route>
 
         <Route

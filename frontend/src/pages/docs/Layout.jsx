@@ -10,6 +10,7 @@ const SECTIONS = [
     ["claude-code", "接入 Claude Code"],
     ["auth",        "认证与密钥"],
     ["regions",     "区域选择"],
+    ["providers",   "接入第三方模型"],
   ]],
   ["API 参考", [
     ["messages",  "messages.create"],
@@ -83,6 +84,13 @@ const TOC = {
     { id: "definition", label: "可用率定义" },
     { id: "credit", label: "服务信用" },
     { id: "consistency", label: "一致性 SLA" },
+  ],
+  providers: [
+    { id: "top", label: "接入第三方模型" },
+    { id: "lobster", label: "龙虾（Lobster）" },
+    { id: "hermes", label: "爱马仕（Hermes）" },
+    { id: "how", label: "工作原理" },
+    { id: "failover", label: "多源自动切换" },
   ],
 };
 

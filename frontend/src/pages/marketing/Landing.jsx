@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { KeyRound, ShieldCheck, Zap, Activity, Check, Plus, Minus } from "lucide-react";
 import { Button, Pill, LogoLockup, SectionLabel, LogoMark } from "../../components/primitives.jsx";
 import { api, session } from "../../lib/api.js";
+import { useIsMobile } from "../../lib/hooks.js";
 
 export default function Landing() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
@@ -23,33 +24,31 @@ export default function Landing() {
 
 function Nav() {
   const authed = session.isAuthed();
+  const mobile = useIsMobile();
   return (
     <header
+      className="landing-nav"
       style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 10,
-        height: 64,
-        display: "flex",
-        alignItems: "center",
-        padding: "0 32px",
-        gap: 32,
-        background: "var(--surface-glass)",
-        backdropFilter: "blur(8px)",
+        position: "sticky", top: 0, zIndex: 10, height: 64,
+        display: "flex", alignItems: "center",
+        padding: mobile ? "0 16px" : "0 32px", gap: mobile ? 12 : 32,
+        background: "var(--surface-glass)", backdropFilter: "blur(8px)",
         borderBottom: "1px solid var(--border)",
       }}
     >
       <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
         <LogoLockup />
       </Link>
-      <nav style={{ display: "flex", gap: 28, fontSize: 14 }}>
-        <a href="#models" style={{ color: "var(--text-2)", textDecoration: "none" }}>模型</a>
-        <a href="#pricing" style={{ color: "var(--text-2)", textDecoration: "none" }}>定价</a>
-        <Link to="/docs" style={{ color: "var(--text-2)", textDecoration: "none" }}>文档</Link>
-        <a href="#status" style={{ color: "var(--text-2)", textDecoration: "none" }}>状态</a>
-      </nav>
-      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-        <Pill tone="ok" dot>所有系统正常</Pill>
+      {!mobile && (
+        <nav style={{ display: "flex", gap: 28, fontSize: 14 }}>
+          <a href="#models" style={{ color: "var(--text-2)", textDecoration: "none" }}>模型</a>
+          <a href="#pricing" style={{ color: "var(--text-2)", textDecoration: "none" }}>定价</a>
+          <Link to="/docs" style={{ color: "var(--text-2)", textDecoration: "none" }}>文档</Link>
+          <a href="#status" style={{ color: "var(--text-2)", textDecoration: "none" }}>状态</a>
+        </nav>
+      )}
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: mobile ? 8 : 14 }}>
+        {!mobile && <Pill tone="ok" dot>所有系统正常</Pill>}
         <Link to={authed ? "/dashboard" : "/login"} style={{ fontSize: 14, color: "var(--text)", textDecoration: "none" }}>
           {authed ? "控制台 →" : "登录"}
         </Link>
@@ -63,9 +62,10 @@ function Nav() {
 
 function Hero() {
   const [stats, setStats] = useState(null);
+  const mobile = useIsMobile();
   useEffect(() => { api("/api/public/stats").then(setStats).catch(() => {}); }, []);
   return (
-    <section style={{ position: "relative", padding: "96px 32px 80px", overflow: "hidden" }}>
+    <section className="landing-hero" style={{ position: "relative", padding: mobile ? "56px 16px 48px" : "96px 32px 80px", overflow: "hidden" }}>
       <div style={{
         position: "absolute", inset: 0,
         backgroundImage: "url(/assets/grid-tile.svg)",
@@ -75,7 +75,7 @@ function Hero() {
       <div style={{ maxWidth: 1216, margin: "0 auto", position: "relative" }}>
         <SectionLabel>同源 · TONGYUAN · SAME SOURCE</SectionLabel>
         <h1 style={{
-          fontFamily: "var(--font-serif)", fontSize: 76, lineHeight: 1.05,
+          fontFamily: "var(--font-serif)", fontSize: mobile ? 40 : 76, lineHeight: 1.05,
           fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 24px",
           maxWidth: 1080,
         }}>
@@ -93,8 +93,8 @@ function Hero() {
             <Button size="lg" variant="secondary"><span style={{ whiteSpace: "nowrap" }}>查看文档 →</span></Button>
           </Link>
         </div>
-        <div style={{
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+        <div className="landing-hero-stats" style={{
+          display: "grid", gridTemplateColumns: mobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
           borderTop: "1px solid var(--border)",
           paddingTop: 28, maxWidth: 880,
         }}>
@@ -117,17 +117,18 @@ function Hero() {
 }
 
 function SignalCompare() {
+  const mobile = useIsMobile();
   return (
-    <section style={{ padding: "80px 32px", background: "var(--surface-3)" }}>
+    <section style={{ padding: mobile ? "56px 16px" : "80px 32px", background: "var(--surface-3)" }}>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>什么是"模型掺水"</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 12px", maxWidth: 760 }}>
+        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 12px", maxWidth: 760 }}>
           你付了 Opus 的钱，得到的可能不是 Opus。
         </h2>
         <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--text-2)", maxWidth: 720, margin: "0 0 48px" }}>
           很多中转站会在请求到达 Anthropic 之前，悄悄把 <code style={codeInline}>model</code> 字段换成更便宜的那个、把 <code style={codeInline}>max_tokens</code> 砍一半、或者直接截断你的 system prompt。我们不会。
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="landing-compare-grid" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 16 }}>
           <div style={compareCard}>
             <Pill tone="clay" dot style={{ marginBottom: 16 }}>同源</Pill>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--clay-press)", marginBottom: 8 }}>完整透传 · 信号干净</div>
@@ -157,6 +158,7 @@ function SignalCompare() {
 }
 
 function PromiseGrid() {
+  const mobile = useIsMobile();
   const items = [
     ["不偷换模型", "你写的 model 字段是什么，发给 Anthropic 的就是什么。每次请求我们都做哈希审计，全量公开。", KeyRound],
     ["不截断 system prompt", "200k 上下文一字不少。包括你的所有 cache_control 块。", ShieldCheck],
@@ -164,19 +166,19 @@ function PromiseGrid() {
     ["不重路由到便宜区域", "你看到的 region 是真实 region。北美就是北美，香港就是香港。", Activity],
   ];
   return (
-    <section style={{ padding: "96px 32px" }}>
+    <section style={{ padding: mobile ? "56px 16px" : "96px 32px" }}>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>四条底线</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 56px" }}>
+        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 56px" }}>
           我们承诺<span style={{ color: "var(--clay)" }}>不做</span>什么。
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(2, 1fr)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
           {items.map(([title, body, Icon], i) => (
             <div key={title} style={{
-              padding: "32px 32px 32px 0",
-              borderBottom: i < items.length - 2 ? "1px solid var(--border)" : "none",
-              borderRight: i % 2 === 0 ? "1px solid var(--border)" : "none",
-              paddingLeft: i % 2 === 1 ? 32 : 0,
+              padding: mobile ? "24px 0" : "32px 32px 32px 0",
+              borderBottom: mobile ? "1px solid var(--border)" : (i < items.length - 2 ? "1px solid var(--border)" : "none"),
+              borderRight: !mobile && i % 2 === 0 ? "1px solid var(--border)" : "none",
+              paddingLeft: !mobile && i % 2 === 1 ? 32 : 0,
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
                 <Icon size={24} color="var(--clay)" style={{ flexShrink: 0, marginTop: 4 }}/>
@@ -271,7 +273,7 @@ function Pricing() {
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 48px" }}>
           按量计费 · 无最低消费
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, plans.length)}, 1fr)`, gap: 16 }}>
+        <div className="landing-pricing-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, plans.length)}, 1fr)`, gap: 16 }}>
           {plans.map(t => (
             <div key={t.name} style={{
               background: "var(--surface-2)", borderRadius: 12, padding: 32,
@@ -339,11 +341,12 @@ function Faq() {
 }
 
 function Footer() {
+  const mobile = useIsMobile();
   return (
-    <footer style={{ background: "var(--surface-2)", color: "var(--text-3)", padding: "64px 32px 48px", borderTop: "1px solid var(--border)" }}>
+    <footer style={{ background: "var(--surface-2)", color: "var(--text-3)", padding: mobile ? "48px 16px 32px" : "64px 32px 48px", borderTop: "1px solid var(--border)" }}>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 48 }}>
-          <div>
+        <div style={{ display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: mobile ? 32 : 48 }}>
+          <div style={{ gridColumn: mobile ? "1 / -1" : "auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <LogoMark size={28} />
               <span style={{ fontFamily: "var(--font-serif)", fontSize: 18, fontWeight: 600, color: "var(--text)" }}>同源</span>
