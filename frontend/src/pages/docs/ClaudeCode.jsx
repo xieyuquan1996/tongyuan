@@ -1,26 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Breadcrumb, H1, H2, Lead, P, IC, Code, Callout } from "./Layout.jsx";
 
-const INSTALL_CMDS = {
-  linux: "curl -fsSL https://cg.jinni.life/api/install | bash",
-  mac: "curl -fsSL https://cg.jinni.life/api/install | bash",
-  win: 'powershell -c "irm https://cg.jinni.life/api/install.ps1 | iex"',
-};
-
-const ENV_EXPORT = {
-  linux: `export ANTHROPIC_BASE_URL=https://cg.jinni.life/anthropic
-export ANTHROPIC_API_KEY=sk-relay-your-key
-claude`,
-  mac: `export ANTHROPIC_BASE_URL=https://cg.jinni.life/anthropic
-export ANTHROPIC_API_KEY=sk-relay-your-key
-claude`,
-  win: `$env:ANTHROPIC_BASE_URL = "https://cg.jinni.life/anthropic"
-$env:ANTHROPIC_API_KEY = "sk-relay-your-key"
-claude`,
-};
+// Everything here references the origin the user is viewing. No hard-coded
+// domain — whatever the operator deploys to (localhost:5174, cg.jinni.life,
+// your-own.example.com) is the same URL the install scripts ship with.
+function useOrigin() {
+  const [origin, setOrigin] = useState("https://your-relay.example.com");
+  useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+  return origin;
+}
 
 export default function ClaudeCodeArticle() {
+  const origin = useOrigin();
   const [os, setOs] = useState("linux");
+
+  const installCmds = {
+    linux: `curl -fsSL ${origin}/api/install | bash`,
+    mac: `curl -fsSL ${origin}/api/install | bash`,
+    win: `powershell -c "irm ${origin}/api/install.ps1 | iex"`,
+  };
+
+  const envExport = {
+    linux: `export ANTHROPIC_BASE_URL=${origin}
+export ANTHROPIC_API_KEY=sk-relay-your-key
+claude`,
+    mac: `export ANTHROPIC_BASE_URL=${origin}
+export ANTHROPIC_API_KEY=sk-relay-your-key
+claude`,
+    win: `$env:ANTHROPIC_BASE_URL = "${origin}"
+$env:ANTHROPIC_API_KEY = "sk-relay-your-key"
+claude`,
+  };
+
   const tabStyle = (active) => ({
     padding: "6px 14px",
     fontFamily: "var(--font-mono)",
@@ -53,7 +66,7 @@ export default function ClaudeCodeArticle() {
         一条命令 —— 安装 Claude Code 并自动配置环境变量。脚本会写入当前 shell 的 rc 文件
         （<IC>~/.bashrc</IC> / <IC>~/.zshrc</IC> / PowerShell profile），后续新开终端直接可用。
       </P>
-      <Code language={os === "win" ? "POWERSHELL" : "BASH"}>{INSTALL_CMDS[os]}</Code>
+      <Code language={os === "win" ? "POWERSHELL" : "BASH"}>{installCmds[os]}</Code>
       <P>
         脚本执行完后，在新终端里直接敲 <IC>claude</IC> 就能启动。首次启动有两个提示，都要选对：
       </P>
@@ -73,7 +86,7 @@ export default function ClaudeCodeArticle() {
       <P>
         已经装过 Claude Code（或者你自己管理 PATH），只需要导出两个环境变量：
       </P>
-      <Code language={os === "win" ? "POWERSHELL" : "BASH"}>{ENV_EXPORT[os]}</Code>
+      <Code language={os === "win" ? "POWERSHELL" : "BASH"}>{envExport[os]}</Code>
       <P>
         把 <IC>sk-relay-your-key</IC> 替换成
         <a href="/dashboard/keys" style={{ color: "var(--clay-press)" }}> 控制台 → API 密钥 </a>

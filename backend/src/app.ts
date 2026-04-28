@@ -19,6 +19,7 @@ import { publicModels } from './routes/public/models.js'
 import { publicPlans } from './routes/public/plans.js'
 import { publicStatus } from './routes/public/status.js'
 import { publicChangelog } from './routes/public/changelog.js'
+import { installRoutes } from './routes/install.js'
 
 export function createApp() {
   const app = new Hono()
@@ -56,6 +57,7 @@ export function createApp() {
   app.route('/api/public/plans', publicPlans)
   app.route('/api/public/status', publicStatus)
   app.route('/api/public/changelog', publicChangelog)
+  app.route('/api', installRoutes)
   app.notFound((c) => c.json({ error: 'route_not_found' }, 404))
   return app
 }
