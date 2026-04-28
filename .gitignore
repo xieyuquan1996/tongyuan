@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+.vite/
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Postgres / Redis data volumes (docker compose bind mounts)
+backend/data/
+deploy/data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Drizzle generated (keep migrations, ignore kit cache)
+drizzle/
+
+# Misc
+*.local
