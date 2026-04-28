@@ -15,6 +15,7 @@ const SECTIONS = [
   ]],
   ["API 参考", [
     ["messages",  "messages.create"],
+    ["openai",    "OpenAI 兼容接口"],
     ["streaming", "流式响应"],
     ["tools",     "工具调用"],
   ]],
@@ -57,6 +58,15 @@ const TOC = {
     { id: "top", label: "messages.create" },
     { id: "params", label: "必填参数" },
     { id: "example", label: "完整请求示例" },
+  ],
+  openai: [
+    { id: "top", label: "OpenAI 兼容接口" },
+    { id: "endpoint", label: "接口地址" },
+    { id: "python", label: "Python SDK" },
+    { id: "nodejs", label: "Node.js / TypeScript" },
+    { id: "stream", label: "流式响应" },
+    { id: "curl", label: "cURL" },
+    { id: "notes", label: "注意事项" },
   ],
   streaming: [
     { id: "top", label: "流式响应" },
