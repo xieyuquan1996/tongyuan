@@ -30,7 +30,10 @@ export const session = {
 
 export class ApiError extends Error {
   constructor(status, data) {
-    super((data && data.error) || `HTTP ${status}`);
+    const msg = data && data.error
+      ? (typeof data.error === "string" ? data.error : JSON.stringify(data.error))
+      : `HTTP ${status}`;
+    super(msg);
     this.status = status;
     this.data = data;
   }

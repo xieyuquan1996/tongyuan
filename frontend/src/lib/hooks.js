@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 export function useAsync(fn, deps = []) {
   const [state, setState] = useState({ loading: true, data: null, error: null });
+  const [tick, setTick] = useState(0);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -11,8 +12,9 @@ export function useAsync(fn, deps = []) {
       .catch((error) => mounted.current && setState({ loading: false, data: null, error }));
     return () => { mounted.current = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-  return state;
+  }, [...deps, tick]);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  return { ...state, reload };
 }
 
 export function fmtRelative(iso) {
