@@ -11,7 +11,10 @@ const SECTIONS = [
     ["claude-code", "接入 Claude Code"],
     ["auth",        "认证与密钥"],
     ["regions",     "区域选择"],
-    ["providers",   "接入第三方模型"],
+  ]],
+  ["扩展接入", [
+    ["openclaw", "接入 OpenClaw"],
+    ["hermes",   "接入 Hermes Agent"],
   ]],
   ["API 参考", [
     ["messages",  "Anthropic 原生接口"],
@@ -98,10 +101,17 @@ const TOC = {
   ],
   providers: [
     { id: "top", label: "接入第三方模型" },
-    { id: "lobster", label: "龙虾（Lobster）" },
-    { id: "hermes", label: "爱马仕（Hermes）" },
-    { id: "how", label: "工作原理" },
-    { id: "failover", label: "多源自动切换" },
+  ],
+  openclaw: [
+    { id: "top", label: "接入 OpenClaw" },
+    { id: "script", label: "一键脚本" },
+    { id: "onboard", label: "onboarding" },
+    { id: "manual", label: "手写配置" },
+  ],
+  hermes: [
+    { id: "top", label: "接入 Hermes Agent" },
+    { id: "script", label: "一键脚本" },
+    { id: "manual", label: "手写配置" },
   ],
 };
 

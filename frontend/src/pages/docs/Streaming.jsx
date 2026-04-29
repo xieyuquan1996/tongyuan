@@ -1,6 +1,16 @@
+import { useState, useEffect } from "react";
 import { Breadcrumb, H1, H2, Lead, P, IC, Code, Callout } from "./Layout.jsx";
 
+function useOrigin() {
+  const [origin, setOrigin] = useState("https://your-relay.example.com");
+  useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+  return origin;
+}
+
 export default function StreamingArticle() {
+  const origin = useOrigin();
   return (
     <article>
       <Breadcrumb section="API 参考" page="流式响应"/>
@@ -11,7 +21,7 @@ export default function StreamingArticle() {
 
       <H2 id="example">最小示例</H2>
       <Code language="PYTHON">{`from anthropic import Anthropic
-client = Anthropic(api_key=KEY, base_url="https://api.tongyuan.ai")
+client = Anthropic(api_key=KEY, base_url="${origin}")
 
 with client.messages.stream(
     model="claude-sonnet-4.5",

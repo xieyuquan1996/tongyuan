@@ -13,22 +13,26 @@ const METHODS = [
 ];
 
 export default function Recharge() {
-  const [amount, setAmount] = useState(200);
+  const [amount, setAmount] = useState("200");
   const [method, setMethod] = useState("alipay");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const amountNum = Number(amount);
+  const valid = Number.isFinite(amountNum) && amountNum > 0 && amountNum <= 100000;
 
   const billing = useAsync(() => api("/api/console/billing"), [reloadKey]);
   const history = useAsync(() => api("/api/console/recharges"), [reloadKey]);
 
   async function submit(e) {
     e.preventDefault();
+    if (!valid) return;
     setBusy(true);
     try {
       const r = await api("/api/console/recharge", {
         method: "POST",
-        body: { amount: String(amount), method },
+        body: { amount: String(amountNum), method },
       });
       setToast({ tone: "ok", text: `充值成功，到账 ¥${r.recharge.amount}。余额 ¥${r.balance}。` });
       setReloadKey((k) => k + 1);
@@ -87,11 +91,11 @@ export default function Recharge() {
         <SectionLabel>充值金额</SectionLabel>
         <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
           {PRESETS.map((p) => (
-            <button key={p} type="button" onClick={() => setAmount(p)} style={{
+            <button key={p} type="button" onClick={() => setAmount(String(p))} style={{
               padding: "10px 16px", borderRadius: 8,
-              background: amount === p ? "var(--clay)" : "transparent",
-              color: amount === p ? "var(--on-clay)" : "var(--text)",
-              border: amount === p ? "none" : "1px solid var(--border)",
+              background: amountNum === p ? "var(--clay)" : "transparent",
+              color: amountNum === p ? "var(--on-clay)" : "var(--text)",
+              border: amountNum === p ? "none" : "1px solid var(--border)",
               cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 500,
             }}>¥{p}</button>
           ))}
@@ -100,8 +104,8 @@ export default function Recharge() {
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>自定义</span>
           <div style={{ position: "relative" }}>
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", fontSize: 14 }}>¥</span>
-            <input type="number" min={1} max={100000} value={amount}
-              onChange={(e) => setAmount(+e.target.value || 0)}
+            <input type="number" min={1} max={100000} step="0.01" value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               style={{ padding: "10px 12px 10px 28px", border: "1px solid var(--border)", borderRadius: 6, width: 160, fontSize: 14, background: "var(--surface-2)", color: "var(--text)" }}/>
           </div>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>单笔最高 ¥100,000</span>
@@ -126,16 +130,16 @@ export default function Recharge() {
           ))}
         </div>
 
-        <button type="submit" disabled={busy || amount <= 0} style={{
+        <button type="submit" disabled={busy || !valid} style={{
           padding: "12px 20px",
-          background: busy || amount <= 0 ? "var(--btn-disabled-bg)" : "var(--clay)",
-          color: busy || amount <= 0 ? "var(--btn-disabled-fg)" : "var(--on-clay)", border: "none", borderRadius: 8,
+          background: busy || !valid ? "var(--btn-disabled-bg)" : "var(--clay)",
+          color: busy || !valid ? "var(--btn-disabled-fg)" : "var(--on-clay)", border: "none", borderRadius: 8,
           fontSize: 14, fontWeight: 500,
           cursor: busy ? "wait" : "pointer",
           display: "inline-flex", alignItems: "center", gap: 8,
         }}>
           {busy && <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }}/>}
-          {busy ? "处理中…" : `确认充值 ¥${amount}`}
+          {busy ? "处理中…" : `确认充值 ¥${valid ? amountNum : 0}`}
         </button>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)", marginTop: 10 }}>
           Mock 后端：直接入账。接真实后端后会跳转到支付网关。

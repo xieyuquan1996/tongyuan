@@ -35,6 +35,7 @@ services:
     restart: unless-stopped
 
   migrate:
+    image: claude-link-backend:latest
     build:
       context: ../backend
       dockerfile: Dockerfile
@@ -52,6 +53,7 @@ services:
     restart: "no"
 
   backend:
+    image: claude-link-backend:latest
     build:
       context: ../backend
       dockerfile: Dockerfile
@@ -80,6 +82,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: claude-link-frontend:latest
     build:
       context: ../frontend
       dockerfile: Dockerfile

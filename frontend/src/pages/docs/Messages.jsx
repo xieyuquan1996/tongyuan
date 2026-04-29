@@ -1,6 +1,17 @@
+import { useState, useEffect } from "react";
 import { Breadcrumb, H1, H2, Lead, P, IC, Code } from "./Layout.jsx";
 
+function useOrigin() {
+  const [origin, setOrigin] = useState("https://your-relay.example.com");
+  useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+  return origin;
+}
+
 export default function MessagesArticle() {
+  const origin = useOrigin();
+  const host = origin.replace(/^https?:\/\//, "");
   return (
     <article>
       <Breadcrumb section="API 参考" page="messages.create" />
@@ -16,7 +27,7 @@ export default function MessagesArticle() {
           background: "var(--ok-soft)", color: "var(--ok-text)",
         }}>POST</span>
         <code style={{ fontFamily: "var(--font-mono)", fontSize: 14 }}>
-          https://api.tongyuan.ai/v1/messages
+          {origin}/v1/messages
         </code>
       </div>
 
@@ -27,7 +38,7 @@ export default function MessagesArticle() {
 
       <H2 id="example">完整请求示例</H2>
       <Code language="HTTP">{`POST /v1/messages HTTP/1.1
-host: api.tongyuan.ai
+host: ${host}
 content-type: application/json
 x-api-key: sk-relay-9F3A••••
 

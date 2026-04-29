@@ -1,12 +1,23 @@
+import { useState, useEffect } from "react";
 import { Breadcrumb, H1, H2, Lead, P, IC, Code, Callout } from "./Layout.jsx";
 
+function useOrigin() {
+  const [origin, setOrigin] = useState("https://your-relay.example.com");
+  useEffect(() => {
+    if (typeof window !== "undefined") setOrigin(window.location.origin);
+  }, []);
+  return origin;
+}
+
 export default function QuickstartArticle() {
+  const origin = useOrigin();
+  const host = origin.replace(/^https?:\/\//, "");
   return (
     <article>
       <Breadcrumb section="入门" page="快速开始" />
       <H1 id="top">5 分钟接入 同源</H1>
       <Lead>
-        把官方 Anthropic SDK 的 base URL 换成 <IC>api.tongyuan.ai</IC>，其他不用改。
+        把官方 Anthropic SDK 的 base URL 换成 <IC>{host}</IC>，其他不用改。
         下面是 Python 和 TypeScript 的最小示例。
       </Lead>
 
@@ -21,7 +32,7 @@ npm install @anthropic-ai/sdk`}</Code>
         登录控制台 → API 密钥 → 创建密钥。密钥以 <IC>sk-relay-</IC> 开头。
       </P>
       <Callout tone="warn" title="只在创建时显示一次">
-        密钥创建后，完整字符串只显示一次。请立即复制保存到环境变量，例如 <IC>TONGYUAN_API_KEY</IC>。
+        密钥创建后，完整字符串只显示一次。请立即复制保存到环境变量，例如 <IC>ANTHROPIC_API_KEY</IC>。
       </Callout>
 
       <H2 id="call">3 · 第一次调用</H2>
@@ -29,8 +40,8 @@ npm install @anthropic-ai/sdk`}</Code>
 from anthropic import Anthropic
 
 client = Anthropic(
-    api_key=os.environ["TONGYUAN_API_KEY"],
-    base_url="https://api.tongyuan.ai",
+    api_key=os.environ["ANTHROPIC_API_KEY"],
+    base_url="${origin}",
 )
 
 resp = client.messages.create(
@@ -48,7 +59,7 @@ print(resp.model)  # → claude-sonnet-4.5  (与请求一致)`}</Code>
         三处都应当与你上行的请求字节级一致。
       </P>
       <Callout tone="clay" title="不一致就退款">
-        如果你截图发现任何一项被改写过，发邮件到 <IC>support@tongyuan.ai</IC>，
+        如果你截图发现任何一项被改写过，提交工单告诉我们，
         我们退一个月费用，无需解释。
       </Callout>
 
