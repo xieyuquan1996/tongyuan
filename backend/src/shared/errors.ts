@@ -3,7 +3,7 @@ export type ErrorCode =
   | 'unauthorized' | 'invalid_credentials' | 'wrong_password'
   | 'missing_fields' | 'invalid_email' | 'weak_password' | 'invalid_amount'
   | 'email_exists' | 'model_exists'
-  | 'account_suspended' | 'forbidden'
+  | 'account_suspended' | 'account_locked' | 'forbidden'
   | 'not_found' | 'route_not_found'
   | 'insufficient_balance' | 'rate_limit'
   | 'unknown_model' | 'method_not_allowed'
@@ -15,7 +15,7 @@ const STATUS: Record<ErrorCode, number> = {
   missing_fields: 400, invalid_email: 400, weak_password: 400, invalid_amount: 400,
   unknown_model: 400,
   insufficient_balance: 402,
-  account_suspended: 403, forbidden: 403,
+  account_suspended: 403, account_locked: 403, forbidden: 403,
   not_found: 404, route_not_found: 404,
   method_not_allowed: 405,
   email_exists: 409, model_exists: 409,

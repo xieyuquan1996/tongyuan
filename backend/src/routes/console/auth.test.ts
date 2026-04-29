@@ -46,4 +46,25 @@ describe('auth routes', () => {
     expect(r.status).toBe(400)
     expect((await r.json()).error).toBe('weak_password')
   })
+
+  it('locks account after 5 failed attempts', async () => {
+    const email = `auth-test-${Date.now()}-lock@example.com`
+    await post('/api/console/register', { email, password: 'correct123' })
+
+    for (let i = 0; i < 4; i++) {
+      const r = await post('/api/console/login', { email, password: 'wrong' })
+      expect(r.status).toBe(401)
+      expect((await r.json()).error).toBe('invalid_credentials')
+    }
+
+    // 5th attempt triggers lockout
+    const r5 = await post('/api/console/login', { email, password: 'wrong' })
+    expect(r5.status).toBe(403)
+    expect((await r5.json()).error).toBe('account_locked')
+
+    // Correct password also blocked while locked
+    const rOk = await post('/api/console/login', { email, password: 'correct123' })
+    expect(rOk.status).toBe(403)
+    expect((await rOk.json()).error).toBe('account_locked')
+  })
 })

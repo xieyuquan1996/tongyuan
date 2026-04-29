@@ -1,0 +1,3 @@
+-- Track failed login attempts and temporary account lockout.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until timestamptz;

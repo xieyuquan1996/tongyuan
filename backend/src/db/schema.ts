@@ -1,5 +1,5 @@
 // backend/src/db/schema.ts
-import { pgTable, uuid, text, timestamp, numeric, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, timestamp, numeric, boolean, integer } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -16,6 +16,8 @@ export const users = pgTable('users', {
   phone: text('phone').notNull().default(''),
   notifyEmail: boolean('notify_email').notNull().default(true),
   notifyBrowser: boolean('notify_browser').notNull().default(false),
+  failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })

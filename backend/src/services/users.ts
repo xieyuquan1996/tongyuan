@@ -5,6 +5,9 @@ import { users } from '../db/schema.js'
 import { AppError } from '../shared/errors.js'
 import { hashPassword, verifyPassword } from '../crypto/password.js'
 
+const MAX_ATTEMPTS = 5
+const LOCKOUT_MINUTES = 15
+
 export type UserRow = typeof users.$inferSelect
 
 export async function createUser(input: { email: string; password: string; name: string }): Promise<UserRow> {
@@ -24,8 +27,31 @@ export async function authenticate(email: string, password: string): Promise<Use
   const row = await db.query.users.findFirst({ where: eq(users.email, email.trim().toLowerCase()) })
   if (!row) throw new AppError('invalid_credentials')
   if (row.status === 'suspended') throw new AppError('account_suspended')
+
+  // Check lockout
+  if (row.lockedUntil && row.lockedUntil > new Date()) {
+    const mins = Math.ceil((row.lockedUntil.getTime() - Date.now()) / 60_000)
+    throw new AppError('account_locked', `账户已锁定，请 ${mins} 分钟后再试`)
+  }
+
   const ok = await verifyPassword(password, row.passwordHash)
-  if (!ok) throw new AppError('invalid_credentials')
+  if (!ok) {
+    const attempts = (row.failedLoginAttempts ?? 0) + 1
+    const patch: Partial<typeof users.$inferInsert> =
+      attempts >= MAX_ATTEMPTS
+        ? { failedLoginAttempts: attempts, lockedUntil: new Date(Date.now() + LOCKOUT_MINUTES * 60_000) }
+        : { failedLoginAttempts: attempts }
+    await db.update(users).set(patch).where(eq(users.id, row.id))
+    if (attempts >= MAX_ATTEMPTS) {
+      throw new AppError('account_locked', `密码错误次数过多，账户已锁定 ${LOCKOUT_MINUTES} 分钟`)
+    }
+    throw new AppError('invalid_credentials')
+  }
+
+  // Reset on success
+  if (row.failedLoginAttempts > 0 || row.lockedUntil) {
+    await db.update(users).set({ failedLoginAttempts: 0, lockedUntil: null }).where(eq(users.id, row.id))
+  }
   return row
 }
 

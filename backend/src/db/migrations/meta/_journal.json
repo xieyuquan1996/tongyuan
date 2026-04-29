@@ -71,6 +71,13 @@
       "when": 1777410000000,
       "tag": "0009_upstream_key_base_url",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777420000000,
+      "tag": "0010_login_lockout",
+      "breakpoints": true
     }
   ]
 }

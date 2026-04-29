@@ -21,7 +21,13 @@ export default function Login() {
       await login(email.trim(), password);
       nav(from, { replace: true });
     } catch (err) {
-      setError(err.status === 401 ? "邮箱或密码错误" : err.message || "登录失败");
+      if (err.data?.error === "account_locked") {
+        setError(err.data.message || "账户已锁定，请稍后再试");
+      } else if (err.status === 401) {
+        setError("邮箱或密码错误");
+      } else {
+        setError(err.message || "登录失败");
+      }
     } finally {
       setBusy(false);
     }
