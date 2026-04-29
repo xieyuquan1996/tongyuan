@@ -4,7 +4,7 @@ import { requireBearer } from '../../middleware/auth-bearer.js'
 import { db } from '../../db/client.js'
 import { billingLedger } from '../../db/schema.js'
 import { AppError } from '../../shared/errors.js'
-import { toCny, fmtCny } from '../../shared/fx.js'
+import { toCny, fmtCny, getRate } from '../../shared/fx.js'
 
 export const billingRoutes = new Hono()
 billingRoutes.use('*', requireBearer)
@@ -22,16 +22,17 @@ billingRoutes.get('/', async (c) => {
   const projectionUsd = usedUsd * 2
   const now = new Date()
   const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const rate = await getRate()
 
-  const usedCny = toCny(usedUsd)
-  const balanceCny = toCny(balance)
+  const usedCny = toCny(usedUsd, rate)
+  const balanceCny = toCny(balance, rate)
 
   return c.json({
     billing: {
       month_label: `${now.getFullYear()} 年 ${now.getMonth() + 1} 月`,
       used: fmtCny(usedCny),
-      limit: limit !== null ? fmtCny(toCny(limit)) : '∞',
-      projection: fmtCny(toCny(projectionUsd)),
+      limit: limit !== null ? fmtCny(toCny(limit, rate)) : '∞',
+      projection: fmtCny(toCny(projectionUsd, rate)),
       balance: fmtCny(balanceCny),
       next_reset: nextReset.toISOString().slice(0, 10),
       used_usd: usedUsd.toFixed(6),

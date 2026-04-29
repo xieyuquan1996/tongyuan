@@ -10,7 +10,7 @@ import { AppError } from '../../shared/errors.js'
 import { db } from '../../db/client.js'
 import { users, billingLedger } from '../../db/schema.js'
 import { eq, and, gte, sql } from 'drizzle-orm'
-import { toCny, USD_TO_CNY } from '../../shared/fx.js'
+import { toCny, getRate } from '../../shared/fx.js'
 
 export const authRoutes = new Hono()
 
@@ -57,9 +57,10 @@ authRoutes.get('/me', requireBearer, async (c) => {
     .where(and(eq(billingLedger.userId, u.id), eq(billingLedger.kind, 'debit_usage'), gte(billingLedger.createdAt, monthStart)))
 
   const spentUsd = Number(row!.spentUsd)
+  const rate = await getRate()
   const pub = toPublicUser(u) as Record<string, unknown>
-  pub.spent_this_month = toCny(spentUsd).toFixed(2)
-  pub.limit_this_month = u.limitMonthlyUsd ? toCny(Number(u.limitMonthlyUsd)).toFixed(2) : null
+  pub.spent_this_month = toCny(spentUsd, rate).toFixed(2)
+  pub.limit_this_month = u.limitMonthlyUsd ? toCny(Number(u.limitMonthlyUsd), rate).toFixed(2) : null
   return c.json(pub)
 })
 

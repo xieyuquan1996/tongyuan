@@ -41,6 +41,7 @@ import AdminRegions from "./pages/admin/Regions.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
 import AdminAudit from "./pages/admin/Audit.jsx";
 import AdminUpstreamKeys from "./pages/admin/UpstreamKeys.jsx";
+import AdminSettings from "./pages/admin/Settings.jsx";
 import RequireAuth from "./components/RequireAuth.jsx";
 import RequireAdmin from "./components/RequireAdmin.jsx";
 import { ThemeProvider } from "./lib/theme.jsx";
@@ -120,6 +121,7 @@ export default function App() {
           <Route path="announcements" element={<AdminAnnouncements />} />
           <Route path="audit" element={<AdminAudit />} />
           <Route path="upstream-keys" element={<AdminUpstreamKeys />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

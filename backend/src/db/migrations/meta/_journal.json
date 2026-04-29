@@ -78,6 +78,13 @@
       "when": 1777420000000,
       "tag": "0010_login_lockout",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777430000000,
+      "tag": "0011_settings_table",
+      "breakpoints": true
     }
   ]
 }

@@ -121,6 +121,12 @@ export const upstreamKeys = pgTable('upstream_keys', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const settings = pgTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const announcements = pgTable('announcements', {
   id: uuid('id').primaryKey().defaultRandom(),
   title: text('title').notNull(),

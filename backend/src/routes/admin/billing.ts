@@ -5,7 +5,7 @@ import { requireBearer } from '../../middleware/auth-bearer.js'
 import { requireAdmin } from '../../middleware/auth-admin.js'
 import { db } from '../../db/client.js'
 import { requestLogs, users, billingLedger } from '../../db/schema.js'
-import { toCny } from '../../shared/fx.js'
+import { toCny, getRate } from '../../shared/fx.js'
 
 export const adminBillingRoutes = new Hono()
 adminBillingRoutes.use('*', requireBearer, requireAdmin)
@@ -73,27 +73,29 @@ adminBillingRoutes.get('/', async (c) => {
     .orderBy(desc(billingLedger.createdAt))
     .limit(10)
 
+  const rate = await getRate()
   const rev30Usd = Number(rev30d!.sum)
   const revMtdUsd = Number(revMtd!.sum)
   const outstandingUsd = Number(outstanding!.sum)
 
   return c.json({
     totals: {
-      revenue_this_month: toCny(revMtdUsd).toFixed(2),
-      revenue_30d: toCny(rev30Usd).toFixed(2),
+      revenue_this_month: toCny(revMtdUsd, rate).toFixed(2),
+      revenue_30d: toCny(rev30Usd, rate).toFixed(2),
       revenue_30d_usd: rev30Usd.toFixed(6),
-      revenue_30d_cny: toCny(rev30Usd).toFixed(6),
+      revenue_30d_cny: toCny(rev30Usd, rate).toFixed(6),
       revenue_mtd_usd: revMtdUsd.toFixed(6),
-      revenue_mtd_cny: toCny(revMtdUsd).toFixed(6),
-      balance_outstanding: toCny(outstandingUsd).toFixed(2),
+      revenue_mtd_cny: toCny(revMtdUsd, rate).toFixed(6),
+      balance_outstanding: toCny(outstandingUsd, rate).toFixed(2),
       pending_invoices: 0,
       debits_count_30d: Number(rev30d!.count),
       unique_users_30d: Number(rev30d!.users),
+      exchange_rate: rate,
     },
     by_plan: byPlan.map((p) => ({
       plan: p.plan,
       count: Number(p.count),
-      revenue: toCny(Number(p.revenue)).toFixed(2),
+      revenue: toCny(Number(p.revenue), rate).toFixed(2),
     })),
     by_user: topUsers.map((u) => {
       const bal = Number(u.balanceUsd)
@@ -104,16 +106,16 @@ adminBillingRoutes.get('/', async (c) => {
         email: u.email,
         plan: u.plan,
         status: u.status,
-        balance: toCny(bal).toFixed(2),
-        spent_this_month: toCny(spent).toFixed(2),
-        limit_this_month: limit !== null ? toCny(limit).toFixed(2) : '∞',
+        balance: toCny(bal, rate).toFixed(2),
+        spent_this_month: toCny(spent, rate).toFixed(2),
+        limit_this_month: limit !== null ? toCny(limit, rate).toFixed(2) : '∞',
       }
     }),
     top_users: topUsers.map((u) => ({
       user_id: u.id,
       email: u.email,
       spent_usd: Number(u.spentUsd).toFixed(6),
-      spent_cny: toCny(Number(u.spentUsd)).toFixed(6),
+      spent_cny: toCny(Number(u.spentUsd), rate).toFixed(6),
       request_count: Number(u.requestCount),
     })),
     recent_adjustments: recentAdjusts.map((a) => ({

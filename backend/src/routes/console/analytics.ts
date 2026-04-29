@@ -4,7 +4,7 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import { requireBearer } from '../../middleware/auth-bearer.js'
 import { db } from '../../db/client.js'
 import { requestLogs } from '../../db/schema.js'
-import { toCny } from '../../shared/fx.js'
+import { toCny, getRate } from '../../shared/fx.js'
 
 export const analyticsRoutes = new Hono()
 analyticsRoutes.use('*', requireBearer)
@@ -21,13 +21,14 @@ analyticsRoutes.get('/', async (c) => {
   const since = new Date(Date.now() - rangeMs(range))
 
   const scope = and(eq(requestLogs.userId, userId), gte(requestLogs.createdAt, since))
+  const rate = await getRate()
 
   // Daily buckets
   const daily = await db.select({
     date: sql<string>`to_char(created_at::date, 'YYYY-MM-DD')`,
     requests: sql<number>`count(*)::int`,
     tokens: sql<number>`coalesce(sum(input_tokens::int + output_tokens::int), 0)::int`,
-    cost: sql<string>`coalesce(sum(cost_usd) * 7.20, 0)::text`,
+    cost_usd: sql<string>`coalesce(sum(cost_usd), 0)::text`,
   }).from(requestLogs)
     .where(scope)
     .groupBy(sql`created_at::date`)
@@ -49,7 +50,7 @@ analyticsRoutes.get('/', async (c) => {
     model: r.model,
     requests: Number(r.requests),
     tokens_m: Math.round(Number(r.tokens) / 1_000_000 * 100) / 100,
-    cost: '¥' + toCny(Number(r.cost_usd)).toFixed(2),
+    cost: '¥' + toCny(Number(r.cost_usd), rate).toFixed(2),
     share: Math.round((Number(r.requests) / totalReqs) * 100),
   }))
 
@@ -82,5 +83,13 @@ analyticsRoutes.get('/', async (c) => {
     pct: Math.round((Number(r.count) / totalErr) * 100) + '%',
   }))
 
-  return c.json({ daily, by_model, by_region, errors })
+  return c.json({
+    daily: daily.map((d) => ({
+      date: d.date,
+      requests: Number(d.requests),
+      tokens: Number(d.tokens),
+      cost: '¥' + toCny(Number(d.cost_usd), rate).toFixed(2),
+    })),
+    by_model, by_region, errors,
+  })
 })

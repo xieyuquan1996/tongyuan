@@ -7,7 +7,7 @@ import { requireBearer } from '../../middleware/auth-bearer.js'
 import { requireAdmin } from '../../middleware/auth-admin.js'
 import { db, pool } from '../../db/client.js'
 import { users, apiKeys, requestLogs, billingLedger } from '../../db/schema.js'
-import { toCny } from '../../shared/fx.js'
+import { toCny, fromCny, getRate } from '../../shared/fx.js'
 import { AppError } from '../../shared/errors.js'
 
 export const adminUsersRoutes = new Hono()
@@ -41,6 +41,7 @@ adminUsersRoutes.get('/', async (c) => {
     .groupBy(requestLogs.userId)
 
   const spentMap = new Map(spents.map((s) => [s.userId, Number(s.sum)]))
+  const rate = await getRate()
 
   return c.json({
     users: rows.map((u) => {
@@ -54,11 +55,11 @@ adminUsersRoutes.get('/', async (c) => {
         role: u.role,
         status: u.status,
         plan: u.plan,
-        balance: toCny(balUsd).toFixed(2),
+        balance: toCny(balUsd, rate).toFixed(2),
         balance_usd: balUsd.toFixed(6),
-        balance_cny: toCny(balUsd).toFixed(6),
-        spent_this_month: toCny(spentUsd).toFixed(2),
-        limit_this_month: limitUsd !== null ? toCny(limitUsd).toFixed(2) : '∞',
+        balance_cny: toCny(balUsd, rate).toFixed(6),
+        spent_this_month: toCny(spentUsd, rate).toFixed(2),
+        limit_this_month: limitUsd !== null ? toCny(limitUsd, rate).toFixed(2) : '∞',
         limit_monthly_usd: u.limitMonthlyUsd,
         created_at: u.createdAt,
         last_login_at: null,
@@ -83,15 +84,16 @@ adminUsersRoutes.get('/:id', async (c) => {
   const balUsd = Number(u.balanceUsd)
   const spentUsd = Number(spent!.sum)
   const limitUsd = u.limitMonthlyUsd ? Number(u.limitMonthlyUsd) : null
+  const rate = await getRate()
 
   return c.json({
     user: {
       id: u.id, email: u.email, name: u.name, role: u.role, status: u.status, plan: u.plan,
-      balance: toCny(balUsd).toFixed(2),
+      balance: toCny(balUsd, rate).toFixed(2),
       balance_usd: balUsd.toFixed(6),
-      balance_cny: toCny(balUsd).toFixed(6),
-      spent_this_month: toCny(spentUsd).toFixed(2),
-      limit_this_month: limitUsd !== null ? toCny(limitUsd).toFixed(2) : '∞',
+      balance_cny: toCny(balUsd, rate).toFixed(6),
+      spent_this_month: toCny(spentUsd, rate).toFixed(2),
+      limit_this_month: limitUsd !== null ? toCny(limitUsd, rate).toFixed(2) : '∞',
       limit_monthly_usd: u.limitMonthlyUsd,
       created_at: u.createdAt,
     },
@@ -128,10 +130,10 @@ adminUsersRoutes.patch('/:id', zValidator('json', patchSchema), async (c) => {
   if (b.plan !== undefined) set.plan = b.plan
   if (b.limit_monthly_usd !== undefined) set.limitMonthlyUsd = b.limit_monthly_usd
   if (b.limit_this_month !== undefined) {
-    // UI sends CNY — convert to USD
     const cny = parseFloat(b.limit_this_month)
     if (!Number.isFinite(cny)) throw new AppError('invalid_amount')
-    set.limitMonthlyUsd = (cny / 7.20).toFixed(6)
+    const rate = await getRate()
+    set.limitMonthlyUsd = fromCny(cny, rate).toFixed(6)
   }
 
   const client = await pool.connect()
@@ -182,7 +184,8 @@ adminUsersRoutes.post('/:id/adjust', zValidator('json', z.object({
   const { delta, note } = c.req.valid('json')
   const deltaCny = parseFloat(delta)
   if (!Number.isFinite(deltaCny) || deltaCny === 0) throw new AppError('invalid_amount')
-  const deltaUsd = (deltaCny / 7.20).toFixed(6)
+  const rate = await getRate()
+  const deltaUsd = fromCny(deltaCny, rate).toFixed(6)
 
   const existing = await db.query.users.findFirst({ where: eq(users.id, id) })
   if (!existing) throw new AppError('not_found')
