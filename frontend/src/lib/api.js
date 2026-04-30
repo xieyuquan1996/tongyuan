@@ -33,14 +33,19 @@ export class ApiError extends Error {
     let msg = `HTTP ${status}`;
     if (data && data.error) {
       if (typeof data.error === "string") {
-        msg = data.error;
+        // Our own `{error: "invalid_credentials"}` shape.
+        msg = data.message || data.error;
       } else if (data.error?.issues?.length) {
+        // zod validation
         const issue = data.error.issues[0];
         const field = issue.path?.join(".") || "";
         msg = field ? `${field}: ${issue.message}` : issue.message;
-      } else {
-        msg = `HTTP ${status}`;
+      } else if (typeof data.error.message === "string") {
+        // Anthropic-style nested error: { error: { type, message } }
+        msg = data.error.message;
       }
+    } else if (data && typeof data.message === "string") {
+      msg = data.message;
     }
     super(msg);
     this.status = status;
