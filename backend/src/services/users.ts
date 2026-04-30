@@ -1,14 +1,21 @@
 // backend/src/services/users.ts
 import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { users } from '../db/schema.js'
+import { users, settings, billingLedger } from '../db/schema.js'
 import { AppError } from '../shared/errors.js'
 import { hashPassword, verifyPassword } from '../crypto/password.js'
 
 const MAX_ATTEMPTS = 5
 const LOCKOUT_MINUTES = 15
+const DEFAULT_SIGNUP_CREDIT_USD = 10
 
 export type UserRow = typeof users.$inferSelect
+
+async function getSignupCreditUsd(): Promise<number> {
+  const row = await db.query.settings.findFirst({ where: eq(settings.key, 'signup_credit_usd') })
+  const n = row ? Number(row.value) : DEFAULT_SIGNUP_CREDIT_USD
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_SIGNUP_CREDIT_USD
+}
 
 export async function createUser(input: { email: string; password: string; name: string }): Promise<UserRow> {
   const email = input.email.trim().toLowerCase()
@@ -19,8 +26,24 @@ export async function createUser(input: { email: string; password: string; name:
   if (existing) throw new AppError('email_exists')
 
   const passwordHash = await hashPassword(input.password)
-  const [row] = await db.insert(users).values({ email, passwordHash, name: input.name ?? '' }).returning()
-  return row!
+  const creditUsd = await getSignupCreditUsd()
+  const balanceStr = creditUsd.toFixed(6)
+
+  return await db.transaction(async (tx) => {
+    const [row] = await tx.insert(users)
+      .values({ email, passwordHash, name: input.name ?? '', balanceUsd: balanceStr })
+      .returning()
+    if (creditUsd > 0) {
+      await tx.insert(billingLedger).values({
+        userId: row!.id,
+        kind: 'credit_signup',
+        amountUsd: balanceStr,
+        balanceAfterUsd: balanceStr,
+        note: '新用户注册赠送',
+      })
+    }
+    return row!
+  })
 }
 
 export async function authenticate(email: string, password: string): Promise<UserRow> {
