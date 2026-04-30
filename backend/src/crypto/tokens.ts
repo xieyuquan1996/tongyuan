@@ -11,22 +11,16 @@ export function hashSessionToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
 
-const BASE62 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-function randBase62(n: number): string {
-  // Rejection sampling to avoid modulo bias. Uniform threshold = floor(256/62)*62 = 248.
-  const THRESHOLD = 248
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+function randAlphanum(n: number): string {
+  // 64-char alphabet (A-Z a-z 0-9 - _) divides 256 cleanly → no bias, no rejection.
+  const buf = randomBytes(n)
   let out = ''
-  while (out.length < n) {
-    const buf = randomBytes(n - out.length + 8)  // slight overdraw to reduce retries
-    for (let i = 0; i < buf.length && out.length < n; i++) {
-      const b = buf[i]!
-      if (b < THRESHOLD) out += BASE62[b % 62]
-    }
-  }
+  for (let i = 0; i < n; i++) out += ALPHABET[buf[i]! & 0x3f]
   return out
 }
 
 export function newApiKey(): { secret: string; prefix: string } {
-  const secret = 'sk-relay-' + randBase62(40)
+  const secret = 'sk-relay-' + randAlphanum(80)
   return { secret, prefix: secret.slice(0, API_KEY_PREFIX_LEN) }
 }
