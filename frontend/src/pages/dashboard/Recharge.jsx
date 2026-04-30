@@ -9,7 +9,7 @@ const PRESETS = [50, 100, 200, 500, 1000, 2000];
 const METHODS = [
   { id: "alipay", name: "支付宝", hint: "推荐 · 到账 < 1 分钟" },
   { id: "wechat", name: "微信支付", hint: "到账 < 1 分钟" },
-  { id: "bank",   name: "企业对公", hint: "Pro/Enterprise · 1-3 工作日" },
+  { id: "bank",   name: "企业对公", hint: "1-3 工作日" },
 ];
 
 export default function Recharge() {
@@ -49,7 +49,7 @@ export default function Recharge() {
     <div>
       <PageHeader title="充值" sub="按量付费 · 无到期时间"/>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 24 }}>
         <div style={card}>
           {billing.loading ? <Loading/> : (
             <>
@@ -65,6 +65,7 @@ export default function Recharge() {
             </>
           )}
         </div>
+        {/* 暂时隐藏 - 套餐卡片
         <div style={card}>
           <div style={mono10}>当前套餐</div>
           <div style={{ fontSize: 20, fontWeight: 600, marginTop: 6 }}>{billing.data?.plan || "—"}</div>
@@ -72,6 +73,7 @@ export default function Recharge() {
             下次结算 {billing.data?.billing?.next_reset}
           </div>
         </div>
+        */}
       </div>
 
       {toast && (

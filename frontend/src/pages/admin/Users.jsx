@@ -5,7 +5,7 @@ import { useAsync, fmtRelative } from "../../lib/hooks.js";
 import { Loading, ErrorBox, Pill } from "../../components/primitives.jsx";
 import { PageHeader } from "../../components/dashboard-widgets.jsx";
 
-const PLANS = ["Starter", "Pro", "Enterprise"];
+// const PLANS = ["Starter", "Pro", "Enterprise"];  // 暂时隐藏 - 套餐功能
 
 export default function AdminUsers() {
   const [q, setQ] = useState("");
@@ -45,10 +45,12 @@ export default function AdminUsers() {
           <option value="active">活跃</option>
           <option value="suspended">已冻结</option>
         </select>
+        {/* 暂时隐藏 - 套餐筛选
         <select value={plan} onChange={(e) => setPlan(e.target.value)} style={filter}>
           <option value="">套餐: 全部</option>
           {PLANS.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
+        */}
       </div>
 
       {toast && <Toast toast={toast} onDone={() => setToast(null)}/>}
@@ -59,7 +61,7 @@ export default function AdminUsers() {
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>
                 <th style={th}>账户</th>
-                <th style={th}>套餐</th>
+                {/* <th style={th}>套餐</th> */}{/* 暂时隐藏 */}
                 <th style={th}>余额</th>
                 <th style={th}>本月消费</th>
                 <th style={th}>上限</th>
@@ -69,7 +71,7 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {users.length === 0 && (
-                <tr><td colSpan="7" style={{ padding: 32, textAlign: "center", color: "var(--text-3)" }}>没有匹配的用户。</td></tr>
+                <tr><td colSpan="6" style={{ padding: 32, textAlign: "center", color: "var(--text-3)" }}>没有匹配的用户。</td></tr>
               )}
               {users.map((u) => (
                 <tr key={u.id} onClick={() => setSelected(u)} style={{ borderTop: "1px solid var(--divider)", cursor: "pointer" }}
@@ -85,7 +87,6 @@ export default function AdminUsers() {
                       {u.role === "admin" && <Pill tone="clay">admin</Pill>}
                     </div>
                   </td>
-                  <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{u.plan}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)" }}>¥{u.balance}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)" }}>¥{u.spent_this_month}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>¥{u.limit_this_month}</td>
@@ -165,11 +166,13 @@ function UserDrawer({ userId, onClose, onChanged, onError }) {
             <div style={{ padding: 24, overflow: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 20 }}>
               <Section title="账户状态">
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                  {/* 暂时隐藏 - 套餐编辑
                   <Kv k="PLAN"    v={
                     <select defaultValue={data.user.plan} onChange={(e) => patch({ plan: e.target.value }, `套餐改为 ${e.target.value}`)} style={kvCtrl}>
                       {PLANS.map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   }/>
+                  */}
                   <Kv k="ROLE"    v={
                     <select defaultValue={data.user.role || "user"} onChange={(e) => patch({ role: e.target.value }, `角色改为 ${e.target.value}`)} style={kvCtrl}>
                       <option value="user">user</option>

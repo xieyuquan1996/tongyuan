@@ -17,7 +17,7 @@ export default function Billing() {
   return (
     <div>
       <PageHeader title="账单" sub={snap.month_label} />
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 16 }}>
         <div style={{
           background: "var(--surface-2)", color: "var(--text)",
           borderRadius: 12, padding: 28, border: "1px solid var(--border)",
@@ -34,12 +34,14 @@ export default function Billing() {
             预计本月: {snap.projection} · 下次结算: {snap.next_reset}
           </div>
         </div>
+        {/* 暂时隐藏 - 套餐卡片
         <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: 28 }}>
           <div style={monoLabel}>当前套餐</div>
           <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{b.data.plan}</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)", marginBottom: 16 }}>按量计费 · 无最低消费</div>
           <Link to="/#pricing" style={{ ...ctaBtn, textDecoration: "none", display: "inline-block", textAlign: "center" }}>升级 / 管理</Link>
         </div>
+        */}
       </div>
 
       <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>

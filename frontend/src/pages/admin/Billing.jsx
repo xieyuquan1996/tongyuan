@@ -19,6 +19,7 @@ export default function AdminBilling() {
         <Metric label="待处理发票" value={t.pending_invoices} sub="status=pending" accent={t.pending_invoices > 0}/>
       </div>
 
+      {/* 暂时隐藏 - 按套餐拆分
       <div style={{ ...card, marginBottom: 16 }}>
         <h3 style={heading}>按套餐拆分</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -48,6 +49,7 @@ export default function AdminBilling() {
           </tbody>
         </table>
       </div>
+      */}
 
       <div style={{ ...card, marginBottom: 16 }}>
         <h3 style={heading}>消费 Top 租户</h3>
@@ -55,7 +57,7 @@ export default function AdminBilling() {
           <thead>
             <tr>
               <th style={th}>账户</th>
-              <th style={th}>套餐</th>
+              {/* <th style={th}>套餐</th> */}{/* 暂时隐藏 */}
               <th style={th}>余额</th>
               <th style={th}>本月消费</th>
               <th style={th}>上限</th>
@@ -66,7 +68,7 @@ export default function AdminBilling() {
             {data.by_user.map((u) => (
               <tr key={u.id} style={{ borderTop: "1px solid var(--divider)" }}>
                 <td style={{ ...td, fontFamily: "var(--font-mono)", fontSize: 12 }}>{u.email}</td>
-                <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{u.plan}</td>
+                {/* <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{u.plan}</td> */}{/* 暂时隐藏 */}
                 <td style={{ ...td, fontFamily: "var(--font-mono)" }}>¥{u.balance}</td>
                 <td style={{ ...td, fontFamily: "var(--font-mono)" }}>¥{u.spent_this_month}</td>
                 <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>¥{u.limit_this_month}</td>

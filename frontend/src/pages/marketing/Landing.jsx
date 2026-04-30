@@ -15,7 +15,7 @@ export default function Landing() {
       <PromiseGrid />
       {/* <StatusStrip /> */}{/* 暂时隐藏 */}
       <ModelsTable />
-      <Pricing />
+      {/* <Pricing /> */}{/* 暂时隐藏 - Starter/Pro 套餐 */}
       <Faq />
       <Footer />
     </div>
@@ -42,7 +42,7 @@ function Nav() {
       {!mobile && (
         <nav style={{ display: "flex", gap: 28, fontSize: 14 }}>
           <a href="#models" style={{ color: "var(--text-2)", textDecoration: "none" }}>模型</a>
-          <a href="#pricing" style={{ color: "var(--text-2)", textDecoration: "none" }}>定价</a>
+          {/* <a href="#pricing" style={{ color: "var(--text-2)", textDecoration: "none" }}>定价</a> */}{/* 暂时隐藏 */}
           <Link to="/docs" style={{ color: "var(--text-2)", textDecoration: "none" }}>文档</Link>
           <a href="#status" style={{ color: "var(--text-2)", textDecoration: "none" }}>状态</a>
         </nav>
@@ -315,7 +315,7 @@ function Faq() {
     ["延迟为什么比直连快？", "我们在中国大陆有四个机房（上海、北京、深圳）和香港中转，使用 Anthropic 的官方 API endpoint，没有 IP 池漂移。p99 延迟稳定在 500ms 内。"],
     ["新模型多久会上架？", "Anthropic 发布后通常 4 小时内可用。我们不会自作主张做 alias，所有模型用官方完整 ID。"],
     ["支持哪些 SDK？", "完全兼容官方 anthropic-sdk-python / anthropic-sdk-typescript。把 base URL 换成 api.tongyuan.ai 就可以，其他什么都不用改。"],
-    ["可以发票吗？", "Pro / Enterprise 用户可开 6% 增值税专票。控制台 → 账单 → 发票申请。"],
+    ["可以发票吗？", "可开 6% 增值税专票，在控制台 → 账单 → 发票申请。"],
   ];
   return (
     <section style={{ padding: "96px 32px" }}>
@@ -358,7 +358,7 @@ function Footer() {
             </p>
           </div>
           {[
-            ["产品", [["定价", "#pricing"], ["模型", "#models"], ["状态页", "/status"], ["更新日志", "/changelog"]]],
+            ["产品", [/* ["定价", "#pricing"], 暂时隐藏 */ ["模型", "#models"], ["状态页", "/status"], ["更新日志", "/changelog"]]],
             ["开发者", [["快速开始", "/docs"], ["API 参考", "/docs/messages"], ["流式", "/docs/streaming"], ["工具调用", "/docs/tools"]]],
             ["公司", [["关于", "/about"], ["联系", "/contact"], ["条款", "/terms"], ["隐私", "/privacy"]]],
           ].map(([title, links]) => (
