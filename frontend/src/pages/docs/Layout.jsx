@@ -10,7 +10,6 @@ const SECTIONS = [
     ["quickstart",  "快速开始"],
     ["claude-code", "接入 Claude Code"],
     ["auth",        "认证与密钥"],
-    ["regions",     "区域选择"],
   ]],
   ["扩展接入", [
     ["openclaw", "接入 OpenClaw"],
