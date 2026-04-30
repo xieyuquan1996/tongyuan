@@ -4,6 +4,7 @@ import { api } from "../../lib/api.js";
 import { useAsync } from "../../lib/hooks.js";
 import { Loading, ErrorBox } from "../../components/primitives.jsx";
 import { PageHeader } from "../../components/dashboard-widgets.jsx";
+import { clearFiredState } from "../../lib/alert-poller.js";
 
 const KINDS = [
   { id: "balance_low",  label: "余额低于",    unit: "¥",   desc: "当账户余额低于阈值时通知" },
@@ -46,8 +47,14 @@ export default function Alerts() {
     }
     const r = await Notification.requestPermission();
     setPerm(r);
-    if (r === "granted") setToast({ tone: "ok", text: "已允许浏览器通知" });
-    else setToast({ tone: "err", text: "通知权限被拒绝，请在浏览器地址栏左侧的锁图标里放开" });
+    if (r === "granted") {
+      // Reset the fired map so previously-triggered-but-silenced alerts
+      // can actually fire now that we have permission.
+      clearFiredState();
+      setToast({ tone: "ok", text: "已允许浏览器通知" });
+    } else {
+      setToast({ tone: "err", text: "通知权限被拒绝，请在浏览器地址栏左侧的锁图标里放开" });
+    }
   }
 
   function sendTestNotification() {

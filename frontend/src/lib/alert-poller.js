@@ -18,8 +18,15 @@ function saveFired(m) {
 }
 
 function notify(title, body) {
-  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-  try { new Notification(title, { body, icon: "/logo.svg" }); } catch {}
+  if (typeof Notification === "undefined") return false;
+  if (Notification.permission !== "granted") return false;
+  try {
+    new Notification(title, { body, icon: "/logo.svg" });
+    return true;
+  } catch (e) {
+    console.warn("[alert-poller] Notification() threw:", e);
+    return false;
+  }
 }
 
 function extractNumber(s) {
@@ -87,9 +94,14 @@ async function evaluateOnce() {
     const key = `${a.id}`;
     if (triggered && !fired[key]) {
       const display = typeof value === "number" ? value.toFixed(2) : String(value);
-      notify(`同源 · 告警触发`, `${label}当前 ${unit}${display}（阈值 ${unit}${threshold}）`);
-      fired[key] = Date.now();
-      dirty = true;
+      // Only mark as fired if the notification actually went through.
+      // Otherwise a denied permission would permanently suppress this alert
+      // even after the user later grants access.
+      const ok = notify(`同源 · 告警触发`, `${label}当前 ${unit}${display}（阈值 ${unit}${threshold}）`);
+      if (ok) {
+        fired[key] = Date.now();
+        dirty = true;
+      }
     } else if (!triggered && fired[key]) {
       // Crossed back below threshold — clear so next crossing re-fires.
       delete fired[key];
@@ -110,4 +122,14 @@ export function startAlertPoller() {
 
 export function stopAlertPoller() {
   if (timer) { clearInterval(timer); timer = null; }
+}
+
+// Clear the "fired" bookkeeping so existing triggered alerts can re-fire.
+// Call after Notification.requestPermission() flips to granted — otherwise
+// any alert that was evaluated (but silently skipped) while permission was
+// default/denied would stay suppressed forever.
+export function clearFiredState() {
+  try { localStorage.removeItem(KEY); } catch {}
+  // Run one immediate evaluation so the newly-granted permission takes effect.
+  evaluateOnce();
 }
