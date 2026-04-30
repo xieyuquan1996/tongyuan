@@ -17,6 +17,7 @@ import { v1Models } from './routes/v1/models.js'
 import { v1Messages } from './routes/v1/messages.js'
 import { v1CountTokens } from './routes/v1/count-tokens.js'
 import { v1ChatCompletions } from './routes/v1/chat-completions.js'
+import { v1Files } from './routes/v1/files.js'
 import { overviewRoutes } from './routes/console/overview.js'
 import { logsRoutes } from './routes/console/logs.js'
 import { billingRoutes, invoicesRoutes, rechargesRoutes, rechargeRoutes } from './routes/console/billing.js'
@@ -74,6 +75,7 @@ export function createApp() {
   app.route('/v1/messages', v1Messages)
   app.route('/v1/messages/count_tokens', v1CountTokens)
   app.route('/v1/chat/completions', v1ChatCompletions)
+  app.route('/v1/files', v1Files)
   app.route('/api/public/stats', publicStats)
   app.route('/api/public/regions', publicRegions)
   app.route('/api/public/models', publicModels)
