@@ -97,7 +97,6 @@ export default function AdminLayout() {
           <Group style={{ marginTop: 16 }}>平台配置</Group>
           <SideItem to="/admin/upstream-keys" icon={Key}>上游密钥</SideItem>
           <SideItem to="/admin/models" icon={Cpu}>模型</SideItem>
-          <SideItem to="/admin/regions" icon={Globe2}>区域 / 状态</SideItem>
           <SideItem to="/admin/announcements" icon={Megaphone}>公告</SideItem>
           <SideItem to="/admin/settings" icon={Settings}>平台设置</SideItem>
           <div style={{ flex: 1 }}/>
