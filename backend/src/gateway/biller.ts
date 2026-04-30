@@ -21,6 +21,7 @@ export type CommitInput = {
   outputTokens: number
   cacheReadTokens: number
   cacheWriteTokens: number
+  cacheWrite1hTokens: number
   chargeUsd: string
   costUsd: string
   requestHash: string
@@ -48,6 +49,7 @@ export async function commitRequest(input: CommitInput): Promise<void> {
       outputTokens: String(input.outputTokens),
       cacheReadTokens: String(input.cacheReadTokens),
       cacheWriteTokens: String(input.cacheWriteTokens),
+      cacheWrite1hTokens: String(input.cacheWrite1hTokens),
       costUsd: input.costUsd,
       requestHash: input.requestHash,
       upstreamRequestHash: input.upstreamRequestHash,

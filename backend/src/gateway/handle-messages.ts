@@ -7,7 +7,7 @@ import { forwardNonStream, forwardStream, type Reservation } from './proxy.js'
 import { computeCost } from './meter.js'
 import { commitRequest } from './biller.js'
 import { AppError } from '../shared/errors.js'
-import { extractUsage, iterSSE } from './sse.js'
+import { extractUsage, iterSSE, splitCacheWrite } from './sse.js'
 import * as quota from './quota.js'
 import type { UpstreamRow } from '../services/upstream-keys.js'
 import type { ModelRow } from '../services/models.js'
@@ -86,7 +86,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
       errorCode,
       latencyMs: Date.now() - started,
       ttfbMs: null,
-      inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, cacheWrite1hTokens: 0,
       chargeUsd: '0', costUsd: '0',
       requestHash, upstreamRequestHash,
       auditMatch: requestHash === upstreamRequestHash,
@@ -103,19 +103,20 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
   const inputTokens = Number(usage.input_tokens ?? 0)
   const outputTokens = Number(usage.output_tokens ?? 0)
   const cacheReadTokens = Number(usage.cache_read_input_tokens ?? 0)
-  const cacheWriteTokens = Number(usage.cache_creation_input_tokens ?? 0)
+  const { w5m: cacheWriteTokens, w1h: cacheWrite1hTokens } = splitCacheWrite(usage)
 
-  // Anthropic's ITPM excludes cache reads. inputTokens from the API already
-  // excludes cache reads too (they're reported separately), but be defensive.
-  await reconcile(reservation, inputTokens + cacheWriteTokens, outputTokens)
+  // Anthropic's ITPM excludes cache reads. Both 5m and 1h writes count toward
+  // ITPM, so we reconcile on the combined write total.
+  await reconcile(reservation, inputTokens + cacheWriteTokens + cacheWrite1hTokens, outputTokens)
 
   const { costUsd, chargeUsd } = computeCost({
-    inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
+    inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
     model: {
       inputPriceUsdPerMtok: model.inputPriceUsdPerMtok,
       outputPriceUsdPerMtok: model.outputPriceUsdPerMtok,
       cacheReadPriceUsdPerMtok: model.cacheReadPriceUsdPerMtok,
       cacheWritePriceUsdPerMtok: model.cacheWritePriceUsdPerMtok,
+      cacheWrite1hPriceUsdPerMtok: model.cacheWrite1hPriceUsdPerMtok,
       markupPct: model.markupPct,
     },
   })
@@ -133,7 +134,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
     errorCode: response.status >= 400 ? `upstream_${response.status}` : null,
     latencyMs: Date.now() - started,
     ttfbMs: null,
-    inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
+    inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
     chargeUsd, costUsd,
     requestHash, upstreamRequestHash,
     auditMatch: requestHash === upstreamRequestHash,
@@ -189,7 +190,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
       errorCode,
       latencyMs: Date.now() - started,
       ttfbMs: null,
-      inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0,
+      inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, cacheWrite1hTokens: 0,
       chargeUsd: '0', costUsd: '0',
       requestHash, upstreamRequestHash,
       auditMatch: requestHash === upstreamRequestHash,
@@ -227,7 +228,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
       }
     } finally {
       const snap = usage.snapshot()
-      await reconcile(reservation!, snap.inputTokens + snap.cacheWriteTokens, snap.outputTokens)
+      await reconcile(reservation!, snap.inputTokens + snap.cacheWriteTokens + snap.cacheWrite1hTokens, snap.outputTokens)
       const { costUsd, chargeUsd } = computeCost({
         ...snap,
         model: {
@@ -235,6 +236,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
           outputPriceUsdPerMtok: model.outputPriceUsdPerMtok,
           cacheReadPriceUsdPerMtok: model.cacheReadPriceUsdPerMtok,
           cacheWritePriceUsdPerMtok: model.cacheWritePriceUsdPerMtok,
+          cacheWrite1hPriceUsdPerMtok: model.cacheWrite1hPriceUsdPerMtok,
           markupPct: model.markupPct,
         },
       })
@@ -255,6 +257,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
         outputTokens: snap.outputTokens,
         cacheReadTokens: snap.cacheReadTokens,
         cacheWriteTokens: snap.cacheWriteTokens,
+        cacheWrite1hTokens: snap.cacheWrite1hTokens,
         chargeUsd, costUsd,
         requestHash, upstreamRequestHash,
         auditMatch: requestHash === upstreamRequestHash,

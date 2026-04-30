@@ -26,6 +26,7 @@ export async function patch(
     | 'contextWindow'
     | 'inputPriceUsdPerMtok' | 'outputPriceUsdPerMtok'
     | 'cacheReadPriceUsdPerMtok' | 'cacheWritePriceUsdPerMtok'
+    | 'cacheWrite1hPriceUsdPerMtok'
   >>,
 ) {
   const [row] = await db.update(models).set(p).where(eq(models.id, id)).returning()

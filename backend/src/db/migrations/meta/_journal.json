@@ -85,6 +85,13 @@
       "when": 1777430000000,
       "tag": "0011_settings_table",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1777440000000,
+      "tag": "0012_cache_pricing",
+      "breakpoints": true
     }
   ]
 }

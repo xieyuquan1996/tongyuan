@@ -45,6 +45,9 @@ function toDisplayRow(r: svc.ModelRow) {
     markup_pct: r.markupPct,
     input_price_usd_per_mtok: r.inputPriceUsdPerMtok,
     output_price_usd_per_mtok: r.outputPriceUsdPerMtok,
+    cache_read_price_usd_per_mtok: r.cacheReadPriceUsdPerMtok,
+    cache_write_price_usd_per_mtok: r.cacheWritePriceUsdPerMtok,
+    cache_write_1h_price_usd_per_mtok: r.cacheWrite1hPriceUsdPerMtok,
     synced_at: r.syncedAt,
   }
 }
@@ -95,6 +98,9 @@ adminModelsRoutes.patch('/:id', zValidator('json', z.object({
   note: z.string().optional(),
   input_price_usd_per_mtok: z.string().optional(),
   output_price_usd_per_mtok: z.string().optional(),
+  cache_read_price_usd_per_mtok: z.string().nullable().optional(),
+  cache_write_price_usd_per_mtok: z.string().nullable().optional(),
+  cache_write_1h_price_usd_per_mtok: z.string().nullable().optional(),
 })), async (c) => {
   const b = c.req.valid('json')
   const p: Parameters<typeof svc.patch>[1] = {}
@@ -110,6 +116,9 @@ adminModelsRoutes.patch('/:id', zValidator('json', z.object({
   }
   if (b.input_price_usd_per_mtok !== undefined) p.inputPriceUsdPerMtok = b.input_price_usd_per_mtok
   if (b.output_price_usd_per_mtok !== undefined) p.outputPriceUsdPerMtok = b.output_price_usd_per_mtok
+  if (b.cache_read_price_usd_per_mtok !== undefined) p.cacheReadPriceUsdPerMtok = b.cache_read_price_usd_per_mtok
+  if (b.cache_write_price_usd_per_mtok !== undefined) p.cacheWritePriceUsdPerMtok = b.cache_write_price_usd_per_mtok
+  if (b.cache_write_1h_price_usd_per_mtok !== undefined) p.cacheWrite1hPriceUsdPerMtok = b.cache_write_1h_price_usd_per_mtok
   const row = await svc.patch(c.req.param('id'), p)
   return c.json(toDisplayRow(row))
 })

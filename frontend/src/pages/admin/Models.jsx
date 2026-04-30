@@ -68,20 +68,24 @@ export default function AdminModels() {
       )}
 
       {loading ? <Loading/> : (
-        <div style={card}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <div style={{ ...card, padding: 0, overflow: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1100 }}>
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>
                 <th style={th}>模型</th>
                 <th style={th}>上下文</th>
-                <th style={th}>价格 (input / output per Mtok)</th>
+                <th style={{ ...th, textAlign: "right" }}>输入<br/>$/MTok</th>
+                <th style={{ ...th, textAlign: "right" }}>缓存读<br/>$/MTok</th>
+                <th style={{ ...th, textAlign: "right" }}>5m 写入<br/>$/MTok</th>
+                <th style={{ ...th, textAlign: "right" }}>1h 写入<br/>$/MTok</th>
+                <th style={{ ...th, textAlign: "right" }}>输出<br/>$/MTok</th>
                 <th style={th}>备注</th>
                 <th style={th}>推荐</th>
                 <th style={th}></th>
               </tr>
             </thead>
             <tbody>
-              {models.length === 0 && <tr><td colSpan="6" style={{ padding: 32, textAlign: "center", color: "var(--text-3)" }}>还没有模型。</td></tr>}
+              {models.length === 0 && <tr><td colSpan="10" style={{ padding: 32, textAlign: "center", color: "var(--text-3)" }}>还没有模型。</td></tr>}
               {models.map((m) => (
                 <tr key={m.id} style={{ borderTop: "1px solid var(--divider)" }}>
                   <td style={td}>
@@ -92,7 +96,21 @@ export default function AdminModels() {
                     </div>
                   </td>
                   <td style={td}><EditableCell value={m.context} onSave={(v) => patch(m, { context: v }, "上下文已更新")}/></td>
-                  <td style={td}><EditableCell value={m.price}   onSave={(v) => patch(m, { price: v }, "价格已更新")}/></td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <PriceCell value={m.input_price_usd_per_mtok} onSave={(v) => patch(m, { input_price_usd_per_mtok: v }, "输入价格已更新")}/>
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <PriceCell value={m.cache_read_price_usd_per_mtok} onSave={(v) => patch(m, { cache_read_price_usd_per_mtok: v }, "缓存读价格已更新")}/>
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <PriceCell value={m.cache_write_price_usd_per_mtok} onSave={(v) => patch(m, { cache_write_price_usd_per_mtok: v }, "5m 写入价格已更新")}/>
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <PriceCell value={m.cache_write_1h_price_usd_per_mtok} onSave={(v) => patch(m, { cache_write_1h_price_usd_per_mtok: v }, "1h 写入价格已更新")}/>
+                  </td>
+                  <td style={{ ...td, textAlign: "right" }}>
+                    <PriceCell value={m.output_price_usd_per_mtok} onSave={(v) => patch(m, { output_price_usd_per_mtok: v }, "输出价格已更新")}/>
+                  </td>
                   <td style={td}><EditableCell value={m.note}    onSave={(v) => patch(m, { note: v }, "备注已更新")}/></td>
                   <td style={td}>
                     <button onClick={() => patch(m, { recommended: !m.recommended }, m.recommended ? "已取消推荐" : "已设为推荐")} style={{
@@ -144,6 +162,38 @@ function EditableCell({ value, onSave }) {
         border: focused ? "1px solid var(--clay)" : "1px solid transparent",
         background: focused ? "var(--surface-2)" : "transparent",
         borderRadius: 4, fontSize: 13, fontFamily: "var(--font-mono)", color: "var(--text)",
+      }}
+    />
+  );
+}
+
+// Numeric price cell with right-aligned text, null tolerant. Saves trimmed
+// input — empty string clears the price and sends null to the API.
+function PriceCell({ value, onSave }) {
+  const display = value == null || value === "" ? "" : Number(value).toString();
+  const [v, setV] = useState(display);
+  const [focused, setFocused] = useState(false);
+  useEffect(() => setV(display), [display]);
+  function commit() {
+    setFocused(false);
+    const trimmed = v.trim();
+    if (trimmed === display) return;
+    onSave(trimmed === "" ? null : trimmed);
+  }
+  return (
+    <input
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onFocus={() => setFocused(true)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+      placeholder="—"
+      style={{
+        width: "100%", padding: "6px 8px", textAlign: "right",
+        border: focused ? "1px solid var(--clay)" : "1px solid transparent",
+        background: focused ? "var(--surface-2)" : "transparent",
+        borderRadius: 4, fontSize: 13, fontFamily: "var(--font-mono)", color: "var(--text)",
+        fontVariantNumeric: "tabular-nums",
       }}
     />
   );

@@ -1,6 +1,6 @@
 // backend/src/gateway/sse.test.ts
 import { describe, it, expect } from 'vitest'
-import { extractUsage, iterSSE } from './sse.js'
+import { extractUsage, iterSSE, splitCacheWrite } from './sse.js'
 
 describe('extractUsage', () => {
   it('captures input from message_start and accumulates output from message_delta', () => {
@@ -10,8 +10,32 @@ describe('extractUsage', () => {
     u.observe('message_delta', { usage: { output_tokens: 25 } })
     expect(u.snapshot()).toEqual({
       inputTokens: 42, outputTokens: 25,
-      cacheReadTokens: 5, cacheWriteTokens: 3,
+      cacheReadTokens: 5, cacheWriteTokens: 3, cacheWrite1hTokens: 0,
     })
+  })
+
+  it('splits cache writes into 5m vs 1h buckets when breakdown is present', () => {
+    const u = extractUsage()
+    u.observe('message_start', {
+      message: {
+        usage: {
+          input_tokens: 100,
+          cache_creation_input_tokens: 300,
+          cache_creation: {
+            ephemeral_5m_input_tokens: 200,
+            ephemeral_1h_input_tokens: 100,
+          },
+        },
+      },
+    })
+    const s = u.snapshot()
+    expect(s.cacheWriteTokens).toBe(200)
+    expect(s.cacheWrite1hTokens).toBe(100)
+  })
+
+  it('attributes all writes to 5m when no breakdown is given', () => {
+    const r = splitCacheWrite({ cache_creation_input_tokens: 150 })
+    expect(r).toEqual({ w5m: 150, w1h: 0 })
   })
 })
 

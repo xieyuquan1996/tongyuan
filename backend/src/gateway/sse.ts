@@ -3,11 +3,28 @@ export type Usage = {
   inputTokens: number
   outputTokens: number
   cacheReadTokens: number
-  cacheWriteTokens: number
+  cacheWriteTokens: number    // 5m writes (default TTL)
+  cacheWrite1hTokens: number  // 1h writes
+}
+
+// Split Anthropic's cache_creation_input_tokens into 5m vs 1h buckets.
+// When ephemeral_5m_input_tokens / ephemeral_1h_input_tokens are present we
+// trust them directly. Older responses only expose the flat total — attribute
+// it all to the 5m bucket, which is what the client gets when it didn't
+// explicitly request the 1h TTL.
+function splitCacheWrite(usage: any): { w5m: number; w1h: number } {
+  const total = Number(usage?.cache_creation_input_tokens ?? 0)
+  const breakdown = usage?.cache_creation
+  if (breakdown) {
+    const w5m = Number(breakdown.ephemeral_5m_input_tokens ?? 0)
+    const w1h = Number(breakdown.ephemeral_1h_input_tokens ?? 0)
+    if (w5m + w1h > 0) return { w5m, w1h }
+  }
+  return { w5m: total, w1h: 0 }
 }
 
 export function extractUsage() {
-  const u: Usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }
+  const u: Usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, cacheWrite1hTokens: 0 }
   return {
     observe(event: string, data: any) {
       if (event === 'message_start') {
@@ -15,7 +32,9 @@ export function extractUsage() {
         if (m) {
           u.inputTokens = m.input_tokens ?? 0
           u.cacheReadTokens = m.cache_read_input_tokens ?? 0
-          u.cacheWriteTokens = m.cache_creation_input_tokens ?? 0
+          const { w5m, w1h } = splitCacheWrite(m)
+          u.cacheWriteTokens = w5m
+          u.cacheWrite1hTokens = w1h
         }
       } else if (event === 'message_delta') {
         const m = data?.usage
@@ -25,6 +44,8 @@ export function extractUsage() {
     snapshot(): Usage { return { ...u } },
   }
 }
+
+export { splitCacheWrite }
 
 export async function* iterSSE(stream: ReadableStream<Uint8Array>): AsyncGenerator<{ event: string; data: any; raw: string }> {
   const decoder = new TextDecoder()
