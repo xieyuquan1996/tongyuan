@@ -13,7 +13,6 @@ export default function Landing() {
       <Hero />
       <SignalCompare />
       <PromiseGrid />
-      <StatusStrip />
       <ModelsTable />
       <Pricing />
       <Faq />
