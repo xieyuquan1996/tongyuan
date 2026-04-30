@@ -69,35 +69,35 @@ export default function Playground() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Panel title="参数">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field label="model">
+              <Field label="模型">
                 <select value={model} onChange={(e) => setModel(e.target.value)} style={ctrl}>
                   {models.map((m) => <option key={m.id} value={m.id}>{m.id}</option>)}
                 </select>
               </Field>
-              <Field label="max_tokens">
+              <Field label="最大 tokens">
                 <input type="number" min={1} max={200000} value={maxTokens}
                   onChange={(e) => setMaxTokens(+e.target.value || 1024)} style={ctrl}/>
               </Field>
-              <Field label="temperature">
+              <Field label="温度">
                 <input type="number" step="0.1" min={0} max={2} value={temperature}
                   onChange={(e) => setTemperature(+e.target.value)} style={ctrl}/>
               </Field>
             </div>
           </Panel>
 
-          <Panel title="system prompt">
+          <Panel title="系统提示">
             <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)}
               style={{ ...ctrl, minHeight: 80, resize: "vertical", fontFamily: "var(--font-mono)", fontSize: 13 }}/>
           </Panel>
 
-          <Panel title="messages" right={<button onClick={addMessage} style={ghostBtn}><Plus size={12}/> 新增</button>}>
+          <Panel title="对话消息" right={<button onClick={addMessage} style={ghostBtn}><Plus size={12}/> 新增</button>}>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {messages.map((m, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                   <select value={m.role} onChange={(e) => updateMessage(i, { role: e.target.value })}
                     style={{ ...ctrl, width: 110 }}>
-                    <option value="user">user</option>
-                    <option value="assistant">assistant</option>
+                    <option value="user">用户</option>
+                    <option value="assistant">助手</option>
                   </select>
                   <textarea value={m.content} onChange={(e) => updateMessage(i, { content: e.target.value })}
                     style={{ ...ctrl, flex: 1, minHeight: 64, fontFamily: "var(--font-mono)", fontSize: 13 }}/>
@@ -150,7 +150,7 @@ export default function Playground() {
                     <Pill tone="ok" dot>200 OK</Pill>
                     <Pill dot>{resp.latency_ms ?? resp.latencyMs}ms</Pill>
                     {(resp.audit_id ?? resp.id) && <Pill dot mono>{(resp.audit_id ?? resp.id)?.slice(0, 16)}…</Pill>}
-                    <Pill tone="clay" dot>{resp.usage.input_tokens + resp.usage.output_tokens} tokens</Pill>
+                    <Pill tone="clay" dot>{resp.usage.input_tokens + resp.usage.output_tokens} 个 token</Pill>
                   </div>
                   {(() => {
                     const blocks = Array.isArray(resp.content) ? resp.content : [];
@@ -161,7 +161,7 @@ export default function Playground() {
                         {thinking && (
                           <details open style={{ marginBottom: 12, fontSize: 13, background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 14px" }}>
                             <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6, userSelect: "none" }}>
-                              ▸ 思考过程（thinking）
+                              ▸ 思考过程
                             </summary>
                             <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.6, color: "var(--text-2)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{thinking}</div>
                           </details>
@@ -169,13 +169,13 @@ export default function Playground() {
                         {text
                           ? <Code>{text}</Code>
                           : (!thinking && <div style={{ padding: 20, textAlign: "center", color: "var(--text-3)", fontSize: 13, border: "1px dashed var(--border)", borderRadius: 12 }}>
-                              响应里没有 text 块。
+                              响应里没有文本内容。
                             </div>)}
                       </>
                     );
                   })()}
                   <details style={{ marginTop: 16, fontSize: 13 }}>
-                    <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>完整 JSON 响应</summary>
+                    <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>完整 JSON</summary>
                     <Code mono>{JSON.stringify(resp, null, 2)}</Code>
                   </details>
                 </div>
