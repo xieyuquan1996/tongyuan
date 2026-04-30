@@ -7,9 +7,9 @@ import { PageHeader } from "../../components/dashboard-widgets.jsx";
 
 const KINDS = [
   { id: "balance_low",  label: "余额低于",    unit: "¥",   desc: "当账户余额低于阈值时通知" },
-  { id: "spend_daily",  label: "单日消费超过", unit: "¥",  desc: "当当天消费超过阈值时通知" },
-  { id: "error_rate",   label: "错误率高于",   unit: "%",  desc: "5 分钟内请求错误率超过阈值时通知" },
-  { id: "p99_latency",  label: "p99 延迟超过", unit: "ms", desc: "任一区域 p99 延迟超过阈值时通知" },
+  { id: "spend_daily",  label: "本月消费超过", unit: "¥",  desc: "当本月累计消费超过阈值时通知" },
+  { id: "error_rate",   label: "错误率高于",   unit: "%",  desc: "30 天内请求错误率超过阈值时通知" },
+  { id: "p99_latency",  label: "p99 延迟超过", unit: "ms", desc: "近期 p99 延迟超过阈值时通知" },
 ];
 
 const CHANNELS = [

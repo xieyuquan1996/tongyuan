@@ -37,15 +37,14 @@ async function evaluateOnce() {
   const browserAlerts = alerts.filter((a) => a.enabled && a.channel === "browser");
   if (browserAlerts.length === 0) return;
 
-  // Load metrics in parallel. Only fetch overview if we need error_rate / p99.
+  // /billing has balance_cny and used_cny (already converted at current rate).
+  // /overview has error_rate and p99_live_ms.
+  const needBilling = browserAlerts.some((a) => a.kind === "balance_low" || a.kind === "spend_daily");
   const needOverview = browserAlerts.some((a) => a.kind === "error_rate" || a.kind === "p99_latency");
-  const needMe = browserAlerts.some((a) => a.kind === "balance_low");
-  const needBilling = browserAlerts.some((a) => a.kind === "spend_daily");
 
-  const [me, overview, billing] = await Promise.all([
-    needMe ? api("/api/console/me").catch(() => null) : null,
-    needOverview ? api("/api/console/overview").catch(() => null) : null,
+  const [billing, overview] = await Promise.all([
     needBilling ? api("/api/console/billing").catch(() => null) : null,
+    needOverview ? api("/api/console/overview").catch(() => null) : null,
   ]);
 
   const fired = loadFired();
@@ -60,18 +59,20 @@ async function evaluateOnce() {
     let unit = "";
     let triggered = false;
 
-    if (a.kind === "balance_low" && me) {
-      // Balance from /me is in CNY (balance_cny) or USD — use balance_cny if present.
-      value = extractNumber(me.balance_cny ?? me.balance_usd);
+    if (a.kind === "balance_low" && billing) {
+      // balance_cny is a decimal string like "72.000000"
+      value = Number(billing.billing?.balance_cny ?? 0);
       label = "余额";
       unit = "¥";
       triggered = value < threshold;
     } else if (a.kind === "spend_daily" && billing) {
-      value = extractNumber(billing.billing?.used);
-      label = "今日消费";
+      // Note: API only exposes month-to-date spend, not daily. We compare MTD.
+      value = Number(billing.billing?.used_cny ?? 0);
+      label = "本月消费";
       unit = "¥";
       triggered = value > threshold;
     } else if (a.kind === "error_rate" && overview) {
+      // error_rate is formatted as "0.00%" — strip the % sign.
       value = extractNumber(overview.metrics?.error_rate);
       label = "错误率";
       unit = "%";
@@ -85,7 +86,8 @@ async function evaluateOnce() {
 
     const key = `${a.id}`;
     if (triggered && !fired[key]) {
-      notify(`同源 · 告警触发`, `${label}当前 ${unit}${value.toFixed?.(2) ?? value}（阈值 ${unit}${threshold}）`);
+      const display = typeof value === "number" ? value.toFixed(2) : String(value);
+      notify(`同源 · 告警触发`, `${label}当前 ${unit}${display}（阈值 ${unit}${threshold}）`);
       fired[key] = Date.now();
       dirty = true;
     } else if (!triggered && fired[key]) {
