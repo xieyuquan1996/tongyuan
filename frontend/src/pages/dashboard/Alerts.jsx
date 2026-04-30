@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bell, Plus, Trash2, X, Check, Minus, ChevronDown } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { useAsync } from "../../lib/hooks.js";
@@ -282,40 +282,59 @@ const stepBtn = {
 };
 
 // — Select: custom popover-style dropdown, replaces native <select>.
+// The popover uses fixed positioning so it escapes any parent overflow
+// clipping (the alerts card uses overflow:hidden for rounded corners).
 function Select({ value, options, onChange }) {
   const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState(null);
+  const btnRef = useRef(null);
   const current = options.find((o) => o.id === value);
+
   useEffect(() => {
     if (!open) return;
+    const update = () => {
+      if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+    };
+    update();
     const close = () => setOpen(false);
     window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
   }, [open]);
 
   return (
     <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
-      <button type="button" onClick={() => setOpen((o) => !o)} style={{
+      <button ref={btnRef} type="button" onClick={() => setOpen((o) => !o)} style={{
         width: "100%", height: 32, padding: "0 28px 0 12px",
         border: "1px solid var(--border)", borderRadius: 6,
         background: "var(--surface-1)", color: "var(--text)",
         fontSize: 13, textAlign: "left", cursor: "pointer",
-        display: "flex", alignItems: "center",
+        display: "flex", alignItems: "center", position: "relative",
         outline: open ? "2px solid var(--clay)" : "none", outlineOffset: -1,
       }}>
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {current?.label ?? value}
         </span>
         <ChevronDown size={14} color="var(--text-3)" style={{
-          position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-          transition: "transform 0.15s", ...(open ? { transform: "translateY(-50%) rotate(180deg)" } : {}),
+          position: "absolute", right: 10, top: "50%",
+          transform: open ? "translateY(-50%) rotate(180deg)" : "translateY(-50%)",
+          transition: "transform 0.15s",
         }}/>
       </button>
-      {open && (
+      {open && rect && (
         <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          position: "fixed",
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
           background: "var(--surface-2)", border: "1px solid var(--border)",
           borderRadius: 6, boxShadow: "var(--shadow-pop)",
-          padding: 4, zIndex: 20, maxHeight: 240, overflowY: "auto",
+          padding: 4, zIndex: 100, maxHeight: 240, overflowY: "auto",
         }}>
           {options.map((o) => (
             <button
