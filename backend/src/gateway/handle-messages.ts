@@ -3,11 +3,12 @@ import type { Context } from 'hono'
 import { stream } from 'hono/streaming'
 import { ulid } from 'ulid'
 import { hashBody } from '../shared/canonicalize.js'
-import { forwardNonStream, forwardStream } from './proxy.js'
+import { forwardNonStream, forwardStream, type Reservation } from './proxy.js'
 import { computeCost } from './meter.js'
 import { commitRequest } from './biller.js'
 import { AppError } from '../shared/errors.js'
 import { extractUsage, iterSSE } from './sse.js'
+import * as quota from './quota.js'
 import type { UpstreamRow } from '../services/upstream-keys.js'
 import type { ModelRow } from '../services/models.js'
 import type { ApiKeyRow } from '../services/api-keys.js'
@@ -23,6 +24,25 @@ export type HandleMessagesInput = {
   anthropicVersion: string
 }
 
+// Reconcile the reservation with actual usage. cache_read tokens are excluded
+// from ITPM by Anthropic, so we pass (inputTokens - cacheReadTokens) as the
+// "real" input cost. cache_creation is billable but *does* count toward ITPM.
+async function reconcile(
+  reservation: Reservation,
+  realInputExclCache: number,
+  realOutput: number,
+): Promise<void> {
+  await quota.commit(
+    reservation.upstreamId,
+    reservation.family,
+    reservation.bucket,
+    reservation.estIn,
+    reservation.estOut,
+    realInputExclCache,
+    realOutput,
+  )
+}
+
 export async function handleNonStream(_c: Context, input: HandleMessagesInput): Promise<Response> {
   const started = Date.now()
   const { user, apiKey, body, model, idempotencyKey, anthropicVersion } = input
@@ -34,6 +54,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
   const id = 'req_' + ulid()
   let upstream: UpstreamRow | null = null
   let response: Response | null = null
+  let reservation: Reservation | null = null
   let errorCode: string | null = null
 
   try {
@@ -42,6 +63,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
     }, forwardBody)
     upstream = att.upstream
     response = att.response
+    reservation = att.reservation
   } catch (e) {
     if (e instanceof AppError) {
       errorCode = e.code
@@ -50,7 +72,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
     }
   }
 
-  if (!response || !upstream) {
+  if (!response || !upstream || !reservation) {
     await commitRequest({
       id,
       userId: user.id,
@@ -60,7 +82,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
       upstreamModel: body.model,
       endpoint: '/v1/messages',
       stream: false,
-      status: 502,
+      status: errorCode === 'rate_limit' ? 429 : 502,
       errorCode,
       latencyMs: Date.now() - started,
       ttfbMs: null,
@@ -82,6 +104,10 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
   const outputTokens = Number(usage.output_tokens ?? 0)
   const cacheReadTokens = Number(usage.cache_read_input_tokens ?? 0)
   const cacheWriteTokens = Number(usage.cache_creation_input_tokens ?? 0)
+
+  // Anthropic's ITPM excludes cache reads. inputTokens from the API already
+  // excludes cache reads too (they're reported separately), but be defensive.
+  await reconcile(reservation, inputTokens + cacheWriteTokens, outputTokens)
 
   const { costUsd, chargeUsd } = computeCost({
     inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens,
@@ -131,6 +157,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
   const id = 'req_' + ulid()
   let upstream: UpstreamRow | null = null
   let response: Response | null = null
+  let reservation: Reservation | null = null
   let errorCode: string | null = null
 
   try {
@@ -139,6 +166,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
     }, forwardBody)
     upstream = att.upstream
     response = att.response
+    reservation = att.reservation
   } catch (e) {
     if (e instanceof AppError) {
       errorCode = e.code
@@ -147,7 +175,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
     }
   }
 
-  if (!response || !upstream) {
+  if (!response || !upstream || !reservation) {
     await commitRequest({
       id,
       userId: user.id,
@@ -157,7 +185,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
       upstreamModel: body.model,
       endpoint: '/v1/messages',
       stream: true,
-      status: 502,
+      status: errorCode === 'rate_limit' ? 429 : 502,
       errorCode,
       latencyMs: Date.now() - started,
       ttfbMs: null,
@@ -199,6 +227,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
       }
     } finally {
       const snap = usage.snapshot()
+      await reconcile(reservation!, snap.inputTokens + snap.cacheWriteTokens, snap.outputTokens)
       const { costUsd, chargeUsd } = computeCost({
         ...snap,
         model: {

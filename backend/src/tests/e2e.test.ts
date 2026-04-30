@@ -14,6 +14,7 @@ import { setAnthropicBaseUrlOverride } from '../env.js'
 import { newApiKey } from '../crypto/tokens.js'
 import { hashPassword } from '../crypto/password.js'
 import * as upstreamSvc from '../services/upstream-keys.js'
+import * as quota from '../gateway/quota.js'
 import { startMockUpstream } from './mock-upstream.js'
 
 const app = createApp()
@@ -129,15 +130,15 @@ describe('e2e: POST /v1/messages happy path', () => {
 })
 
 describe('e2e: failover', () => {
-  it('first upstream 429, second 200, request succeeds and first is cooled down', async () => {
+  it('first upstream 429, second 200, request succeeds and first is cooled down per-family', async () => {
     const mock = await startMockUpstream([
       { kind: 'error', status: 429, body: '{"error":"rate_limit"}' },
       { kind: 'ok', usage: { input: 10, output: 20 } },
     ])
     try {
       setAnthropicBaseUrlOverride(mock.baseUrl)
-      await seedUpstream('e2e-failover-A', 100)
-      await seedUpstream('e2e-failover-B', 200)
+      const a = await seedUpstream('e2e-failover-A', 100)
+      const b = await seedUpstream('e2e-failover-B', 200)
 
       const r = await post('/v1/messages', {
         model: 'e2e-test-model',
@@ -147,9 +148,13 @@ describe('e2e: failover', () => {
       expect(r.status).toBe(200)
       expect(mock.hits).toBe(2)
 
-      const all = await db.select().from(upstreamKeys)
-      const cooled = all.filter((k) => k.state === 'cooldown')
-      expect(cooled.length).toBe(1)
+      // 429 now marks a per-family (not whole-key) cooldown in Redis — other
+      // families on the same key should still be usable. Model id
+      // 'e2e-test-model' lacks 'opus'/'haiku' so falls under the sonnet family.
+      const cooled = await quota.isFamilyCoolingDown(a.id, 'sonnet')
+      expect(cooled).not.toBeNull()
+      const stillHot = await quota.isFamilyCoolingDown(b.id, 'sonnet')
+      expect(stillHot).toBeNull()
     } finally {
       await mock.close()
       setAnthropicBaseUrlOverride(undefined)

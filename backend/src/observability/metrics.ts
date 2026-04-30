@@ -29,3 +29,25 @@ export const billingUsdConsumed = new Counter({
   help: 'Total USD consumed by model',
   labelNames: ['model'],
 })
+
+// Current-window usage against per-family Anthropic budgets. Populated lazily
+// when admins hit the quota snapshot endpoint, or on a periodic scrape.
+export const upstreamQuotaUsed = new Gauge({
+  name: 'upstream_quota_used',
+  help: 'Current-minute upstream usage against Anthropic per-family budget',
+  labelNames: ['upstream_key_id', 'family', 'metric'], // metric: 'req' | 'in' | 'out'
+})
+
+// Separate gauge for the ceiling so dashboards can plot used/total.
+export const upstreamQuotaBudget = new Gauge({
+  name: 'upstream_quota_budget',
+  help: 'Per-family Anthropic budget (rpm/itpm/otpm)',
+  labelNames: ['upstream_key_id', 'family', 'metric'],
+})
+
+// 1 when a key×family is parked due to 429, 0 otherwise.
+export const upstreamFamilyCooldown = new Gauge({
+  name: 'upstream_family_cooldown',
+  help: 'Upstream key × family is in quota cooldown (1=yes)',
+  labelNames: ['upstream_key_id', 'family'],
+})
