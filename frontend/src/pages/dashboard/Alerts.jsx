@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Plus, Trash2, X, Check } from "lucide-react";
+import { Bell, Plus, Trash2, X, Check, Minus, ChevronDown } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { useAsync } from "../../lib/hooks.js";
 import { Loading, ErrorBox } from "../../components/primitives.jsx";
@@ -105,15 +105,21 @@ export default function Alerts() {
         <form onSubmit={add} style={{ ...card, padding: 20, marginBottom: 16 }}>
           <SectionLabel>新增告警</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 10, marginTop: 10 }}>
-            <select value={newAlert.kind} onChange={(e) => setNewAlert({ ...newAlert, kind: e.target.value })} style={selectCtrl}>
-              {KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
-            </select>
-            <input type="number" step="0.1" value={newAlert.threshold}
-              onChange={(e) => setNewAlert({ ...newAlert, threshold: e.target.value })}
-              placeholder="阈值" style={inputCtrl}/>
-            <select value={newAlert.channel} onChange={(e) => setNewAlert({ ...newAlert, channel: e.target.value })} style={selectCtrl}>
-              {CHANNELS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
+            <Select
+              value={newAlert.kind}
+              options={KINDS}
+              onChange={(v) => setNewAlert({ ...newAlert, kind: v })}
+            />
+            <Stepper
+              value={newAlert.threshold}
+              unit={KINDS.find((k) => k.id === newAlert.kind)?.unit || ""}
+              onCommit={(v) => setNewAlert({ ...newAlert, threshold: v })}
+            />
+            <Select
+              value={newAlert.channel}
+              options={CHANNELS}
+              onChange={(v) => setNewAlert({ ...newAlert, channel: v })}
+            />
             <div style={{ display: "flex", gap: 6 }}>
               <button type="button" onClick={() => setAdding(false)} style={ghostBtn}>取消</button>
               <button type="submit" style={ctaBtn}>保存</button>
@@ -137,7 +143,7 @@ export default function Alerts() {
             const k = KINDS.find((x) => x.id === a.kind);
             return (
               <div key={a.id} style={{
-                display: "grid", gridTemplateColumns: "20px 1fr 110px 120px 120px 32px",
+                display: "grid", gridTemplateColumns: "20px 1fr 140px 140px 90px 32px",
                 gap: 16, padding: "16px 20px", alignItems: "center",
                 borderTop: i > 0 ? "1px solid var(--divider)" : "none",
               }}>
@@ -148,12 +154,16 @@ export default function Alerts() {
                   </div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>{k?.desc}</div>
                 </div>
-                <input type="number" value={a.threshold} onChange={(e) => patch(a, { threshold: e.target.value })}
-                  style={{ ...inputCtrl, padding: "6px 10px", fontSize: 13 }}/>
-                <select value={a.channel} onChange={(e) => patch(a, { channel: e.target.value })}
-                  style={{ ...selectCtrl, padding: "6px 28px 6px 10px", fontSize: 13 }}>
-                  {CHANNELS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
+                <Stepper
+                  value={a.threshold}
+                  unit={k?.unit || ""}
+                  onCommit={(v) => patch(a, { threshold: v })}
+                />
+                <Select
+                  value={a.channel}
+                  options={CHANNELS}
+                  onChange={(v) => patch(a, { channel: v })}
+                />
                 <button onClick={() => toggle(a)} style={{
                   padding: "6px 10px", borderRadius: 6, cursor: "pointer",
                   background: a.enabled ? "var(--ok-soft)" : "transparent",
@@ -201,21 +211,122 @@ export default function Alerts() {
 
 const card = { background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" };
 const SectionLabel = ({ children }) => <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)" }}>{children}</div>;
-const inputCtrl = {
-  padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 6,
-  background: "var(--surface-1)", color: "var(--text)", fontSize: 13,
-  outline: "none",
-};
-const selectCtrl = {
-  ...inputCtrl,
-  padding: "8px 32px 8px 12px",
-  appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
-  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-  backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center",
-  cursor: "pointer",
-};
-// Back-compat alias while we rename; points to the select style.
-const ctrl = selectCtrl;
 const ctaBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--clay)", color: "var(--on-clay)", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: "pointer" };
 const ghostBtn = { padding: "8px 14px", background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 13, cursor: "pointer" };
 const iconBtn = { width: 28, height: 28, border: "none", background: "transparent", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
+
+// — Stepper: a number input with custom − / + buttons, no native spinners,
+// commits only on blur / Enter so typing doesn't spam the backend.
+function Stepper({ value, unit, onCommit, step = 1 }) {
+  const [local, setLocal] = useState(String(value));
+  const [focused, setFocused] = useState(false);
+  useEffect(() => { if (!focused) setLocal(String(value)); }, [value, focused]);
+
+  function commit(v) {
+    const n = parseFloat(v);
+    if (!Number.isFinite(n)) { setLocal(String(value)); return; }
+    if (String(n) === String(value)) return;
+    onCommit(String(n));
+  }
+  function bump(delta) {
+    const n = (parseFloat(local) || 0) + delta;
+    const next = String(Math.max(0, Math.round(n * 100) / 100));
+    setLocal(next);
+    onCommit(next);
+  }
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "stretch", height: 32,
+      border: "1px solid var(--border)", borderRadius: 6,
+      background: "var(--surface-1)", overflow: "hidden",
+    }}>
+      <button type="button" onClick={() => bump(-step)} style={stepBtn} tabIndex={-1} aria-label="减">
+        <Minus size={12}/>
+      </button>
+      <div style={{ display: "flex", alignItems: "center", paddingLeft: 8, color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12 }}>{unit}</div>
+      <input
+        type="text" inputMode="decimal"
+        value={local}
+        onChange={(e) => setLocal(e.target.value.replace(/[^\d.]/g, ""))}
+        onFocus={() => setFocused(true)}
+        onBlur={() => { setFocused(false); commit(local); }}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
+        style={{
+          flex: 1, minWidth: 0, padding: "0 4px",
+          border: "none", background: "transparent", color: "var(--text)",
+          fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "center", outline: "none",
+        }}
+      />
+      <button type="button" onClick={() => bump(step)} style={stepBtn} tabIndex={-1} aria-label="加">
+        <Plus size={12}/>
+      </button>
+    </div>
+  );
+}
+
+const stepBtn = {
+  width: 28, display: "flex", alignItems: "center", justifyContent: "center",
+  background: "transparent", color: "var(--text-2)", border: "none",
+  cursor: "pointer", transition: "background 0.1s",
+};
+
+// — Select: custom popover-style dropdown, replaces native <select>.
+function Select({ value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.id === value);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [open]);
+
+  return (
+    <div style={{ position: "relative" }} onClick={(e) => e.stopPropagation()}>
+      <button type="button" onClick={() => setOpen((o) => !o)} style={{
+        width: "100%", height: 32, padding: "0 28px 0 12px",
+        border: "1px solid var(--border)", borderRadius: 6,
+        background: "var(--surface-1)", color: "var(--text)",
+        fontSize: 13, textAlign: "left", cursor: "pointer",
+        display: "flex", alignItems: "center",
+        outline: open ? "2px solid var(--clay)" : "none", outlineOffset: -1,
+      }}>
+        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {current?.label ?? value}
+        </span>
+        <ChevronDown size={14} color="var(--text-3)" style={{
+          position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+          transition: "transform 0.15s", ...(open ? { transform: "translateY(-50%) rotate(180deg)" } : {}),
+        }}/>
+      </button>
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+          background: "var(--surface-2)", border: "1px solid var(--border)",
+          borderRadius: 6, boxShadow: "var(--shadow-pop)",
+          padding: 4, zIndex: 20, maxHeight: 240, overflowY: "auto",
+        }}>
+          {options.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { onChange(o.id); setOpen(false); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, width: "100%",
+                padding: "8px 10px", borderRadius: 4, border: "none",
+                background: o.id === value ? "var(--surface-3)" : "transparent",
+                color: "var(--text)", fontSize: 13, textAlign: "left", cursor: "pointer",
+              }}
+              onMouseEnter={(e) => { if (o.id !== value) e.currentTarget.style.background = "var(--surface-3)"; }}
+              onMouseLeave={(e) => { if (o.id !== value) e.currentTarget.style.background = "transparent"; }}
+            >
+              {o.id === value && <Check size={12} color="var(--clay)"/>}
+              <span style={{ marginLeft: o.id === value ? 0 : 20 }}>{o.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
