@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, X, ChevronRight } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { useAsync, fmtRelative } from "../../lib/hooks.js";
 import { Loading, ErrorBox, Pill } from "../../components/primitives.jsx";
-import { PageHeader, RequestsTable } from "../../components/dashboard-widgets.jsx";
+import { PageHeader } from "../../components/dashboard-widgets.jsx";
 
 export default function Logs() {
   const [status, setStatus] = useState("");
@@ -16,6 +16,8 @@ export default function Logs() {
     () => api("/api/console/logs?" + qs.toString()),
     [status, model]
   );
+  const statusOptions = data?.facets?.statuses || [];
+  const modelOptions = data?.facets?.models || [];
 
   return (
     <div style={{ position: "relative" }}>
@@ -23,26 +25,115 @@ export default function Logs() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <select value={status} onChange={(e) => setStatus(e.target.value)} style={filterBtn}>
           <option value="">状态: 全部</option>
-          <option value="200">200 OK</option>
-          <option value="429">429 限流</option>
-          <option value="500">5xx 错误</option>
+          {statusOptions.map((s) => (
+            <option key={s} value={String(s)}>{s} {statusLabel(s)}</option>
+          ))}
         </select>
         <select value={model} onChange={(e) => setModel(e.target.value)} style={filterBtn}>
           <option value="">模型: 全部</option>
-          <option value="claude-opus-4.7">claude-opus-4.7</option>
-          <option value="claude-sonnet-4.5">claude-sonnet-4.5</option>
-          <option value="claude-haiku-4.5">claude-haiku-4.5</option>
+          {modelOptions.map((id) => (
+            <option key={id} value={id}>{id}</option>
+          ))}
         </select>
         <button style={{ ...filterBtn, marginLeft: "auto" }}>
           <Download size={14} /> 导出 CSV
         </button>
       </div>
       {error ? <ErrorBox error={error} /> : loading ? <Loading /> : (
-        <RequestsTable rows={data.logs} onRowClick={(r) => setSelected(r)} />
+        <LogsTable rows={data.logs} onRowClick={(r) => setSelected(r)} />
       )}
       {selected && <AuditDrawer log={selected} onClose={() => setSelected(null)} />}
     </div>
   );
+}
+
+function LogsTable({ rows, onRowClick }) {
+  const visible = rows || [];
+  return (
+    <div style={{
+      background: "var(--surface-2)", border: "1px solid var(--border)",
+      borderRadius: 12, overflow: "auto",
+    }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 960 }}>
+        <thead>
+          <tr style={{ background: "var(--surface-3)" }}>
+            <th style={th}>时间</th>
+            <th style={th}>请求 ID</th>
+            <th style={th}>模型</th>
+            <th style={{ ...th, textAlign: "right" }}>输入<br />Tokens</th>
+            <th style={{ ...th, textAlign: "right" }}>输出<br />Tokens</th>
+            <th style={th}>类型</th>
+            <th style={th}>服务层</th>
+            <th style={th}>请求路径</th>
+            <th style={{ ...th, width: 24 }} />
+          </tr>
+        </thead>
+        <tbody>
+          {visible.length === 0 && (
+            <tr><td colSpan="9" style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>没有符合条件的请求。</td></tr>
+          )}
+          {visible.map((r) => (
+            <tr
+              key={r.id}
+              onClick={() => onRowClick && onRowClick(r)}
+              style={{ borderTop: "1px solid var(--divider)", cursor: "pointer" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-3)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)", whiteSpace: "nowrap" }}>
+                {fmtTime(r.created_at)}
+              </td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>
+                <StatusDot status={r.status} />
+                {r.id}
+              </td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.model}</td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                {(r.input_tokens || 0).toLocaleString()}
+              </td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                {(r.output_tokens || 0).toLocaleString()}
+              </td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.type || "HTTP"}</td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.service_tier === "Standard" ? "标准" : (r.service_tier || "标准")}</td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>
+                {r.endpoint || "/v1/messages"}
+              </td>
+              <td style={{ ...td, color: "var(--text-3)" }}>
+                <ChevronRight size={14} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function StatusDot({ status }) {
+  const color = status === 200 ? "var(--ok)" : status === 429 ? "var(--warn)" : "var(--err)";
+  return (
+    <span style={{
+      display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+      background: color, marginRight: 8, verticalAlign: "middle",
+    }} />
+  );
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function statusLabel(s) {
+  const map = {
+    200: "成功", 201: "已创建", 204: "无内容",
+    400: "请求错误", 401: "未授权", 402: "余额不足", 403: "禁止访问",
+    404: "未找到", 409: "冲突", 429: "限流",
+    500: "内部错误", 502: "上游错误", 503: "服务不可用", 504: "超时",
+  };
+  return map[s] || "";
 }
 
 function AuditDrawer({ log, onClose }) {
@@ -153,3 +244,12 @@ const filterBtn = {
   fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-2)",
   cursor: "pointer",
 };
+
+const th = {
+  fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em",
+  textTransform: "uppercase", color: "var(--text-3)",
+  textAlign: "left", padding: "10px 16px", fontWeight: 400,
+  whiteSpace: "nowrap",
+};
+
+const td = { padding: "12px 16px", color: "var(--text)", whiteSpace: "nowrap" };

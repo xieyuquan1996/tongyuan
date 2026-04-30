@@ -17,34 +17,53 @@ adminLogsRoutes.get('/', async (c) => {
   const limit = Math.min(Number(c.req.query('limit') ?? 100), 500)
 
   const conds = []
-  if (status) conds.push(eq(requestLogs.status, status))
+  if (status) {
+    const m = /^([2-5])xx$/i.exec(status)
+    if (m) {
+      const lo = Number(m[1]) * 100
+      conds.push(sql`${requestLogs.status}::int >= ${lo} AND ${requestLogs.status}::int < ${lo + 100}`)
+    } else {
+      conds.push(eq(requestLogs.status, status))
+    }
+  }
   if (model) conds.push(eq(requestLogs.model, model))
   if (userEmail) conds.push(ilike(users.email, `%${userEmail}%`))
 
-  const rows = await db.select({
-    id: requestLogs.id,
-    status: requestLogs.status,
-    model: requestLogs.model,
-    latencyMs: requestLogs.latencyMs,
-    inputTokens: requestLogs.inputTokens,
-    outputTokens: requestLogs.outputTokens,
-    costUsd: requestLogs.costUsd,
-    createdAt: requestLogs.createdAt,
-    auditMatch: requestLogs.auditMatch,
-    errorCode: requestLogs.errorCode,
-    userEmail: users.email,
-  }).from(requestLogs)
-    .innerJoin(users, eq(users.id, requestLogs.userId))
-    .where(conds.length ? and(...conds) : undefined)
-    .orderBy(desc(requestLogs.createdAt))
-    .limit(limit)
+  const [rows, statusFacet, modelFacet] = await Promise.all([
+    db.select({
+      id: requestLogs.id,
+      status: requestLogs.status,
+      model: requestLogs.model,
+      endpoint: requestLogs.endpoint,
+      stream: requestLogs.stream,
+      latencyMs: requestLogs.latencyMs,
+      inputTokens: requestLogs.inputTokens,
+      outputTokens: requestLogs.outputTokens,
+      costUsd: requestLogs.costUsd,
+      createdAt: requestLogs.createdAt,
+      auditMatch: requestLogs.auditMatch,
+      errorCode: requestLogs.errorCode,
+      userEmail: users.email,
+    }).from(requestLogs)
+      .innerJoin(users, eq(users.id, requestLogs.userId))
+      .where(conds.length ? and(...conds) : undefined)
+      .orderBy(desc(requestLogs.createdAt))
+      .limit(limit),
+    db.selectDistinct({ status: requestLogs.status }).from(requestLogs),
+    db.selectDistinct({ model: requestLogs.model }).from(requestLogs),
+  ])
 
   return c.json({
     logs: rows.map((r) => ({
       id: r.id,
       status: Number(r.status),
       model: r.model,
+      endpoint: r.endpoint,
+      stream: r.stream,
+      type: r.endpoint?.includes('/batches') ? 'Batch' : r.stream ? 'SSE' : 'HTTP',
       latency_ms: Number(r.latencyMs),
+      input_tokens: Number(r.inputTokens),
+      output_tokens: Number(r.outputTokens),
       tokens: Number(r.inputTokens) + Number(r.outputTokens),
       cost: Number(r.costUsd).toFixed(4),
       region: 'cn-east-1',
@@ -55,6 +74,10 @@ adminLogsRoutes.get('/', async (c) => {
       owner_email: r.userEmail,
     })),
     total: rows.length,
+    facets: {
+      statuses: statusFacet.map((r) => Number(r.status)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b),
+      models: modelFacet.map((r) => r.model).filter(Boolean).sort(),
+    },
   })
 })
 

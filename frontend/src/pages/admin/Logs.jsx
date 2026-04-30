@@ -18,6 +18,8 @@ export default function AdminLogs() {
 
   if (error) return <ErrorBox error={error}/>;
   const logs = data?.logs || [];
+  const statusOptions = data?.facets?.statuses || [];
+  const modelOptions = data?.facets?.models || [];
 
   return (
     <div>
@@ -26,35 +28,37 @@ export default function AdminLogs() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <select value={status} onChange={(e) => setStatus(e.target.value)} style={filter}>
           <option value="">状态: 全部</option>
-          <option value="200">200 OK</option>
-          <option value="429">429 限流</option>
-          <option value="500">5xx 错误</option>
+          {statusOptions.map((s) => (
+            <option key={s} value={String(s)}>{s} {statusLabel(s)}</option>
+          ))}
         </select>
         <select value={model} onChange={(e) => setModel(e.target.value)} style={filter}>
           <option value="">模型: 全部</option>
-          <option value="claude-opus-4.7">claude-opus-4.7</option>
-          <option value="claude-sonnet-4.5">claude-sonnet-4.5</option>
-          <option value="claude-haiku-4.5">claude-haiku-4.5</option>
+          {modelOptions.map((id) => (
+            <option key={id} value={id}>{id}</option>
+          ))}
         </select>
       </div>
 
       {loading ? <Loading/> : (
         <div style={card}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1100 }}>
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>
                 <th style={th}>状态</th>
                 <th style={th}>请求 ID</th>
                 <th style={th}>归属</th>
                 <th style={th}>模型</th>
+                <th style={{ ...th, textAlign: "right" }}>输入<br/>Tokens</th>
+                <th style={{ ...th, textAlign: "right" }}>输出<br/>Tokens</th>
+                <th style={th}>类型</th>
                 <th style={th}>延迟</th>
-                <th style={th}>区域</th>
                 <th style={th}>审计</th>
                 <th style={th}>时间</th>
               </tr>
             </thead>
             <tbody>
-              {logs.length === 0 && <tr><td colSpan="8" style={{ padding: 32, textAlign: "center", color: "var(--text-3)" }}>没有匹配的请求。</td></tr>}
+              {logs.length === 0 && <tr><td colSpan="10" style={{ padding: 32, textAlign: "center", color: "var(--text-3)" }}>没有匹配的请求。</td></tr>}
               {logs.map((l) => (
                 <tr key={l.id} onClick={() => setSelected(l)} style={{ borderTop: "1px solid var(--divider)", cursor: "pointer" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-3)")}
@@ -67,8 +71,14 @@ export default function AdminLogs() {
                   <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{l.id}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)", fontSize: 12 }}>{l.owner_email}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{l.model}</td>
+                  <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                    {(l.input_tokens || 0).toLocaleString()}
+                  </td>
+                  <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                    {(l.output_tokens || 0).toLocaleString()}
+                  </td>
+                  <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{l.type || "HTTP"}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{l.latency_ms ? l.latency_ms + "ms" : "—"}</td>
-                  <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>{l.region}</td>
                   <td style={td}>{l.audit_match ? <Pill tone="ok" dot>一致</Pill> : <Pill tone="err" dot>不一致</Pill>}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>{fmtRelative(l.created_at)}</td>
                 </tr>
@@ -146,6 +156,16 @@ function Label({ children }) {
 }
 function CodeBlock({ children }) {
   return <pre style={{ margin: 0, background: "var(--code-bg)", color: "var(--code-fg)", padding: 16, borderRadius: 8, fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.6, overflow: "auto", whiteSpace: "pre" }}>{children}</pre>;
+}
+
+function statusLabel(s) {
+  const map = {
+    200: "成功", 201: "已创建", 204: "无内容",
+    400: "请求错误", 401: "未授权", 402: "余额不足", 403: "禁止访问",
+    404: "未找到", 409: "冲突", 429: "限流",
+    500: "内部错误", 502: "上游错误", 503: "服务不可用", 504: "超时",
+  };
+  return map[s] || "";
 }
 
 const card = { background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" };
