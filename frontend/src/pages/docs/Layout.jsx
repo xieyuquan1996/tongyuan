@@ -54,8 +54,7 @@ const TOC = {
     { id: "list", label: "机房一览" },
     { id: "pin", label: "显式指定" },
     { id: "failover", label: "故障转移" },
-  ],
-  messages: [
+  ],  messages: [
     { id: "top", label: "messages.create" },
     { id: "params", label: "必填参数" },
     { id: "example", label: "完整请求示例" },
