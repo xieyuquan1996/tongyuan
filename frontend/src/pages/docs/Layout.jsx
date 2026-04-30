@@ -25,7 +25,6 @@ const SECTIONS = [
   ["保真承诺", [
     ["audit",  "请求审计"],
     ["models", "模型映射"],
-    ["sla",    "SLA"],
   ]],
 ];
 
