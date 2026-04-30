@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, Plus, Trash2, X, Check, Minus, ChevronDown } from "lucide-react";
+import { Bell, Plus, Trash2, X, Check, Minus, ChevronDown, BellOff } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { useAsync } from "../../lib/hooks.js";
 import { Loading, ErrorBox } from "../../components/primitives.jsx";
@@ -25,13 +25,43 @@ export default function Alerts() {
   const [newAlert, setNewAlert] = useState({ kind: "balance_low", threshold: 20, channel: "email" });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
-  // Local overlay so PATCH can be optimistic — server round-trip doesn't
-  // snap the row's UI back and forth.
-  const [overrides, setOverrides] = useState({}); // { [id]: Partial<alert> }
+  const [overrides, setOverrides] = useState({});
+  const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
-  // Clear overrides once the refetched list reflects them.
   useEffect(() => { setOverrides({}); }, [data]);
+
+  // Keep perm state in sync (e.g. if user changes it via browser UI).
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    const sync = () => setPerm(Notification.permission);
+    const t = setInterval(sync, 2000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function requestPerm() {
+    if (typeof Notification === "undefined") {
+      setToast({ tone: "err", text: "当前浏览器不支持通知" });
+      return;
+    }
+    const r = await Notification.requestPermission();
+    setPerm(r);
+    if (r === "granted") setToast({ tone: "ok", text: "已允许浏览器通知" });
+    else setToast({ tone: "err", text: "通知权限被拒绝，请在浏览器地址栏左侧的锁图标里放开" });
+  }
+
+  function sendTestNotification() {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+      setToast({ tone: "err", text: "请先允许通知权限" });
+      return;
+    }
+    try {
+      new Notification("同源 · 测试通知", { body: "如果看到这条，说明浏览器通知工作正常。" });
+      setToast({ tone: "ok", text: "已发送测试通知" });
+    } catch (e) {
+      setToast({ tone: "err", text: "发送失败：" + (e.message || e) });
+    }
+  }
 
   async function add(e) {
     e.preventDefault();
@@ -96,6 +126,8 @@ export default function Alerts() {
     <div>
       <PageHeader title="告警" sub="余额 / 消费 / 错误率 / 延迟"
         right={<button onClick={() => setAdding(true)} style={ctaBtn}><Plus size={14}/> 新增告警</button>}/>
+
+      <PermBanner perm={perm} onRequest={requestPerm} onTest={sendTestNotification}/>
 
       {toast && (
         <div style={{
@@ -224,6 +256,49 @@ const SectionLabel = ({ children }) => <div style={{ fontFamily: "var(--font-mon
 const ctaBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--clay)", color: "var(--on-clay)", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: "pointer" };
 const ghostBtn = { padding: "8px 14px", background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 13, cursor: "pointer" };
 const iconBtn = { width: 28, height: 28, border: "none", background: "transparent", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
+
+// — Permission banner: tells the user if browser notifications are off,
+// offers a request button, and a "send test" button when granted.
+function PermBanner({ perm, onRequest, onTest }) {
+  if (perm === "unsupported") {
+    return (
+      <div style={{ ...bannerBase, background: "var(--warn-soft)", borderLeftColor: "var(--warn)" }}>
+        <BellOff size={14} color="var(--warn)"/>
+        <span>当前浏览器不支持通知。只能依赖邮件/Webhook 渠道。</span>
+      </div>
+    );
+  }
+  if (perm === "default") {
+    return (
+      <div style={{ ...bannerBase, background: "var(--warn-soft)", borderLeftColor: "var(--warn)" }}>
+        <Bell size={14} color="var(--warn)"/>
+        <span>浏览器通知未授权。授权后余额/消费/错误率触发时会弹出桌面通知。</span>
+        <button onClick={onRequest} style={{ ...ctaBtn, padding: "4px 10px", fontSize: 12, marginLeft: "auto" }}>请求权限</button>
+      </div>
+    );
+  }
+  if (perm === "denied") {
+    return (
+      <div style={{ ...bannerBase, background: "var(--err-soft)", borderLeftColor: "var(--err)" }}>
+        <BellOff size={14} color="var(--err)"/>
+        <span>浏览器通知已被拒绝。请在地址栏左侧的站点设置里放开"通知"权限再刷新。</span>
+      </div>
+    );
+  }
+  // granted
+  return (
+    <div style={{ ...bannerBase, background: "var(--ok-soft)", borderLeftColor: "var(--ok)" }}>
+      <Bell size={14} color="var(--ok)"/>
+      <span>浏览器通知已启用。触发规则时将弹出桌面提示。</span>
+      <button onClick={onTest} style={{ ...ghostBtn, padding: "4px 10px", fontSize: 12, marginLeft: "auto" }}>发送测试</button>
+    </div>
+  );
+}
+const bannerBase = {
+  display: "flex", alignItems: "center", gap: 10,
+  padding: "10px 14px", borderRadius: 8, marginBottom: 16,
+  fontSize: 13, borderLeft: "2px solid", color: "var(--text)",
+};
 
 // — Stepper: a number input with custom − / + buttons, no native spinners,
 // commits only on blur / Enter so typing doesn't spam the backend.
