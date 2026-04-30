@@ -25,13 +25,17 @@ export default function Alerts() {
   const [newAlert, setNewAlert] = useState({ kind: "balance_low", threshold: 20, channel: "email" });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
+  // Local overlay so PATCH can be optimistic — server round-trip doesn't
+  // snap the row's UI back and forth.
+  const [overrides, setOverrides] = useState({}); // { [id]: Partial<alert> }
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
+  // Clear overrides once the refetched list reflects them.
+  useEffect(() => { setOverrides({}); }, [data]);
 
   async function add(e) {
     e.preventDefault();
     try {
-      // If user picked browser channel, request permission upfront.
       if (newAlert.channel === "browser" && typeof Notification !== "undefined") {
         if (Notification.permission === "default") {
           await Notification.requestPermission();
@@ -51,21 +55,27 @@ export default function Alerts() {
     }
   }
   async function toggle(a) {
+    const next = !a.enabled;
+    setOverrides((o) => ({ ...o, [a.id]: { ...o[a.id], enabled: next } }));
     try {
-      await api(`/api/console/alerts/${a.id}`, { method: "PATCH", body: { enabled: !a.enabled } });
-      setTick((t) => t + 1);
-      setToast({ tone: "ok", text: a.enabled ? "告警已禁用" : "告警已启用" });
+      await api(`/api/console/alerts/${a.id}`, { method: "PATCH", body: { enabled: next } });
+      setToast({ tone: "ok", text: next ? "告警已启用" : "告警已禁用" });
     } catch (err) {
+      setOverrides((o) => { const { [a.id]: _, ...rest } = o; return rest; });
       setToast({ tone: "err", text: err.message || "操作失败" });
+      setTick((t) => t + 1);
     }
   }
-  async function patch(a, patch) {
+  async function patch(a, body) {
+    setOverrides((o) => ({ ...o, [a.id]: { ...o[a.id], ...body } }));
     try {
-      await api(`/api/console/alerts/${a.id}`, { method: "PATCH", body: patch });
-      setTick((t) => t + 1);
-      setToast({ tone: "ok", text: "告警已更新" });
+      await api(`/api/console/alerts/${a.id}`, { method: "PATCH", body });
+      // Silent success — overrides stay until next refetch. No toast on
+      // threshold/channel tweaks to reduce noise.
     } catch (err) {
+      setOverrides((o) => { const { [a.id]: _, ...rest } = o; return rest; });
       setToast({ tone: "err", text: err.message || "更新失败" });
+      setTick((t) => t + 1);
     }
   }
   async function remove(a) {
@@ -80,7 +90,7 @@ export default function Alerts() {
   }
 
   if (error) return <ErrorBox error={error}/>;
-  const alerts = data?.alerts || [];
+  const alerts = (data?.alerts || []).map((a) => ({ ...a, ...(overrides[a.id] || {}) }));
 
   return (
     <div>
