@@ -8,6 +8,7 @@ import {
 import { LogoMark } from "../../components/primitives.jsx";
 import { api, session, logout } from "../../lib/api.js";
 import { useTheme } from "../../lib/theme.jsx";
+import { startAlertPoller, stopAlertPoller } from "../../lib/alert-poller.js";
 
 export default function DashboardLayout() {
   const nav = useNavigate();
@@ -24,6 +25,8 @@ export default function DashboardLayout() {
       .then((u) => { setUser(u); session.save(u, JSON.parse(localStorage.getItem("ty.session") || "{}")); })
       .catch((err) => { if (err.status === 401) { session.clear(); nav("/login", { replace: true }); } });
     api("/api/public/announcements").then((r) => setBanners(r.announcements || [])).catch(() => {});
+    startAlertPoller();
+    return () => stopAlertPoller();
   }, [nav]);
 
   useEffect(() => {

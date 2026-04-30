@@ -9,7 +9,7 @@ const KINDS = [
   { id: "balance_low",  label: "余额低于",    unit: "¥",   desc: "当账户余额低于阈值时通知" },
   { id: "spend_daily",  label: "单日消费超过", unit: "¥",  desc: "当当天消费超过阈值时通知" },
   { id: "error_rate",   label: "错误率高于",   unit: "%",  desc: "5 分钟内请求错误率超过阈值时通知" },
-  { id: "latency_p99",  label: "p99 延迟超过", unit: "ms", desc: "任一区域 p99 延迟超过阈值时通知" },
+  { id: "p99_latency",  label: "p99 延迟超过", unit: "ms", desc: "任一区域 p99 延迟超过阈值时通知" },
 ];
 
 const CHANNELS = [
@@ -31,6 +31,16 @@ export default function Alerts() {
   async function add(e) {
     e.preventDefault();
     try {
+      // If user picked browser channel, request permission upfront.
+      if (newAlert.channel === "browser" && typeof Notification !== "undefined") {
+        if (Notification.permission === "default") {
+          await Notification.requestPermission();
+        }
+        if (Notification.permission !== "granted") {
+          setToast({ tone: "err", text: "浏览器通知权限被拒绝，请在浏览器设置中允许" });
+          return;
+        }
+      }
       await api("/api/console/alerts", { method: "POST", body: newAlert });
       setAdding(false);
       setNewAlert({ kind: "balance_low", threshold: 20, channel: "email" });
@@ -95,13 +105,13 @@ export default function Alerts() {
         <form onSubmit={add} style={{ ...card, padding: 20, marginBottom: 16 }}>
           <SectionLabel>新增告警</SectionLabel>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 10, marginTop: 10 }}>
-            <select value={newAlert.kind} onChange={(e) => setNewAlert({ ...newAlert, kind: e.target.value })} style={ctrl}>
+            <select value={newAlert.kind} onChange={(e) => setNewAlert({ ...newAlert, kind: e.target.value })} style={selectCtrl}>
               {KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
             </select>
             <input type="number" step="0.1" value={newAlert.threshold}
               onChange={(e) => setNewAlert({ ...newAlert, threshold: e.target.value })}
-              placeholder="阈值" style={ctrl}/>
-            <select value={newAlert.channel} onChange={(e) => setNewAlert({ ...newAlert, channel: e.target.value })} style={ctrl}>
+              placeholder="阈值" style={inputCtrl}/>
+            <select value={newAlert.channel} onChange={(e) => setNewAlert({ ...newAlert, channel: e.target.value })} style={selectCtrl}>
               {CHANNELS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
             <div style={{ display: "flex", gap: 6 }}>
@@ -139,9 +149,9 @@ export default function Alerts() {
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>{k?.desc}</div>
                 </div>
                 <input type="number" value={a.threshold} onChange={(e) => patch(a, { threshold: e.target.value })}
-                  style={{ ...ctrl, padding: "6px 10px", fontSize: 13 }}/>
+                  style={{ ...inputCtrl, padding: "6px 10px", fontSize: 13 }}/>
                 <select value={a.channel} onChange={(e) => patch(a, { channel: e.target.value })}
-                  style={{ ...ctrl, padding: "6px 10px", fontSize: 13 }}>
+                  style={{ ...selectCtrl, padding: "6px 28px 6px 10px", fontSize: 13 }}>
                   {CHANNELS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
                 <button onClick={() => toggle(a)} style={{
@@ -191,7 +201,21 @@ export default function Alerts() {
 
 const card = { background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" };
 const SectionLabel = ({ children }) => <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)" }}>{children}</div>;
-const ctrl = { padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", fontSize: 13 };
+const inputCtrl = {
+  padding: "8px 12px", border: "1px solid var(--border)", borderRadius: 6,
+  background: "var(--surface-1)", color: "var(--text)", fontSize: 13,
+  outline: "none",
+};
+const selectCtrl = {
+  ...inputCtrl,
+  padding: "8px 32px 8px 12px",
+  appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
+  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
+  backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center",
+  cursor: "pointer",
+};
+// Back-compat alias while we rename; points to the select style.
+const ctrl = selectCtrl;
 const ctaBtn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--clay)", color: "var(--on-clay)", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: "pointer" };
 const ghostBtn = { padding: "8px 14px", background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)", borderRadius: 6, fontSize: 13, cursor: "pointer" };
 const iconBtn = { width: 28, height: 28, border: "none", background: "transparent", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" };
