@@ -246,8 +246,21 @@ const OPENCLAW_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
 set -euo pipefail
 
 RELAY_BASE_URL="${baseUrl}"
-MODEL_ID="\${OPENCLAW_MODEL:-claude-opus-4-6}"
+MODEL_ID="\${OPENCLAW_MODEL:-claude-sonnet-4-6}"
 CFG="\${OPENCLAW_CONFIG:-\$HOME/.openclaw/openclaw.json}"
+
+# Models we proxy through the relay (see 控制台 → 模型 for live status/pricing).
+AVAILABLE_MODELS="claude-opus-4-7
+claude-opus-4-6
+claude-opus-4-5
+claude-opus-4-1
+claude-opus-4
+claude-sonnet-4-6
+claude-sonnet-4-5
+claude-sonnet-4
+claude-3-7-sonnet
+claude-haiku-4-5
+claude-3-5-haiku"
 
 log()  { printf "\\e[36m[openclaw]\\e[0m %s\\n" "\$*"; }
 warn() { printf "\\e[33m[openclaw]\\e[0m %s\\n" "\$*" >&2; }
@@ -317,7 +330,10 @@ if [ "\$FRESH_INSTALL" = "1" ] || [ ! -f "\$CFG" ]; then
   log "  · API Base URL            → \$RELAY_BASE_URL"
   log "  · Endpoint compatibility  → Anthropic-compatible"
   log "  · API Key                 → 控制台 → API 密钥 → 新建一把 sk-relay-* 粘进去"
-  log "  · Model ID                → \$MODEL_ID"
+  log "  · Model ID                → \$MODEL_ID（默认最新 Sonnet）"
+  echo ""
+  log "可选的模型 ID（最新 → 旧）："
+  echo "\$AVAILABLE_MODELS" | sed 's/^/    · /'
   echo ""
   log "向导跑完后，openclaw 就已经能用了。如需以后重复写入/更新配置，再跑一次本脚本即可。"
   exit 0
@@ -434,6 +450,21 @@ const HERMES_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
 set -euo pipefail
 
 RELAY_BASE_URL="${baseUrl}"
+# Hermes reads ANTHROPIC_MODEL at launch; default to the latest Sonnet.
+HERMES_MODEL="\${HERMES_MODEL:-claude-sonnet-4-6}"
+
+# Models served via this relay (see 控制台 → 模型 for live availability/pricing).
+AVAILABLE_MODELS="claude-opus-4-7
+claude-opus-4-6
+claude-opus-4-5
+claude-opus-4-1
+claude-opus-4
+claude-sonnet-4-6
+claude-sonnet-4-5
+claude-sonnet-4
+claude-3-7-sonnet
+claude-haiku-4-5
+claude-3-5-haiku"
 
 log()  { printf "\\e[36m[hermes]\\e[0m %s\\n" "\$*"; }
 warn() { printf "\\e[33m[hermes]\\e[0m %s\\n" "\$*" >&2; }
@@ -537,6 +568,10 @@ if [ -n "\${NEW_API_KEY:-}" ]; then
 else
   echo "    export ANTHROPIC_API_KEY=\\"<你的 sk-relay-* 密钥>\\""
 fi
+echo "    export ANTHROPIC_MODEL=\\"\$HERMES_MODEL\\"    # 默认最新 Sonnet"
+echo ""
+log "可选的模型 ID（最新 → 旧）："
+echo "\$AVAILABLE_MODELS" | sed 's/^/    · /'
 echo ""
 if [ "\$HERMES_PRESENT" = "0" ]; then
   log "还没装 hermes。在本 shell 生效 env 后，再跑："

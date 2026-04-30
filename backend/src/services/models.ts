@@ -1,5 +1,5 @@
 // backend/src/services/models.ts
-import { eq, desc, asc } from 'drizzle-orm'
+import { eq, desc } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { models } from '../db/schema.js'
 import { getAnthropicBaseUrl } from '../env.js'
@@ -8,8 +8,10 @@ import { AppError } from '../shared/errors.js'
 export type ModelRow = typeof models.$inferSelect
 
 export async function list({ enabledOnly }: { enabledOnly: boolean }) {
+  // Recommended on top, then newest first. Descending by id lines up with
+  // version suffixes (claude-opus-4-7 > 4-6 > 4-5 > 4-1 > 4).
   const rows = await db.select().from(models)
-    .orderBy(desc(models.recommended), asc(models.id))
+    .orderBy(desc(models.recommended), desc(models.id))
   return enabledOnly ? rows.filter((r) => r.enabled) : rows
 }
 
