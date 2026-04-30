@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import * as modelsSvc from '../services/models.js'
 
 const BASH_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
 # Claude Code installer for 同源 (Tongyuan) relay.
@@ -234,7 +235,7 @@ Write-Host "  · 'Do you trust the files in this folder?'       → YES"
 Write-Host "  · 'Detected a custom API key... use this?'        → 1. Yes（默认 No）"
 `
 
-const OPENCLAW_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
+const OPENCLAW_SCRIPT = (baseUrl: string, availableModels: string[], defaultModel: string) => `#!/usr/bin/env bash
 # OpenClaw connector for 同源 (Tongyuan) relay.
 #
 # What this does, in order:
@@ -246,21 +247,11 @@ const OPENCLAW_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
 set -euo pipefail
 
 RELAY_BASE_URL="${baseUrl}"
-MODEL_ID="\${OPENCLAW_MODEL:-claude-sonnet-4-6}"
+MODEL_ID="\${OPENCLAW_MODEL:-${defaultModel}}"
 CFG="\${OPENCLAW_CONFIG:-\$HOME/.openclaw/openclaw.json}"
 
-# Models we proxy through the relay (see 控制台 → 模型 for live status/pricing).
-AVAILABLE_MODELS="claude-opus-4-7
-claude-opus-4-6
-claude-opus-4-5
-claude-opus-4-1
-claude-opus-4
-claude-sonnet-4-6
-claude-sonnet-4-5
-claude-sonnet-4
-claude-3-7-sonnet
-claude-haiku-4-5
-claude-3-5-haiku"
+# Models served via this relay (rendered server-side from 控制台 → 模型).
+AVAILABLE_MODELS="${availableModels.join('\n')}"
 
 log()  { printf "\\e[36m[openclaw]\\e[0m %s\\n" "\$*"; }
 warn() { printf "\\e[33m[openclaw]\\e[0m %s\\n" "\$*" >&2; }
@@ -435,7 +426,7 @@ log "✓ 完成。接入同源的 OpenClaw 已经就绪。"
 log "可以用 /model 在会话里切换，也可以跑 'openclaw agent --message \\"hi\\"' 快速验证。"
 `
 
-const HERMES_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
+const HERMES_SCRIPT = (baseUrl: string, availableModels: string[], defaultModel: string) => `#!/usr/bin/env bash
 # Hermes Agent connector for 同源 (Tongyuan) relay.
 #
 # Hermes honors the standard ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY env vars,
@@ -451,20 +442,10 @@ set -euo pipefail
 
 RELAY_BASE_URL="${baseUrl}"
 # Hermes reads ANTHROPIC_MODEL at launch; default to the latest Sonnet.
-HERMES_MODEL="\${HERMES_MODEL:-claude-sonnet-4-6}"
+HERMES_MODEL="\${HERMES_MODEL:-${defaultModel}}"
 
-# Models served via this relay (see 控制台 → 模型 for live availability/pricing).
-AVAILABLE_MODELS="claude-opus-4-7
-claude-opus-4-6
-claude-opus-4-5
-claude-opus-4-1
-claude-opus-4
-claude-sonnet-4-6
-claude-sonnet-4-5
-claude-sonnet-4
-claude-3-7-sonnet
-claude-haiku-4-5
-claude-3-5-haiku"
+# Models served via this relay (rendered server-side from 控制台 → 模型).
+AVAILABLE_MODELS="${availableModels.join('\n')}"
 
 log()  { printf "\\e[36m[hermes]\\e[0m %s\\n" "\$*"; }
 warn() { printf "\\e[33m[hermes]\\e[0m %s\\n" "\$*" >&2; }
@@ -611,16 +592,35 @@ installRoutes.get('/install.ps1', (c) => {
   })
 })
 
-installRoutes.get('/install/openclaw', (c) => {
-  const body = OPENCLAW_SCRIPT(resolveBaseUrl(c))
+// Look up the enabled models to advertise in install scripts. Pick a sensible
+// default: a recommended model if the admin flagged one, otherwise the newest
+// Sonnet (sorted descending by id), otherwise the first enabled model.
+async function loadScriptModels(): Promise<{ available: string[]; defaultModel: string }> {
+  try {
+    const rows = await modelsSvc.list({ enabledOnly: true })
+    const ids = rows.map((r) => r.id)
+    if (ids.length === 0) return { available: [], defaultModel: 'claude-sonnet-4-6' }
+    const recommended = rows.find((r) => r.recommended)?.id
+    const newestSonnet = ids.find((id) => id.includes('sonnet'))
+    return { available: ids, defaultModel: recommended ?? newestSonnet ?? ids[0]! }
+  } catch {
+    // DB hiccup shouldn't break install — fall back to a conservative default.
+    return { available: [], defaultModel: 'claude-sonnet-4-6' }
+  }
+}
+
+installRoutes.get('/install/openclaw', async (c) => {
+  const { available, defaultModel } = await loadScriptModels()
+  const body = OPENCLAW_SCRIPT(resolveBaseUrl(c), available, defaultModel)
   return c.body(body, 200, {
     'content-type': 'text/x-shellscript; charset=utf-8',
     'cache-control': 'no-store',
   })
 })
 
-installRoutes.get('/install/hermes', (c) => {
-  const body = HERMES_SCRIPT(resolveBaseUrl(c))
+installRoutes.get('/install/hermes', async (c) => {
+  const { available, defaultModel } = await loadScriptModels()
+  const body = HERMES_SCRIPT(resolveBaseUrl(c), available, defaultModel)
   return c.body(body, 200, {
     'content-type': 'text/x-shellscript; charset=utf-8',
     'cache-control': 'no-store',
