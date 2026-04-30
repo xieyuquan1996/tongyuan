@@ -28,7 +28,7 @@ async function get(path: string) {
 }
 
 describe('admin read endpoints smoke', () => {
-  for (const p of ['overview', 'users', 'logs', 'billing', 'regions', 'announcements', 'audit']) {
+  for (const p of ['overview', 'users', 'logs', 'billing', 'regions', 'announcements', 'audit', 'settings']) {
     it(`GET /api/admin/${p} returns 200`, async () => {
       const r = await get(`/api/admin/${p}`)
       expect(r.status).toBe(200)
@@ -36,6 +36,32 @@ describe('admin read endpoints smoke', () => {
       expect(body).toBeDefined()
     })
   }
+
+  it('GET /api/admin/settings returns exchange rate', async () => {
+    const r = await get('/api/admin/settings')
+    expect(r.status).toBe(200)
+    const body = await r.json()
+    expect(typeof body.usd_to_cny).toBe('number')
+    expect(body.usd_to_cny).toBeGreaterThan(0)
+  })
+
+  it('PUT /api/admin/settings updates exchange rate', async () => {
+    const app2 = createApp()
+    const r = await app2.fetch(new Request('http://x/api/admin/settings', {
+      method: 'PUT',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ usd_to_cny: 7.35 }),
+    }))
+    expect(r.status).toBe(200)
+    const body = await r.json()
+    expect(body.ok).toBe(true)
+    expect(body.usd_to_cny).toBe(7.35)
+
+    // Verify it persisted
+    const r2 = await get('/api/admin/settings')
+    const body2 = await r2.json()
+    expect(body2.usd_to_cny).toBe(7.35)
+  })
 
   it('rejects non-admin with 403', async () => {
     const r = await app.fetch(new Request('http://x/api/console/register', {
