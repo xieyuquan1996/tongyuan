@@ -63,7 +63,7 @@ export function TermsPage() {
       <h2 style={h2}>4. 计费</h2>
       <p style={prose}>按实际用量计费，以 token 为单位。余额不足时请求将被拒绝。充值后余额不可退款，但账户注销时未使用余额可申请退还。</p>
       <h2 style={h2}>5. 服务可用性</h2>
-      <p style={prose}>我们承诺尽力维持高可用，但不对因 Anthropic 上游故障、不可抗力导致的中断承担责任。</p>
+      <p style={prose}>我们承诺尽力维持高可用，但不对因 Anthropic 上游故障、不可抗力导致的中断承担责任。{/* SLA 条款见 <Link to="/docs/sla" style={{ color: "var(--clay-press)" }}>SLA 文档</Link>。暂时隐藏 */}</p>
       <h2 style={h2}>6. 条款变更</h2>
       <p style={prose}>条款变更将提前 7 天通过控制台公告通知。继续使用服务视为接受新条款。</p>
     </Shell>

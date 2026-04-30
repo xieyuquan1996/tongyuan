@@ -116,6 +116,7 @@ export default function OpenClawArticle() {
       </p>
 
       <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid var(--border)", display: "flex", gap: 24, fontSize: 14 }}>
+        {/* <Link to="/docs/regions" style={{ color: "var(--clay-press)", textDecoration: "none" }}>← 区域选择</Link> */}
         <Link to="/docs/hermes" style={{ color: "var(--clay-press)", textDecoration: "none", marginLeft: "auto" }}>接入 Hermes Agent →</Link>
       </div>
     </article>

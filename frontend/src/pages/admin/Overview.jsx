@@ -64,6 +64,7 @@ export default function AdminOverview() {
             <QuickLink to="/admin/logs"          title="请求"    desc="跨租户审计"/>
             <QuickLink to="/admin/billing"       title="账单"    desc="营收 / 套餐分布"/>
             <QuickLink to="/admin/models"        title="模型"    desc="上下架 / 改价"/>
+            {/* <QuickLink to="/admin/regions"       title="区域"    desc="状态 / 延迟"/> */}{/* 暂时隐藏 */}
             <QuickLink to="/admin/announcements" title="公告"    desc="全站提示"/>
             <QuickLink to="/admin/audit"         title="审计"    desc="操作追溯"/>
           </div>

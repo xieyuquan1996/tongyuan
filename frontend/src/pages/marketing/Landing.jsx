@@ -13,6 +13,7 @@ export default function Landing() {
       <Hero />
       <SignalCompare />
       <PromiseGrid />
+      {/* <StatusStrip /> */}{/* 暂时隐藏 */}
       <ModelsTable />
       <Pricing />
       <Faq />
@@ -193,6 +194,36 @@ function PromiseGrid() {
     </section>
   );
 }
+
+/* 暂时隐藏 - 各区域实时延迟
+function StatusStrip() {
+  const [regions, setRegions] = useState([]);
+  useEffect(() => { api("/api/public/regions").then(r => setRegions(r.regions || [])).catch(() => {}); }, []);
+  return (
+    <section id="status" style={{ padding: "64px 32px", background: "var(--surface-emphasis)", color: "var(--text-on-emphasis)" }}>
+      <div style={{ maxWidth: 1216, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "baseline", marginBottom: 24, gap: 16 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--clay)" }}>● LIVE</div>
+          <h3 style={{ fontSize: 18, fontWeight: 500, margin: 0, color: "var(--text-on-emphasis)", whiteSpace: "nowrap" }}>各区域实时延迟 · 每 10 秒刷新</h3>
+          <a href="/status" style={{ marginLeft: "auto", color: "var(--text-on-emphasis-3)", fontSize: 13, textDecoration: "none" }}>查看完整状态页 →</a>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, regions.length)}, 1fr)`, borderTop: "1px solid var(--track)" }}>
+          {regions.map(r => (
+            <div key={r.id} style={{ padding: "20px 20px 20px 0", borderBottom: "1px solid var(--track)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: r.status === "ok" ? "var(--ok)" : r.status === "warn" ? "var(--warn)" : "var(--err)" }}/>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-on-emphasis-3)" }}>{r.id}</span>
+              </div>
+              <div style={{ fontSize: 16, marginBottom: 4 }}>{r.name}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>{r.latency}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+*/
 
 function ModelsTable() {
   const [models, setModels] = useState([]);

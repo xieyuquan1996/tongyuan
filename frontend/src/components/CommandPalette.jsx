@@ -25,6 +25,7 @@ const COMMANDS = [
   { id: "admin-logs",          label: "后台 · 全部请求", path: "/admin/logs",          keywords: "admin 后台 logs 请求 审计", admin: true },
   { id: "admin-billing",       label: "后台 · 账单收入", path: "/admin/billing",       keywords: "admin 后台 billing 账单 营收", admin: true },
   { id: "admin-models",        label: "后台 · 模型管理", path: "/admin/models",        keywords: "admin 后台 models 模型 上架", admin: true },
+  // { id: "admin-regions",       label: "后台 · 区域 / 状态", path: "/admin/regions",    keywords: "admin 后台 regions 区域 状态", admin: true },  // 暂时隐藏
   { id: "admin-announcements", label: "后台 · 公告",     path: "/admin/announcements", keywords: "admin 后台 announcements 公告 通知", admin: true },
   { id: "admin-audit",         label: "后台 · 审计日志", path: "/admin/audit",         keywords: "admin 后台 audit 审计 操作记录", admin: true },
 ];
