@@ -15,8 +15,12 @@ export function toPublic(row: UpstreamRow): UpstreamPublic {
 }
 
 export async function create(input: { alias: string; secret: string; priority?: number; quotaHintUsd?: string; baseUrl?: string }) {
-  const ct = encryptSecret(input.secret, env.UPSTREAM_KEY_KMS)
-  const prefix = input.secret.slice(0, 20)
+  // Strip accidental whitespace / BOM from pasted keys — Anthropic returns 401
+  // if x-api-key has any stray chars, and we've been bitten by this repeatedly.
+  const secret = input.secret.trim().replace(/​|﻿/g, '')
+  if (!secret) throw new AppError('missing_fields')
+  const ct = encryptSecret(secret, env.UPSTREAM_KEY_KMS)
+  const prefix = secret.slice(0, 20)
   const [row] = await db.insert(upstreamKeys).values({
     alias: input.alias,
     keyCiphertext: ct,
@@ -47,7 +51,9 @@ export async function remove(id: string) {
 }
 
 export async function decrypt(row: UpstreamRow): Promise<string> {
-  return decryptSecret(row.keyCiphertext, env.UPSTREAM_KEY_KMS)
+  // Trim retroactively so any historical key stored with stray whitespace
+  // stops producing 401s without forcing the admin to re-add it.
+  return decryptSecret(row.keyCiphertext, env.UPSTREAM_KEY_KMS).trim().replace(/​|﻿/g, '')
 }
 
 export async function markCooldown(id: string, ms: number, errorCode: string) {
