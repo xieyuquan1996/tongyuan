@@ -33,13 +33,16 @@ overviewRoutes.get('/', async (c) => {
     .limit(60)
 
   const total = Number(stats!.count)
-  const uptime = total === 0 ? '100.00%' : ((1 - Number(stats!.errors) / total) * 100).toFixed(2) + '%'
+  const errors = Number(stats!.errors)
+  const uptime = total === 0 ? '100.00%' : ((1 - errors / total) * 100).toFixed(2) + '%'
+  const errorRate = total === 0 ? '0.00%' : ((errors / total) * 100).toFixed(2) + '%'
   const spentUsd = Number(stats!.spent)
   const rate = await getRate()
 
   return c.json({
     metrics: {
       uptime_30d: uptime,
+      error_rate: errorRate,
       p99_live_ms: stats!.p99,
       requests_30d: String(total),
       spent: fmtCny(toCny(spentUsd, rate)),
