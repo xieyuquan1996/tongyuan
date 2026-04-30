@@ -92,6 +92,13 @@
       "when": 1777440000000,
       "tag": "0012_cache_pricing",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777450000000,
+      "tag": "0013_seed_remaining_pricing",
+      "breakpoints": true
     }
   ]
 }
