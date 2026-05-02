@@ -5,6 +5,7 @@ import { zValidator } from '@hono/zod-validator'
 import { requireBearer } from '../../middleware/auth-bearer.js'
 import { requireAdmin } from '../../middleware/auth-admin.js'
 import * as svc from '../../services/upstream-keys.js'
+import * as audit from '../../services/audit.js'
 import * as quota from '../../gateway/quota.js'
 import * as quotaConfig from '../../gateway/quota-config.js'
 import { type Family } from '../../gateway/family.js'
@@ -68,7 +69,15 @@ upstreamKeysRoutes.get('/:id/quota-override', async (c) => {
 })
 
 upstreamKeysRoutes.put('/:id/quota-override', zValidator('json', overrideBody), async (c) => {
-  await quotaConfig.setOverride(c.req.param('id'), c.req.valid('json'))
+  const id = c.req.param('id')
+  const override = c.req.valid('json')
+  await quotaConfig.setOverride(id, override)
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.upstream_key.quota_override',
+    target: id,
+    metadata: { override },
+  })
   return c.json({ ok: true })
 })
 
@@ -85,7 +94,13 @@ const defaultsBody = z.object({
 })
 
 upstreamKeysRoutes.put('/quota-defaults', zValidator('json', defaultsBody), async (c) => {
-  await quotaConfig.setDefaults(c.req.valid('json'))
+  const defaults = c.req.valid('json')
+  await quotaConfig.setDefaults(defaults)
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.upstream_key.quota_defaults',
+    metadata: { defaults },
+  })
   return c.json({ ok: true })
 })
 
@@ -98,6 +113,13 @@ upstreamKeysRoutes.post('/', zValidator('json', z.object({
 })), async (c) => {
   const b = c.req.valid('json')
   const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, quotaHintUsd: b.quota_hint_usd, baseUrl: b.base_url })
+  // Never log the secret itself — only the prefix svc.create stored.
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.upstream_key.create',
+    target: row.alias,
+    metadata: { id: row.id, key_prefix: row.keyPrefix, priority: row.priority, base_url: row.baseUrl },
+  })
   return c.json(svc.toPublic(row), 201)
 })
 
@@ -106,11 +128,28 @@ upstreamKeysRoutes.patch('/:id', zValidator('json', z.object({
   state: z.enum(['active', 'cooldown', 'disabled']).optional(),
   priority: z.number().int().optional(),
 })), async (c) => {
-  const row = await svc.patch(c.req.param('id'), c.req.valid('json'))
+  const id = c.req.param('id')
+  const patch = c.req.valid('json')
+  const row = await svc.patch(id, patch)
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.upstream_key.update',
+    target: row.alias,
+    metadata: { id, patch },
+  })
   return c.json(svc.toPublic(row))
 })
 
 upstreamKeysRoutes.delete('/:id', async (c) => {
-  await svc.remove(c.req.param('id'))
+  const id = c.req.param('id')
+  // Capture alias before delete so the audit row has a useful target.
+  const before = (await svc.list()).find((r) => r.id === id)
+  await svc.remove(id)
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.upstream_key.delete',
+    target: before?.alias ?? id,
+    metadata: { id, alias: before?.alias, key_prefix: before?.keyPrefix },
+  })
   return c.json({ ok: true })
 })

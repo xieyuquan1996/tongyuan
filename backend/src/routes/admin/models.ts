@@ -6,6 +6,7 @@ import { requireBearer } from '../../middleware/auth-bearer.js'
 import { requireAdmin } from '../../middleware/auth-admin.js'
 import * as svc from '../../services/models.js'
 import * as upstream from '../../services/upstream-keys.js'
+import * as audit from '../../services/audit.js'
 import { db } from '../../db/client.js'
 import { models } from '../../db/schema.js'
 
@@ -74,6 +75,12 @@ adminModelsRoutes.post('/', zValidator('json', z.object({
     note: b.note,
     syncedAt: new Date(),
   }).returning()
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.model.create',
+    target: row!.id,
+    metadata: { context: b.context, price: b.price, note: b.note },
+  })
   return c.json(toDisplayRow(row!), 201)
 })
 
@@ -119,12 +126,25 @@ adminModelsRoutes.patch('/:id', zValidator('json', z.object({
   if (b.cache_read_price_usd_per_mtok !== undefined) p.cacheReadPriceUsdPerMtok = b.cache_read_price_usd_per_mtok
   if (b.cache_write_price_usd_per_mtok !== undefined) p.cacheWritePriceUsdPerMtok = b.cache_write_price_usd_per_mtok
   if (b.cache_write_1h_price_usd_per_mtok !== undefined) p.cacheWrite1hPriceUsdPerMtok = b.cache_write_1h_price_usd_per_mtok
-  const row = await svc.patch(c.req.param('id'), p)
+  const id = c.req.param('id')
+  const row = await svc.patch(id, p)
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.model.update',
+    target: id,
+    metadata: { patch: b },
+  })
   return c.json(toDisplayRow(row))
 })
 
 adminModelsRoutes.delete('/:id', async (c) => {
-  await svc.remove(c.req.param('id'))
+  const id = c.req.param('id')
+  await svc.remove(id)
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.model.delete',
+    target: id,
+  })
   return c.json({ ok: true })
 })
 

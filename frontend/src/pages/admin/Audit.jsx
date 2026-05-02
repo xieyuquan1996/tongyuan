@@ -5,18 +5,24 @@ import { Loading, ErrorBox, Pill } from "../../components/primitives.jsx";
 import { PageHeader } from "../../components/dashboard-widgets.jsx";
 
 const ACTION_TONE = {
-  "admin.user.update":         "default",
-  "admin.user.suspend":        "err",
-  "admin.user.adjust":         "warn",
-  "admin.key.revoke":          "err",
-  "admin.model.create":        "ok",
-  "admin.model.update":        "default",
-  "admin.model.delete":        "err",
-  "admin.region.update":       "warn",
-  "admin.component.update":    "warn",
-  "admin.announcement.create": "ok",
-  "admin.announcement.update": "default",
-  "admin.announcement.delete": "err",
+  "admin.user.update":                  "default",
+  "admin.user.suspend":                 "err",
+  "admin.user.adjust":                  "warn",
+  "admin.key.revoke":                   "err",
+  "admin.model.create":                 "ok",
+  "admin.model.update":                 "default",
+  "admin.model.delete":                 "err",
+  "admin.region.update":                "warn",
+  "admin.component.update":             "warn",
+  "admin.announcement.create":          "ok",
+  "admin.announcement.update":          "default",
+  "admin.announcement.delete":          "err",
+  "admin.settings.update":              "warn",
+  "admin.upstream_key.create":          "ok",
+  "admin.upstream_key.update":          "default",
+  "admin.upstream_key.delete":          "err",
+  "admin.upstream_key.quota_override":  "default",
+  "admin.upstream_key.quota_defaults":  "warn",
 };
 
 export default function AdminAudit() {

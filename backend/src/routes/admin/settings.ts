@@ -9,6 +9,7 @@ import { db } from '../../db/client.js'
 import { settings } from '../../db/schema.js'
 import { invalidateRateCache } from '../../shared/fx.js'
 import { AppError } from '../../shared/errors.js'
+import * as audit from '../../services/audit.js'
 
 export const adminSettingsRoutes = new Hono()
 adminSettingsRoutes.use('*', requireBearer, requireAdmin)
@@ -47,6 +48,14 @@ adminSettingsRoutes.put('/', zValidator('json', putBody), async (c) => {
 
   const rows = await db.select().from(settings)
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]))
+
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.settings.update',
+    target: Object.keys(body).join(','),
+    metadata: { patch: body },
+  })
+
   return c.json({
     ok: true,
     usd_to_cny: Number(map['usd_to_cny'] ?? 7.20),

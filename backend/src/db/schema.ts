@@ -1,5 +1,5 @@
 // backend/src/db/schema.ts
-import { pgTable, uuid, text, timestamp, numeric, boolean, integer } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, timestamp, numeric, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -133,6 +133,22 @@ export const settings = pgTable('settings', {
   value: text('value').notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const auditEvents = pgTable('audit_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  // Soft FK: keep the row even if the admin is deleted later.
+  actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  // Snapshot the actor's email so audit listings survive user deletion.
+  actorEmail: text('actor_email').notNull(),
+  action: text('action').notNull(),         // e.g. 'admin.user.suspend'
+  target: text('target'),                   // human-readable: email, model id, alias
+  note: text('note').notNull().default(''),
+  metadata: jsonb('metadata'),              // before/after diff or extra context
+}, (t) => ({
+  atIdx: index('audit_events_at_idx').on(t.at),
+  actionIdx: index('audit_events_action_idx').on(t.action),
+}))
 
 export const announcements = pgTable('announcements', {
   id: uuid('id').primaryKey().defaultRandom(),

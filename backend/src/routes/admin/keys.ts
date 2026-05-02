@@ -8,6 +8,8 @@ import { requireAdmin } from '../../middleware/auth-admin.js'
 import { db } from '../../db/client.js'
 import { apiKeys, users } from '../../db/schema.js'
 import { AppError } from '../../shared/errors.js'
+import * as audit from '../../services/audit.js'
+import { delCached } from '../../services/api-key-cache.js'
 
 export const adminKeysRoutes = new Hono()
 adminKeysRoutes.use('*', requireBearer, requireAdmin)
@@ -53,10 +55,23 @@ adminKeysRoutes.get('/', async (c) => {
 adminKeysRoutes.post('/:id/revoke', zValidator('json', z.object({
   reason: z.string().optional().default('admin revoke'),
 })), async (c) => {
+  const id = c.req.param('id')
+  const { reason } = c.req.valid('json')
   const [row] = await db.update(apiKeys)
     .set({ state: 'revoked', revokedAt: new Date() })
-    .where(eq(apiKeys.id, c.req.param('id')))
+    .where(eq(apiKeys.id, id))
     .returning()
   if (!row) throw new AppError('not_found')
+  // Mirror revokeKey() — drop the cache so the next request sees the new
+  // state immediately instead of waiting for TTL.
+  if (row.secretHmac) await delCached(row.secretHmac)
+
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.key.revoke',
+    target: row.prefix,
+    note: reason,
+    metadata: { id, owner_user_id: row.userId, name: row.name },
+  })
   return c.json({ ok: true })
 })

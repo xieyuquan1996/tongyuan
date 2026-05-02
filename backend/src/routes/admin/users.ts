@@ -9,6 +9,7 @@ import { db, pool } from '../../db/client.js'
 import { users, apiKeys, requestLogs, billingLedger } from '../../db/schema.js'
 import { toCny, fromCny, getRate } from '../../shared/fx.js'
 import { AppError } from '../../shared/errors.js'
+import * as audit from '../../services/audit.js'
 
 export const adminUsersRoutes = new Hono()
 adminUsersRoutes.use('*', requireBearer, requireAdmin)
@@ -123,6 +124,13 @@ adminUsersRoutes.patch('/:id', zValidator('json', patchSchema), async (c) => {
 
   const existing = await db.query.users.findFirst({ where: eq(users.id, id) })
   if (!existing) throw new AppError('not_found')
+  // Snapshot for the audit diff: only fields the patch can change.
+  const before = {
+    role: existing.role,
+    status: existing.status,
+    plan: existing.plan,
+    limit_monthly_usd: existing.limitMonthlyUsd,
+  }
 
   const set: Record<string, unknown> = { updatedAt: new Date() }
   if (b.role !== undefined) set.role = b.role
@@ -173,6 +181,26 @@ adminUsersRoutes.patch('/:id', zValidator('json', patchSchema), async (c) => {
     client.release()
   }
 
+  // Suspend is the spicier action — surface it under its own action name so
+  // the audit page can color it red. Anything else gets the generic update.
+  const suspended = b.status === 'suspended' && before.status !== 'suspended'
+  if (Object.keys(set).length > 1 || b.status !== undefined) {
+    await audit.record({
+      actor: c.get('user'),
+      action: suspended ? 'admin.user.suspend' : 'admin.user.update',
+      target: existing.email,
+      metadata: { id, before, patch: b },
+    })
+  }
+  if (b.balance_usd_adjust !== undefined) {
+    await audit.record({
+      actor: c.get('user'),
+      action: 'admin.user.adjust',
+      target: existing.email,
+      metadata: { id, delta_usd: b.balance_usd_adjust, source: 'patch' },
+    })
+  }
+
   return c.json({ ok: true })
 })
 
@@ -209,6 +237,14 @@ adminUsersRoutes.post('/:id/adjust', zValidator('json', z.object({
   } finally {
     client.release()
   }
+
+  await audit.record({
+    actor: c.get('user'),
+    action: 'admin.user.adjust',
+    target: existing.email,
+    note: note ?? '',
+    metadata: { id, delta_cny: delta, delta_usd: deltaUsd, rate, source: 'adjust_endpoint' },
+  })
 
   return c.json({ ok: true })
 })
