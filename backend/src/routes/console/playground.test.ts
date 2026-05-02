@@ -57,14 +57,23 @@ describe('playground', () => {
     expect((await r.json()).error).toBe('unknown_model')
   })
 
-  it('rejects stream:true', async () => {
+  it('accepts stream:true (no longer 501 — handleStream takes it)', async () => {
+    // We can't easily verify the SSE stream body without a live upstream,
+    // but the regression we care about is that the route stops returning
+    // not_implemented. With no upstream pool, this path falls through to
+    // all_upstreams_down which is a 502 — that's still proof the stream
+    // branch was taken (the old code threw 501 *before* even trying the
+    // upstream).
+    const active = await db.select().from(upstreamKeys).where(eq(upstreamKeys.state, 'active'))
     const r = await post({
       model: 'test-model-playground',
       stream: true,
       messages: [{ role: 'user', content: 'hi' }],
     })
-    expect(r.status).toBe(501)
-    expect((await r.json()).error).toBe('not_implemented')
+    expect(r.status).not.toBe(501)
+    if (active.length === 0) {
+      expect(r.status).toBe(502)
+    }
   })
 
   it('all-upstreams-down still writes a log row', async () => {

@@ -320,6 +320,55 @@ function issueSession(store, user) {
   return sess;
 }
 
+// Build a Response whose body is an Anthropic-shaped SSE stream replaying
+// `resp.content[0].text` as a sequence of `content_block_delta` events.
+// Uses the exact same event names / shapes the real upstream sends so the
+// playground stream parser (and any future copy of it) exercises the right
+// code paths against the mock.
+function mockSseResponse(resp) {
+  const text = (resp.content?.[0]?.text) || "";
+  const enc = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      function frame(event, data) {
+        controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      }
+      frame("message_start", {
+        type: "message_start",
+        message: {
+          id: resp.id, type: "message", role: "assistant", model: resp.model,
+          content: [], stop_reason: null,
+          usage: { input_tokens: resp.usage.input_tokens, output_tokens: 0 },
+        },
+      });
+      frame("content_block_start", { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } });
+      // Chunk into 4–8 char pieces with 25ms gaps so the UI shows visible
+      // streaming behavior. Long enough to be observable, short enough that
+      // tests don't get bored waiting.
+      let i = 0;
+      while (i < text.length) {
+        const len = 4 + Math.floor(Math.random() * 5);
+        const piece = text.slice(i, i + len);
+        i += len;
+        frame("content_block_delta", { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: piece } });
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      frame("content_block_stop", { type: "content_block_stop", index: 0 });
+      frame("message_delta", {
+        type: "message_delta",
+        delta: { stop_reason: "end_turn", stop_sequence: null },
+        usage: { output_tokens: resp.usage.output_tokens },
+      });
+      frame("message_stop", { type: "message_stop" });
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+  });
+}
+
 // Fake Claude response for playground requests.
 function fakePlaygroundResponse(body) {
   const model = body.model || "claude-sonnet-4.5";
@@ -660,6 +709,12 @@ async function handle(path, opts) {
     };
     store.logs.unshift(l);
     saveStore(store);
+    if (body.stream === true) {
+      // Hand back a real SSE stream so the UI's stream parser exercises the
+      // same code path it would in production. We chunk the fake reply into
+      // small text deltas with a brief pause between each.
+      return mockSseResponse(resp);
+    }
     return json(200, resp);
   }
 

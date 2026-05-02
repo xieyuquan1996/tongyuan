@@ -1,16 +1,73 @@
-import { useState, useEffect } from "react";
-import { Send, Copy, Check, Loader2, Plus, X } from "lucide-react";
-import { api } from "../../lib/api.js";
+import { useState, useEffect, useRef } from "react";
+import { Send, Copy, Check, Loader2, Plus, X, Square } from "lucide-react";
+import { api, session, ApiError } from "../../lib/api.js";
 import { PageHeader } from "../../components/dashboard-widgets.jsx";
 import { Pill } from "../../components/primitives.jsx";
 
 const DEFAULT_SYSTEM = "你是一个乐于助人的助手。回答要简洁。";
+
+// Parse a single SSE frame (`event:` + `data:` lines separated from the next
+// frame by a blank line) and return { event, data }. Tolerant of frames
+// that are just `data: ...` with no explicit `event:` (Anthropic's stream
+// always sends both, but it's cheap to be lenient).
+function parseSseFrame(raw) {
+  let event = "message";
+  let data = "";
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) data += line.slice(5).trim();
+  }
+  return { event, data };
+}
+
+// Send a streaming /v1/messages request and stream its SSE frames into
+// `onEvent`. Returns the final assembled state once the upstream finishes.
+// Throws on HTTP errors before the stream starts (so the UI can show a
+// proper error pill instead of a half-rendered response).
+async function streamPlayground(body, { onEvent, signal }) {
+  const r = await fetch("/api/console/playground", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(session.token ? { authorization: `Bearer ${session.token}` } : {}),
+    },
+    body: JSON.stringify({ ...body, stream: true }),
+    signal,
+  });
+  if (!r.ok) {
+    // Error responses come back as JSON, not SSE. Match the api() shape so
+    // the catch site below can render `e.message` consistently.
+    let data = null;
+    try { data = await r.json(); } catch {}
+    throw new ApiError(r.status, data);
+  }
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    // Frames are blank-line-separated. Hold back the trailing partial.
+    const frames = buf.split(/\n\n/);
+    buf = frames.pop() ?? "";
+    for (const frame of frames) {
+      if (!frame.trim()) continue;
+      const { event, data } = parseSseFrame(frame);
+      if (!data) continue;
+      let parsed;
+      try { parsed = JSON.parse(data); } catch { continue; }
+      onEvent(event, parsed);
+    }
+  }
+}
 
 export default function Playground() {
   const [model, setModel] = useState("");
   const [maxTokens, setMaxTokens] = useState(1024);
   const [temperature, setTemperature] = useState(1.0);
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM);
+  const [streamMode, setStreamMode] = useState(false);
   const [messages, setMessages] = useState([
     { role: "user", content: "用一句话证明你是 Sonnet 4.5。" },
   ]);
@@ -19,6 +76,8 @@ export default function Playground() {
   const [err, setErr] = useState(null);
   const [models, setModels] = useState([]);
   const [tab, setTab] = useState("response");
+  const [streamBuf, setStreamBuf] = useState(""); // live-updating text as SSE arrives
+  const abortRef = useRef(null);
 
   useEffect(() => {
     api("/api/public/models").then((r) => {
@@ -38,25 +97,67 @@ export default function Playground() {
     setMessages((ms) => ms.map((m, j) => (j === i ? { ...m, ...patch } : m)));
   }
 
+  function stop() {
+    abortRef.current?.abort();
+  }
+
   async function run() {
-    setBusy(true); setErr(null); setResp(null);
+    setBusy(true); setErr(null); setResp(null); setStreamBuf("");
+    const body = {
+      model, max_tokens: maxTokens, temperature,
+      system: systemPrompt,
+      messages: messages.filter((m) => m.content.trim()),
+    };
     try {
-      const body = {
-        model, max_tokens: maxTokens, temperature,
-        system: systemPrompt,
-        messages: messages.filter(m => m.content.trim()),
-      };
-      const r = await api("/api/console/playground", { method: "POST", body });
-      setResp(r);
+      if (streamMode) {
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        const t0 = performance.now();
+        // Accumulate text deltas; capture usage / final model id from the
+        // terminal events so the response pane can show the same pills as
+        // the non-stream path.
+        let assembled = { content: [{ type: "text", text: "" }], usage: { input_tokens: 0, output_tokens: 0 } };
+        let modelId = "";
+        await streamPlayground(body, {
+          signal: ctrl.signal,
+          onEvent(event, ev) {
+            if (event === "message_start" && ev.message) {
+              modelId = ev.message.model;
+              assembled = {
+                ...assembled,
+                id: ev.message.id,
+                model: modelId,
+                role: ev.message.role,
+                usage: ev.message.usage ?? assembled.usage,
+              };
+            } else if (event === "content_block_delta" && ev.delta?.type === "text_delta") {
+              assembled.content[0].text += ev.delta.text;
+              setStreamBuf(assembled.content[0].text);
+            } else if (event === "message_delta") {
+              if (ev.usage) assembled.usage = { ...assembled.usage, ...ev.usage };
+              if (ev.delta?.stop_reason) assembled.stop_reason = ev.delta.stop_reason;
+            }
+          },
+        });
+        assembled.latencyMs = Math.round(performance.now() - t0);
+        setResp(assembled);
+      } else {
+        const r = await api("/api/console/playground", { method: "POST", body });
+        setResp(r);
+      }
     } catch (e) {
-      setErr(e);
+      // AbortError from the user's stop button isn't really an error.
+      if (e?.name === "AbortError") setErr({ message: "已停止。" });
+      else setErr(e);
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
   }
 
   const reqPreview = JSON.stringify({
     model, max_tokens: maxTokens, temperature,
+    stream: streamMode || undefined,
     system: systemPrompt, messages,
   }, null, 2);
 
@@ -81,6 +182,14 @@ export default function Playground() {
               <Field label="温度">
                 <input type="number" step="0.1" min={0} max={2} value={temperature}
                   onChange={(e) => setTemperature(+e.target.value)} style={ctrl}/>
+              </Field>
+              <Field label="流式">
+                <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", fontSize: 13, color: "var(--text-2)", cursor: "pointer", userSelect: "none" }}>
+                  <input type="checkbox" checked={streamMode}
+                    onChange={(e) => setStreamMode(e.target.checked)}
+                    style={{ width: 14, height: 14, cursor: "pointer" }}/>
+                  逐 token 输出
+                </label>
               </Field>
             </div>
           </Panel>
@@ -107,17 +216,30 @@ export default function Playground() {
             </div>
           </Panel>
 
-          <button onClick={run} disabled={busy} style={{
-            padding: "12px 20px",
-            background: busy ? "var(--btn-disabled-bg)" : "var(--clay)",
-            color: busy ? "var(--btn-disabled-fg)" : "var(--on-clay)", border: "none", borderRadius: 8,
-            fontSize: 14, fontWeight: 500,
-            cursor: busy ? "wait" : "pointer",
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}>
-            {busy ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }}/> : <Send size={14}/>}
-            {busy ? "请求中…" : "发送请求"}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={run} disabled={busy} style={{
+              flex: 1,
+              padding: "12px 20px",
+              background: busy ? "var(--btn-disabled-bg)" : "var(--clay)",
+              color: busy ? "var(--btn-disabled-fg)" : "var(--on-clay)", border: "none", borderRadius: 8,
+              fontSize: 14, fontWeight: 500,
+              cursor: busy ? "wait" : "pointer",
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              {busy ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }}/> : <Send size={14}/>}
+              {busy ? "请求中…" : "发送请求"}
+            </button>
+            {busy && streamMode && (
+              <button onClick={stop} style={{
+                padding: "12px 16px",
+                background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)", borderRadius: 8,
+                fontSize: 14, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", gap: 6,
+              }}>
+                <Square size={14}/> 停止
+              </button>
+            )}
+          </div>
         </div>
 
         {/* RIGHT: output */}
@@ -139,9 +261,17 @@ export default function Playground() {
                   点击"发送请求"查看返回。
                 </div>
               )}
-              {busy && (
+              {busy && !streamBuf && (
                 <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13, border: "1px dashed var(--border)", borderRadius: 12 }}>
                   <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }}/>
+                </div>
+              )}
+              {busy && streamBuf && (
+                <div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+                    <Pill tone="clay" dot>流式中…</Pill>
+                  </div>
+                  <Code>{streamBuf}</Code>
                 </div>
               )}
               {resp && (
