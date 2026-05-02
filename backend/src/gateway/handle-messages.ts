@@ -9,6 +9,8 @@ import { commitRequest } from './biller.js'
 import { AppError } from '../shared/errors.js'
 import { extractUsage, iterSSE, splitCacheWrite } from './sse.js'
 import * as quota from './quota.js'
+import * as tpm from '../middleware/tpm-limit.js'
+import { estimateInputTokens, estimateOutputTokens } from './estimate.js'
 import type { UpstreamRow } from '../services/upstream-keys.js'
 import type { ModelRow } from '../services/models.js'
 import type { ApiKeyRow } from '../services/api-keys.js'
@@ -43,7 +45,21 @@ async function reconcile(
   )
 }
 
-export async function handleNonStream(_c: Context, input: HandleMessagesInput): Promise<Response> {
+// Reserve per-key TPM admission against the user's tpm_limit (if any).
+// Returns null when no limit is configured. Throws rate_limit if the cap
+// would be exceeded — the caller should let that propagate.
+async function reserveTpm(apiKey: ApiKeyRow, body: any): Promise<tpm.TpmReservation | null> {
+  const cap = apiKey.tpmLimit ? Number(apiKey.tpmLimit) : null
+  if (!cap || !Number.isFinite(cap) || cap <= 0) return null
+  const estIn = estimateInputTokens(body)
+  // Use cap itself as the OTPM ceiling for sizing purposes — a single
+  // request can't reserve more than the per-minute cap regardless of
+  // max_tokens.
+  const estOut = estimateOutputTokens(body, cap)
+  return tpm.reserve(apiKey.id, cap, estIn + estOut)
+}
+
+export async function handleNonStream(c: Context, input: HandleMessagesInput): Promise<Response> {
   const started = Date.now()
   const { user, apiKey, body, model, idempotencyKey, anthropicVersion } = input
 
@@ -51,11 +67,17 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
   const forwardBody = JSON.stringify(body)
   const upstreamRequestHash = hashBody(body)
 
-  const id = 'req_' + ulid()
+  // Reuse the id stamped by the requestId middleware so the response header
+  // and the request_logs row are the same string. Fallback for callers that
+  // bypass createApp() (shouldn't happen in production).
+  const id = c.get('requestId') ?? ('req_' + ulid())
   let upstream: UpstreamRow | null = null
   let response: Response | null = null
   let reservation: Reservation | null = null
   let errorCode: string | null = null
+  // Reserve up-front so a hot key gets 429'd before we burn upstream budget.
+  // If the user hasn't set a TPM limit, this is a no-op.
+  const tpmReservation = await reserveTpm(apiKey, body)
 
   try {
     const att = await forwardNonStream('/v1/messages', {
@@ -73,6 +95,7 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
   }
 
   if (!response || !upstream || !reservation) {
+    if (tpmReservation) await tpm.release(tpmReservation)
     await commitRequest({
       id,
       userId: user.id,
@@ -108,6 +131,10 @@ export async function handleNonStream(_c: Context, input: HandleMessagesInput): 
   // Anthropic's ITPM excludes cache reads. Both 5m and 1h writes count toward
   // ITPM, so we reconcile on the combined write total.
   await reconcile(reservation, inputTokens + cacheWriteTokens + cacheWrite1hTokens, outputTokens)
+  // Reconcile per-key TPM against actual usage (input + output, billable).
+  if (tpmReservation) {
+    await tpm.reconcile(tpmReservation, inputTokens + outputTokens)
+  }
 
   const { costUsd, chargeUsd } = computeCost({
     inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
@@ -155,11 +182,12 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
   const forwardBody = rawBody
   const upstreamRequestHash = hashBody(body)
 
-  const id = 'req_' + ulid()
+  const id = c.get('requestId') ?? ('req_' + ulid())
   let upstream: UpstreamRow | null = null
   let response: Response | null = null
   let reservation: Reservation | null = null
   let errorCode: string | null = null
+  const tpmReservation = await reserveTpm(apiKey, body)
 
   try {
     const att = await forwardStream('/v1/messages', {
@@ -177,6 +205,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
   }
 
   if (!response || !upstream || !reservation) {
+    if (tpmReservation) await tpm.release(tpmReservation)
     await commitRequest({
       id,
       userId: user.id,
@@ -229,6 +258,9 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
     } finally {
       const snap = usage.snapshot()
       await reconcile(reservation!, snap.inputTokens + snap.cacheWriteTokens + snap.cacheWrite1hTokens, snap.outputTokens)
+      if (tpmReservation) {
+        await tpm.reconcile(tpmReservation, snap.inputTokens + snap.outputTokens)
+      }
       const { costUsd, chargeUsd } = computeCost({
         ...snap,
         model: {

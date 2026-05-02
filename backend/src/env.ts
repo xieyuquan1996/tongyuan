@@ -11,6 +11,11 @@ const schema = z.object({
   ANTHROPIC_UPSTREAM_BASE_URL: z.string().url().default('https://api.anthropic.com'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
   METRICS_TOKEN: z.string().optional(),
+  // Optional pepper for the API-key HMAC fingerprint. Defaults to a
+  // domain-separated derivation of SESSION_SECRET (see crypto/apikey-hmac.ts)
+  // so existing deployments don't need a new env. Set this when you want to
+  // rotate API key fingerprints without touching sessions, or vice versa.
+  API_KEY_HMAC_PEPPER: z.string().min(32).optional(),
 })
 
 export type Env = z.infer<typeof schema>

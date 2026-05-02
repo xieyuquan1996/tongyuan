@@ -509,10 +509,22 @@ async function handle(path, opts) {
       created_at: new Date().toISOString(),
       last_used_at: null,
       state: "active",
+      rpm_limit: body.rpm_limit ?? null,
+      tpm_limit: body.tpm_limit ?? null,
     };
     store.keys.unshift(k);
     saveStore(store);
     return json(201, k);
+  }
+  const patchMatch = path.match(/^\/api\/console\/keys\/([^/]+)$/);
+  if (patchMatch && method === "PATCH") {
+    const k = store.keys.find((x) => x.id === patchMatch[1] && x.user_id === me.id);
+    if (!k) return json(404, { error: "not_found" });
+    if (body.name !== undefined) k.name = body.name;
+    if (body.rpm_limit !== undefined) k.rpm_limit = body.rpm_limit;
+    if (body.tpm_limit !== undefined) k.tpm_limit = body.tpm_limit;
+    saveStore(store);
+    return json(200, stripSecret(k));
   }
   const revokeMatch = path.match(/^\/api\/console\/keys\/([^/]+)\/revoke$/);
   if (revokeMatch && method === "POST") {

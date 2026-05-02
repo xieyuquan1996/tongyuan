@@ -1,7 +1,7 @@
 // backend/src/middleware/auth-api-key.ts
 import type { MiddlewareHandler } from 'hono'
 import { AppError } from '../shared/errors.js'
-import { resolveKey } from '../services/api-keys.js'
+import { resolveKey, touchLastUsed } from '../services/api-keys.js'
 import { db } from '../db/client.js'
 import { users } from '../db/schema.js'
 import { eq } from 'drizzle-orm'
@@ -34,5 +34,9 @@ export const requireApiKey: MiddlewareHandler = async (c, next) => {
   if (Number(user.balanceUsd) <= 0) throw new AppError('insufficient_balance')
   c.set('apiKey', key)
   c.set('user', user as UserRow)
+  // Fire-and-forget: don't block the request on the bookkeeping write. The
+  // service layer already throttles to ≤1 UPDATE per key per minute via a
+  // SQL gate, so even hot keys won't churn the row.
+  touchLastUsed(key.id).catch(() => {})
   await next()
 }

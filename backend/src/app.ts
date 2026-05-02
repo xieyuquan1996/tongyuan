@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { AppError, toErrorBody } from './shared/errors.js'
+import { requestId } from './middleware/request-id.js'
 import { authRoutes } from './routes/console/auth.js'
 import { keysRoutes } from './routes/console/keys.js'
 import { upstreamKeysRoutes } from './routes/admin/upstream-keys.js'
@@ -36,6 +37,11 @@ import { installRoutes } from './routes/install.js'
 
 export function createApp() {
   const app = new Hono()
+
+  // Top-level: stamp every response with x-request-id so support requests
+  // and log lines line up. Runs before onError so error responses also
+  // carry the id.
+  app.use('*', requestId)
 
   app.onError((err, c) => {
     const e = err as any

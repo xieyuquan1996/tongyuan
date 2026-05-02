@@ -35,7 +35,12 @@ export const apiKeys = pgTable('api_keys', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   prefix: text('prefix').notNull(),
-  secretHash: text('secret_hash').notNull(),
+  // Legacy bcrypt hash. Kept nullable so newly minted keys can skip bcrypt
+  // entirely; rows predating migration 0015 still have it filled in.
+  secretHash: text('secret_hash'),
+  // HMAC-SHA256(secret) under the per-deployment pepper. Indexed UNIQUE so
+  // verify is one equality query.
+  secretHmac: text('secret_hmac'),
   state: text('state').notNull().default('active'),
   rpmLimit: numeric('rpm_limit'),
   tpmLimit: numeric('tpm_limit'),
