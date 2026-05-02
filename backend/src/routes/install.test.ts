@@ -103,9 +103,14 @@ describe('install routes', () => {
     })
 
     it('honors OPENCLAW_LINK_API_KEY / OPENCLAW_MODEL env overrides', async () => {
+      // The default model is now picked from the DB (recommended → newest
+      // Sonnet → first enabled), so we can't pin a specific id without
+      // making the test brittle to seed changes. Assert the shell pattern
+      // instead — `${OPENCLAW_MODEL:-<some-claude-id>}` — which is what
+      // matters: the env override works.
       const r = await get('/install/openclaw')
       expect(r.body).toContain('${OPENCLAW_LINK_API_KEY:-}')
-      expect(r.body).toContain('${OPENCLAW_MODEL:-claude-opus-4-6}')
+      expect(r.body).toMatch(/\$\{OPENCLAW_MODEL:-claude-[a-z0-9-]+\}/)
     })
   })
 
