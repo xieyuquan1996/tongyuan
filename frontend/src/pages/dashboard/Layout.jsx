@@ -90,7 +90,7 @@ export default function DashboardLayout() {
       </header>
 
       <div style={{ display: "flex" }}>
-        <aside style={sidebar}>
+        <aside className="app-sidebar" style={sidebar}>
           <Group>主菜单</Group>
           <SideItem to="/dashboard/overview" icon={LayoutDashboard}>概览</SideItem>
           <SideItem to="/dashboard/analytics" icon={BarChart3}>使用分析</SideItem>

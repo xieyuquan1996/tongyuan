@@ -70,3 +70,31 @@
   .docs-toc { display: none !important; }
   .docs-content { padding: 24px 16px !important; }
 }
+
+/* 侧边栏滚动条 — 默认隐藏，hover 或滚动时才显示，用 token 颜色避免亮眼 */
+.app-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+.app-sidebar:hover,
+.app-sidebar:focus-within {
+  scrollbar-color: var(--border-strong, var(--border)) transparent;
+}
+.app-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.app-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-sidebar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+.app-sidebar:hover::-webkit-scrollbar-thumb,
+.app-sidebar:focus-within::-webkit-scrollbar-thumb {
+  background: var(--border-strong, var(--border));
+}
+.app-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-4, var(--text-3));
+}

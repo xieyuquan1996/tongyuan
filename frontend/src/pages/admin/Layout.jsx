@@ -85,7 +85,7 @@ export default function AdminLayout() {
       </header>
 
       <div style={{ display: "flex" }}>
-        <aside style={sidebar}>
+        <aside className="app-sidebar" style={sidebar}>
           <Group>运营总览</Group>
           <SideItem to="/admin/overview" icon={LayoutDashboard}>平台概览</SideItem>
           <SideItem to="/admin/audit" icon={History}>审计日志</SideItem>
