@@ -8,7 +8,9 @@ export const alertsRoutes = new Hono()
 alertsRoutes.use('*', requireBearer)
 
 const KIND = z.enum(['balance_low', 'spend_daily', 'error_rate', 'p99_latency'])
-const CHANNEL = z.enum(['email', 'browser', 'webhook'])
+// 目前只有 browser 通道是端到端通的（前端 alert-poller 轮询 + Notification）。
+// email / webhook 的后端 evaluator 还没写，投递链路也不存在，所以暂时在 API 层就拒收。
+const CHANNEL = z.enum(['browser'])
 // DB stores threshold as text — accept either string or number from the UI.
 const THRESHOLD = z.union([z.string(), z.number()]).transform((v) => String(v))
 

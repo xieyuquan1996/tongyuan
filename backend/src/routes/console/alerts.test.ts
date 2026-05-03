@@ -31,7 +31,7 @@ describe('alerts routes', () => {
   it('creates an alert', async () => {
     const r = await req('/api/console/alerts', {
       method: 'POST',
-      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'email', enabled: true }),
+      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'browser', enabled: true }),
     })
     expect(r.status).toBe(201)
     const j = await r.json()
@@ -73,7 +73,7 @@ describe('alerts routes', () => {
   it('rejects invalid kind with 400 (zod validation)', async () => {
     const r = await req('/api/console/alerts', {
       method: 'POST',
-      body: JSON.stringify({ kind: 'invalid_kind', threshold: '5.00', channel: 'email', enabled: true }),
+      body: JSON.stringify({ kind: 'invalid_kind', threshold: '5.00', channel: 'browser', enabled: true }),
     })
     expect(r.status).toBe(400)
   })
@@ -82,7 +82,7 @@ describe('alerts routes', () => {
     // User A creates an alert (using existing token)
     const cr = await req('/api/console/alerts', {
       method: 'POST',
-      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'email', enabled: true }),
+      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'browser', enabled: true }),
     })
     expect(cr.status).toBe(201)
     const aAlertId = (await cr.json()).id

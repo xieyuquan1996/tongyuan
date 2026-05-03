@@ -14,16 +14,16 @@ const KINDS = [
 ];
 
 const CHANNELS = [
-  { id: "email",   label: "邮件" },
+  // { id: "email",   label: "邮件" },    // TODO: 后端 evaluator + 邮件投递尚未实现
   { id: "browser", label: "浏览器推送" },
-  { id: "webhook", label: "Webhook" },
+  // { id: "webhook", label: "Webhook" }, // TODO: 后端 evaluator + URL 字段尚未实现
 ];
 
 export default function Alerts() {
   const [tick, setTick] = useState(0);
   const { loading, data, error } = useAsync(() => api("/api/console/alerts"), [tick]);
   const [adding, setAdding] = useState(false);
-  const [newAlert, setNewAlert] = useState({ kind: "balance_low", threshold: 20, channel: "email" });
+  const [newAlert, setNewAlert] = useState({ kind: "balance_low", threshold: 20, channel: "browser" });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
   const [overrides, setOverrides] = useState({});
@@ -84,7 +84,7 @@ export default function Alerts() {
       }
       await api("/api/console/alerts", { method: "POST", body: newAlert });
       setAdding(false);
-      setNewAlert({ kind: "balance_low", threshold: 20, channel: "email" });
+      setNewAlert({ kind: "balance_low", threshold: 20, channel: "browser" });
       setTick((t) => t + 1);
       setToast({ tone: "ok", text: "告警已创建" });
     } catch (err) {
@@ -271,7 +271,7 @@ function PermBanner({ perm, onRequest, onTest }) {
     return (
       <div style={{ ...bannerBase, background: "var(--warn-soft)", borderLeftColor: "var(--warn)" }}>
         <BellOff size={14} color="var(--warn)"/>
-        <span>当前浏览器不支持通知。只能依赖邮件/Webhook 渠道。</span>
+        <span>当前浏览器不支持通知。告警功能将无法使用。</span>
       </div>
     );
   }
