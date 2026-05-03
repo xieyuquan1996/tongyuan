@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard, KeyRound, List, Receipt, BookOpen, Activity,
-  ChevronDown, LogOut, User, CreditCard, BarChart3, FlaskConical,
+  ChevronDown, LogOut, User, CreditCard, BarChart3,
   Bell, Settings as SettingsIcon, Sun, Moon, Command, ShieldCheck,
 } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
@@ -94,7 +94,6 @@ export default function DashboardLayout() {
           <Group>主菜单</Group>
           <SideItem to="/dashboard/overview" icon={LayoutDashboard}>概览</SideItem>
           <SideItem to="/dashboard/analytics" icon={BarChart3}>使用分析</SideItem>
-          <SideItem to="/dashboard/playground" icon={FlaskConical}>Playground</SideItem>
           <SideItem to="/dashboard/keys" icon={KeyRound}>API 密钥</SideItem>
           <SideItem to="/dashboard/logs" icon={List}>请求日志</SideItem>
           <Group style={{ marginTop: 16 }}>账户</Group>

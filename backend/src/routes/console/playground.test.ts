@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createApp } from '../../app.js'
 import { pool, db } from '../../db/client.js'
-import { models, upstreamKeys, requestLogs } from '../../db/schema.js'
+import { models, upstreamKeys, requestLogs, users } from '../../db/schema.js'
 import { eq } from 'drizzle-orm'
 
 const app = createApp()
@@ -27,6 +27,8 @@ beforeAll(async () => {
   const j = await r.json()
   token = j.session.token
   userId = j.user.id
+  // Playground 只对 admin 开放，所以把测试账号提权。
+  await db.update(users).set({ role: 'admin' }).where(eq(users.id, userId))
 })
 
 afterAll(async () => { await pool.end() })

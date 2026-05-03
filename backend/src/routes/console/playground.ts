@@ -1,13 +1,15 @@
 // backend/src/routes/console/playground.ts
 import { Hono } from 'hono'
 import { requireBearer } from '../../middleware/auth-bearer.js'
+import { requireAdmin } from '../../middleware/auth-admin.js'
 import { ensurePlaygroundKey } from '../../services/api-keys.js'
 import { getById as getModel } from '../../services/models.js'
 import { handleNonStream, handleStream } from '../../gateway/handle-messages.js'
 import { AppError } from '../../shared/errors.js'
 
 export const playgroundRoutes = new Hono()
-playgroundRoutes.use('*', requireBearer)
+// Playground 已迁到后台管理，只允许 admin 调用，防止普通用户刷 token。
+playgroundRoutes.use('*', requireBearer, requireAdmin)
 
 // Playground reuses the gateway's /v1/messages plumbing — same admission
 // control, same audit hash, same biller — but takes a session bearer

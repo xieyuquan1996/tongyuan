@@ -26,7 +26,7 @@ import Keys from "./pages/dashboard/Keys.jsx";
 import Logs from "./pages/dashboard/Logs.jsx";
 import Billing from "./pages/dashboard/Billing.jsx";
 import Analytics from "./pages/dashboard/Analytics.jsx";
-import Playground from "./pages/dashboard/Playground.jsx";
+import Playground from "./pages/admin/Playground.jsx";
 import Alerts from "./pages/dashboard/Alerts.jsx";
 import Settings from "./pages/dashboard/Settings.jsx";
 import Recharge from "./pages/dashboard/Recharge.jsx";
@@ -93,7 +93,6 @@ export default function App() {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<Overview />} />
           <Route path="analytics" element={<Analytics />} />
-          <Route path="playground" element={<Playground />} />
           <Route path="keys" element={<Keys />} />
           <Route path="logs" element={<Logs />} />
           <Route path="billing" element={<Billing />} />
@@ -121,6 +120,7 @@ export default function App() {
           <Route path="announcements" element={<AdminAnnouncements />} />
           <Route path="audit" element={<AdminAudit />} />
           <Route path="upstream-keys" element={<AdminUpstreamKeys />} />
+          <Route path="playground" element={<Playground />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
 

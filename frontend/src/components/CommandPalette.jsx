@@ -12,7 +12,6 @@ const COMMANDS = [
   { id: "register", label: "注册", path: "/register", keywords: "register signup 注册", public: true },
   { id: "overview", label: "控制台 · 概览", path: "/dashboard/overview", keywords: "overview dashboard 概览", auth: true },
   { id: "analytics", label: "控制台 · 使用分析", path: "/dashboard/analytics", keywords: "analytics usage 分析 统计", auth: true },
-  { id: "playground", label: "控制台 · Playground", path: "/dashboard/playground", keywords: "playground 测试 试玩", auth: true },
   { id: "keys", label: "控制台 · API 密钥", path: "/dashboard/keys", keywords: "api keys 密钥", auth: true },
   { id: "logs", label: "控制台 · 请求日志", path: "/dashboard/logs", keywords: "logs requests 日志", auth: true },
   { id: "billing", label: "控制台 · 账单", path: "/dashboard/billing", keywords: "billing 账单", auth: true },
@@ -25,6 +24,7 @@ const COMMANDS = [
   { id: "admin-logs",          label: "后台 · 全部请求", path: "/admin/logs",          keywords: "admin 后台 logs 请求 审计", admin: true },
   { id: "admin-billing",       label: "后台 · 账单收入", path: "/admin/billing",       keywords: "admin 后台 billing 账单 营收", admin: true },
   { id: "admin-models",        label: "后台 · 模型管理", path: "/admin/models",        keywords: "admin 后台 models 模型 上架", admin: true },
+  { id: "admin-playground",    label: "后台 · Playground", path: "/admin/playground", keywords: "admin 后台 playground 测试 试玩", admin: true },
   // { id: "admin-regions",       label: "后台 · 区域 / 状态", path: "/admin/regions",    keywords: "admin 后台 regions 区域 状态", admin: true },  // 暂时隐藏
   { id: "admin-announcements", label: "后台 · 公告",     path: "/admin/announcements", keywords: "admin 后台 announcements 公告 通知", admin: true },
   { id: "admin-audit",         label: "后台 · 审计日志", path: "/admin/audit",         keywords: "admin 后台 audit 审计 操作记录", admin: true },

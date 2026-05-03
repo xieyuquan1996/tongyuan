@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard, Users, KeyRound, List, CreditCard, Cpu, Globe2,
   Megaphone, History, ShieldCheck, ChevronDown, LogOut, User, Sun, Moon,
-  Command, Key, Settings,
+  Command, Key, Settings, FlaskConical,
 } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
 import { api, session, logout } from "../../lib/api.js";
@@ -97,6 +97,7 @@ export default function AdminLayout() {
           <Group style={{ marginTop: 16 }}>平台配置</Group>
           <SideItem to="/admin/upstream-keys" icon={Key}>上游密钥</SideItem>
           <SideItem to="/admin/models" icon={Cpu}>模型</SideItem>
+          <SideItem to="/admin/playground" icon={FlaskConical}>Playground</SideItem>
           {/* <SideItem to="/admin/regions" icon={Globe2}>区域 / 状态</SideItem> */}{/* 暂时隐藏 */}
           <SideItem to="/admin/announcements" icon={Megaphone}>公告</SideItem>
           <SideItem to="/admin/settings" icon={Settings}>平台设置</SideItem>
