@@ -77,6 +77,7 @@ export default function Playground() {
   const [models, setModels] = useState([]);
   const [tab, setTab] = useState("response");
   const [streamBuf, setStreamBuf] = useState(""); // live-updating text as SSE arrives
+  const [streamRaw, setStreamRaw] = useState(""); // raw SSE frames for debugging
   const abortRef = useRef(null);
 
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function Playground() {
   }
 
   async function run() {
-    setBusy(true); setErr(null); setResp(null); setStreamBuf("");
+    setBusy(true); setErr(null); setResp(null); setStreamBuf(""); setStreamRaw("");
     const body = {
       model, max_tokens: maxTokens, temperature,
       system: systemPrompt,
@@ -121,6 +122,7 @@ export default function Playground() {
         await streamPlayground(body, {
           signal: ctrl.signal,
           onEvent(event, ev) {
+            setStreamRaw((r) => r + `event: ${event}\ndata: ${JSON.stringify(ev)}\n\n`);
             if (event === "message_start" && ev.message) {
               modelId = ev.message.model;
               assembled = {
@@ -272,6 +274,12 @@ export default function Playground() {
                     <Pill tone="clay" dot>流式中…</Pill>
                   </div>
                   <Code>{streamBuf}</Code>
+                  {streamRaw && (
+                    <details open style={{ marginTop: 12, fontSize: 13 }}>
+                      <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>原始 SSE 事件</summary>
+                      <Code mono>{streamRaw}</Code>
+                    </details>
+                  )}
                 </div>
               )}
               {resp && (
@@ -308,6 +316,12 @@ export default function Playground() {
                     <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>完整 JSON</summary>
                     <Code mono>{JSON.stringify(resp, null, 2)}</Code>
                   </details>
+                  {streamRaw && (
+                    <details open style={{ marginTop: 12, fontSize: 13 }}>
+                      <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>原始 SSE 事件</summary>
+                      <Code mono>{streamRaw}</Code>
+                    </details>
+                  )}
                 </div>
               )}
             </div>
