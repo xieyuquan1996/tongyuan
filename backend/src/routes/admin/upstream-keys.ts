@@ -108,17 +108,18 @@ upstreamKeysRoutes.post('/', zValidator('json', z.object({
   alias: z.string().min(1),
   secret: z.string().min(10),
   priority: z.number().int().optional(),
+  weight: z.number().int().nonnegative().optional(),
   quota_hint_usd: z.string().optional(),
   base_url: z.string().url().optional(),
 })), async (c) => {
   const b = c.req.valid('json')
-  const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, quotaHintUsd: b.quota_hint_usd, baseUrl: b.base_url })
+  const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, weight: b.weight, quotaHintUsd: b.quota_hint_usd, baseUrl: b.base_url })
   // Never log the secret itself — only the prefix svc.create stored.
   await audit.record({
     actor: c.get('user'),
     action: 'admin.upstream_key.create',
     target: row.alias,
-    metadata: { id: row.id, key_prefix: row.keyPrefix, priority: row.priority, base_url: row.baseUrl },
+    metadata: { id: row.id, key_prefix: row.keyPrefix, weight: row.weight, base_url: row.baseUrl },
   })
   return c.json(svc.toPublic(row), 201)
 })
@@ -127,6 +128,7 @@ upstreamKeysRoutes.patch('/:id', zValidator('json', z.object({
   alias: z.string().optional(),
   state: z.enum(['active', 'cooldown', 'disabled']).optional(),
   priority: z.number().int().optional(),
+  weight: z.number().int().nonnegative().optional(),
 })), async (c) => {
   const id = c.req.param('id')
   const patch = c.req.valid('json')

@@ -29,12 +29,44 @@ function resolveBaseUrl(upstream: UpstreamRow): string {
   return upstream.baseUrl ?? getAnthropicBaseUrl()
 }
 
+// Weighted-random shuffle: pick keys one at a time, each pick weighted by
+// `weight` (higher = more likely). Zero/negative weights are treated as 0
+// (they'll only be picked after all positive-weight keys are exhausted).
+// Returned array is a full permutation of `pool`, so the fallback chain still
+// covers every active key when the first one has no budget.
+function weightedShuffle(pool: UpstreamRow[]): UpstreamRow[] {
+  const remaining = [...pool]
+  const out: UpstreamRow[] = []
+  while (remaining.length > 0) {
+    const weights = remaining.map((r) => Math.max(0, r.weight ?? 0))
+    const total = weights.reduce((a, b) => a + b, 0)
+    let idx: number
+    if (total <= 0) {
+      // All remaining are zero-weight — break ties by insertion order.
+      idx = 0
+    } else {
+      let r = Math.random() * total
+      idx = weights.findIndex((w) => {
+        r -= w
+        return r < 0
+      })
+      if (idx === -1) idx = weights.length - 1
+    }
+    out.push(remaining[idx]!)
+    remaining.splice(idx, 1)
+  }
+  return out
+}
+
 // Walk the active upstream pool looking for a key that can reserve the
 // family's per-minute budget. Returns the reservation + key, or null if none
-// have headroom.
+// have headroom. Pool is weighted-shuffled per call so two keys with equal
+// weight each get ~50% of traffic; a key with weight 300 vs weight 100
+// gets picked first ~75% of the time.
 async function reserveOne(family: Family, body: any): Promise<{ upstream: UpstreamRow; res: Reservation } | null> {
-  const pool = await scheduler.snapshot()
-  if (pool.length === 0) return null
+  const rawPool = await scheduler.snapshot()
+  if (rawPool.length === 0) return null
+  const pool = weightedShuffle(rawPool)
   for (const upstream of pool) {
     // Per-key budget: an admin can give each upstream its own limits (Scale
     // tier vs Build Tier 1, etc.), so we resolve inside the loop.

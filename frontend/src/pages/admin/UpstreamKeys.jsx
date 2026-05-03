@@ -43,7 +43,7 @@ export default function UpstreamKeys() {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>上游密钥</h1>
           <div style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>
-            Anthropic API Key 池 · {keys.length} 个 · 按优先级顺序尝试，按家族（Opus / Sonnet / Haiku）预留 RPM/TPM 预算
+            Anthropic API Key 池 · {keys.length} 个 · 按权重加权随机分发，按家族（Opus / Sonnet / Haiku）预留 RPM/TPM 预算
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
@@ -72,7 +72,7 @@ export default function UpstreamKeys() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>
-                {["别名", "前缀", "优先级", "状态", "操作"].map(h => (
+                {["别名", "前缀", "权重", "状态", "操作"].map(h => (
                   <th key={h} style={th}>{h}</th>
                 ))}
               </tr>
@@ -234,10 +234,10 @@ function LabeledInput({ label, value, onChange }) {
 
 function KeyRow({ row, last, onRefresh, onEditQuota }) {
   const [busy, setBusy] = useState(false);
-  const [priority, setPriority] = useState(String(row.priority ?? 0));
+  const [weight, setWeight] = useState(String(row.weight ?? 100));
   const sc = STATE_COLORS[row.state] || STATE_COLORS.disabled;
 
-  useEffect(() => { setPriority(String(row.priority ?? 0)); }, [row.priority]);
+  useEffect(() => { setWeight(String(row.weight ?? 100)); }, [row.weight]);
 
   async function toggleState() {
     setBusy(true);
@@ -247,18 +247,18 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
     setBusy(false);
   }
 
-  async function savePriority() {
-    const n = parseInt(priority, 10);
-    if (!Number.isFinite(n) || n === (row.priority ?? 0)) {
-      setPriority(String(row.priority ?? 0));
+  async function saveWeight() {
+    const n = parseInt(weight, 10);
+    if (!Number.isFinite(n) || n < 0 || n === (row.weight ?? 100)) {
+      setWeight(String(row.weight ?? 100));
       return;
     }
     setBusy(true);
     try {
-      await api(`/api/admin/upstream-keys/${row.id}`, { method: "PATCH", body: { priority: n } });
+      await api(`/api/admin/upstream-keys/${row.id}`, { method: "PATCH", body: { weight: n } });
       onRefresh();
     } catch {
-      setPriority(String(row.priority ?? 0));
+      setWeight(String(row.weight ?? 100));
     } finally {
       setBusy(false);
     }
@@ -279,13 +279,14 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
       <td style={{ ...td, fontFamily: "var(--font-mono)" }}>
         <input
           type="number"
-          value={priority}
+          min="0"
+          value={weight}
           disabled={busy}
-          onChange={(e) => setPriority(e.target.value)}
-          onBlur={savePriority}
+          onChange={(e) => setWeight(e.target.value)}
+          onBlur={saveWeight}
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
           style={{ width: 70, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)" }}
-          title="回车或失焦保存"
+          title="数值越大越容易被选中，回车或失焦保存"
         />
       </td>
       <td style={td}>
@@ -317,7 +318,7 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
 function AddKeyForm({ onDone, onCancel }) {
   const [alias, setAlias] = useState("");
   const [secret, setSecret] = useState("");
-  const [priority, setPriority] = useState("0");
+  const [weight, setWeight] = useState("100");
   const [baseUrl, setBaseUrl] = useState("https://api.anthropic.com");
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
@@ -328,6 +329,8 @@ function AddKeyForm({ onDone, onCancel }) {
     if (!secret.trim()) e.secret = "必填";
     else if (secret.trim().length < 10) e.secret = "密钥太短（至少 10 位）";
     if (baseUrl.trim() && !/^https?:\/\/.+/.test(baseUrl.trim())) e.baseUrl = "请输入有效的 URL";
+    const w = parseInt(weight, 10);
+    if (!Number.isFinite(w) || w < 0) e.weight = "权重必须是非负整数";
     return e;
   }
 
@@ -339,7 +342,7 @@ function AddKeyForm({ onDone, onCancel }) {
     try {
       await api("/api/admin/upstream-keys", {
         method: "POST",
-        body: { alias: alias.trim(), secret: secret.trim(), priority: parseInt(priority) || 0, ...(baseUrl.trim() ? { base_url: baseUrl.trim() } : {}) },
+        body: { alias: alias.trim(), secret: secret.trim(), weight: parseInt(weight, 10) || 0, ...(baseUrl.trim() ? { base_url: baseUrl.trim() } : {}) },
       });
       onDone();
     } catch (ex) {
@@ -362,7 +365,7 @@ function AddKeyForm({ onDone, onCancel }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 80px", gap: 12, marginBottom: 12 }}>
         {field("alias", "别名", <input value={alias} onChange={e => { setAlias(e.target.value); setErr(p => ({...p, alias: ""})); }} placeholder="如 key-1" style={inputStyle}/>)}
         {field("secret", "Anthropic API Key", <input value={secret} onChange={e => { setSecret(e.target.value); setErr(p => ({...p, secret: ""})); }} placeholder="sk-ant-..." type="password" style={inputStyle}/>)}
-        {field("priority", "优先级", <input value={priority} onChange={e => setPriority(e.target.value)} type="number" style={inputStyle}/>)}
+        {field("weight", "权重", <input value={weight} onChange={e => { setWeight(e.target.value); setErr(p => ({...p, weight: ""})); }} type="number" min="0" style={inputStyle} title="数值越大流量占比越高"/>)}
       </div>
       {field("baseUrl", "上游 Base URL（留空则用 https://api.anthropic.com）", <input value={baseUrl} onChange={e => { setBaseUrl(e.target.value); setErr(p => ({...p, baseUrl: ""})); }} placeholder="https://api.anthropic.com" style={{ ...inputStyle, width: "100%" }}/>)}
       {err.form && <div style={{ color: "var(--err)", fontSize: 12, marginTop: 8 }}>{err.form}</div>}

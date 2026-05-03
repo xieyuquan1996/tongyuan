@@ -120,6 +120,13 @@
       "when": 1777480000000,
       "tag": "0016_audit_events",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1777490000000,
+      "tag": "0017_upstream_key_weight",
+      "breakpoints": true
     }
   ]
 }

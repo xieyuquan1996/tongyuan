@@ -120,6 +120,7 @@ export const upstreamKeys = pgTable('upstream_keys', {
   keyPrefix: text('key_prefix').notNull(),
   state: text('state').notNull().default('active'),  // 'active' | 'cooldown' | 'disabled'
   priority: numeric('priority').notNull().default('100'),
+  weight: integer('weight').notNull().default(100),
   cooldownUntil: timestamp('cooldown_until', { withTimezone: true }),
   lastErrorCode: text('last_error_code'),
   lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
