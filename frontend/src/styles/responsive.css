@@ -98,3 +98,30 @@
 .app-sidebar::-webkit-scrollbar-thumb:hover {
   background: var(--text-4, var(--text-3));
 }
+
+/* 通用细滚动条 — 给 code 框、对话区等内部滚动容器用 */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong, var(--border)) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong, var(--border));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--text-4, var(--text-3));
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+.thin-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}

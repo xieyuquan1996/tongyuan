@@ -395,7 +395,7 @@ function Code({ children, mono, scroll }) {
         {copied ? <Check size={11}/> : <Copy size={11}/>}
         {copied ? "已复制" : "复制"}
       </button>
-      <div style={{
+      <div className={scroll ? "thin-scroll" : undefined} style={{
         background: "var(--code-bg)", color: "var(--code-fg)",
         borderRadius: 8, padding: "14px 16px",
         fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.6,
