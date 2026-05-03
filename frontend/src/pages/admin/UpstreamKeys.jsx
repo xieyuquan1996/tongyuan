@@ -234,7 +234,10 @@ function LabeledInput({ label, value, onChange }) {
 
 function KeyRow({ row, last, onRefresh, onEditQuota }) {
   const [busy, setBusy] = useState(false);
+  const [priority, setPriority] = useState(String(row.priority ?? 0));
   const sc = STATE_COLORS[row.state] || STATE_COLORS.disabled;
+
+  useEffect(() => { setPriority(String(row.priority ?? 0)); }, [row.priority]);
 
   async function toggleState() {
     setBusy(true);
@@ -242,6 +245,23 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
     await api(`/api/admin/upstream-keys/${row.id}`, { method: "PATCH", body: { state: next } });
     onRefresh();
     setBusy(false);
+  }
+
+  async function savePriority() {
+    const n = parseInt(priority, 10);
+    if (!Number.isFinite(n) || n === (row.priority ?? 0)) {
+      setPriority(String(row.priority ?? 0));
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/admin/upstream-keys/${row.id}`, { method: "PATCH", body: { priority: n } });
+      onRefresh();
+    } catch {
+      setPriority(String(row.priority ?? 0));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove() {
@@ -255,8 +275,19 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
   return (
     <tr style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}>
       <td style={{ ...td, fontWeight: 500 }}>{row.alias}</td>
-      <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>{row.prefix}…</td>
-      <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{row.priority ?? 0}</td>
+      <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>{row.keyPrefix}…</td>
+      <td style={{ ...td, fontFamily: "var(--font-mono)" }}>
+        <input
+          type="number"
+          value={priority}
+          disabled={busy}
+          onChange={(e) => setPriority(e.target.value)}
+          onBlur={savePriority}
+          onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+          style={{ width: 70, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", fontSize: 13, fontFamily: "var(--font-mono)" }}
+          title="回车或失焦保存"
+        />
+      </td>
       <td style={td}>
         <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 11, background: sc.bg, color: sc.text }}>
           {sc.label}
