@@ -350,6 +350,6 @@ const addBtn = { display: "flex", alignItems: "center", gap: 6, padding: "8px 14
 const secondaryBtn = { display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer", fontSize: 13 };
 const cancelBtn = { padding: "8px 14px", background: "transparent", color: "var(--text-2)", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer", fontSize: 13 };
 const labelStyle = { display: "block", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 };
-const inputStyle = { width: "100%", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" };
+const inputStyle = { width: "100%", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", fontSize: 13, boxSizing: "border-box" };
 const editorBox = { border: "1px solid var(--border)", borderRadius: 12, padding: 20, marginBottom: 20, background: "var(--surface-2)" };
 const linkBtn = { background: "transparent", border: "none", color: "var(--clay)", cursor: "pointer", fontSize: 12, padding: 0 };

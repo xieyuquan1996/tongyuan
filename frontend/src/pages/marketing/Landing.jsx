@@ -11,12 +11,14 @@ export default function Landing() {
     <div>
       <Nav />
       <Hero />
-      <SignalCompare />
-      <PromiseGrid />
-      {/* <StatusStrip /> */}{/* 暂时隐藏 */}
-      <ModelsTable />
-      {/* <Pricing /> */}{/* 暂时隐藏 - Starter/Pro 套餐 */}
-      <Faq />
+      <div className="landing-sections">
+        <SignalCompare />
+        <PromiseGrid />
+        {/* <StatusStrip /> */}{/* 暂时隐藏 */}
+        <ModelsTable />
+        {/* <Pricing /> */}{/* 暂时隐藏 - Starter/Pro 套餐 */}
+        <Faq />
+      </div>
       <Footer />
     </div>
   );
@@ -44,7 +46,7 @@ function Nav() {
           <a href="#models" style={{ color: "var(--text-2)", textDecoration: "none" }}>模型</a>
           {/* <a href="#pricing" style={{ color: "var(--text-2)", textDecoration: "none" }}>定价</a> */}{/* 暂时隐藏 */}
           <Link to="/docs" style={{ color: "var(--text-2)", textDecoration: "none" }}>文档</Link>
-          <a href="#status" style={{ color: "var(--text-2)", textDecoration: "none" }}>状态</a>
+          {/* <Link to="/status" style={{ color: "var(--text-2)", textDecoration: "none" }}>状态</Link> */}{/* 暂时隐藏 */}
         </nav>
       )}
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: mobile ? 8 : 14 }}>
@@ -116,10 +118,19 @@ function Hero() {
   );
 }
 
+/**
+ * Landing 区块外壳。
+ * 背景颜色由父级 `.landing-sections` 的 nth-of-type 规则自动交替(灰/米黄),
+ * 子组件不需要也不应再写 background。padding 走 .landing-section CSS。
+ */
+function Section({ id, children }) {
+  return <section id={id} className="landing-section">{children}</section>;
+}
+
 function SignalCompare() {
   const mobile = useIsMobile();
   return (
-    <section style={{ padding: mobile ? "56px 16px" : "80px 32px", background: "var(--surface-3)" }}>
+    <Section>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>什么是"模型掺水"</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 12px", maxWidth: 760 }}>
@@ -153,7 +164,7 @@ function SignalCompare() {
           </div>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -166,7 +177,7 @@ function PromiseGrid() {
     ["不重路由到便宜区域", "你看到的 region 是真实 region。北美就是北美，香港就是香港。", Activity],
   ];
   return (
-    <section style={{ padding: mobile ? "56px 16px" : "96px 32px" }}>
+    <Section>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>四条底线</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 56px" }}>
@@ -191,7 +202,7 @@ function PromiseGrid() {
           ))}
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -229,7 +240,7 @@ function ModelsTable() {
   const [models, setModels] = useState([]);
   useEffect(() => { api("/api/public/models").then(r => setModels(r.models || [])).catch(() => {}); }, []);
   return (
-    <section id="models" style={{ padding: "96px 32px" }}>
+    <Section id="models">
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>支持的模型</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 8px" }}>
@@ -261,7 +272,7 @@ function ModelsTable() {
           </table>
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -318,7 +329,7 @@ function Faq() {
     ["可以发票吗？", "可开 6% 增值税专票，在控制台 → 账单 → 发票申请。"],
   ];
   return (
-    <section style={{ padding: "96px 32px" }}>
+    <Section>
       <div style={{ maxWidth: 880, margin: "0 auto" }}>
         <SectionLabel>常见问题</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 32px" }}>
@@ -338,7 +349,7 @@ function Faq() {
           ))}
         </div>
       </div>
-    </section>
+    </Section>
   );
 }
 

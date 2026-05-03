@@ -18,7 +18,12 @@
   .landing-hero-stats { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
-/* Landing sections */
+/* Landing sections — 背景颜色按出现顺序在父级 .landing-sections 内自动交替, */
+/* 单个 section 不要再写 inline background。 */
+.landing-section { padding: 96px 32px; }
+.landing-sections > .landing-section:nth-of-type(odd) { background: var(--surface-3); }
+.landing-sections > .landing-section:nth-of-type(even) { background: var(--surface-1); }
+
 @media (max-width: 640px) {
   .landing-section { padding: 56px 16px !important; }
   .landing-section h2 { font-size: 28px !important; }

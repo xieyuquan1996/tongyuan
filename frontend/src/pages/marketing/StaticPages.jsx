@@ -3,7 +3,7 @@ import { LogoMark } from "../../components/primitives.jsx";
 
 function Shell({ title, children }) {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface)", color: "var(--text)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--surface-1)", color: "var(--text)" }}>
       <header style={{ height: 64, display: "flex", alignItems: "center", padding: "0 32px", gap: 12, borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={24}/>
