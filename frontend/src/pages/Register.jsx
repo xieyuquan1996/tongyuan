@@ -51,7 +51,7 @@ export default function Register() {
         <Field label="密码">
           <input type="password" required minLength={6} value={form.password} onChange={(e) => set("password", e.target.value)} style={inputStyle}/>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)", marginTop: 6 }}>
-            至少 6 位。我们只用 SHA-256 保存。
+            至少 6 位。
           </div>
         </Field>
         {error && (
