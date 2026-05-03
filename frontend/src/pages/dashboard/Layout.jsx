@@ -110,7 +110,7 @@ export default function DashboardLayout() {
           )}
           <Group style={{ marginTop: 16 }}>资源</Group>
           <SideItem href="/docs" icon={BookOpen}>文档</SideItem>
-          <SideItem href="/status" icon={Activity}>状态页</SideItem>
+          {/* <SideItem href="/status" icon={Activity}>状态页</SideItem> */}
           <div style={{ flex: 1 }}/>
           <div style={{ padding: 12, border: "1px solid var(--border)", borderRadius: 8 }}>
             <div style={miniLabel}>本月用量</div>
