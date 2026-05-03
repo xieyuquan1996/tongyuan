@@ -277,7 +277,7 @@ export default function Playground() {
                   {streamRaw && (
                     <details open style={{ marginTop: 12, fontSize: 13 }}>
                       <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>原始 SSE 事件</summary>
-                      <Code mono>{streamRaw}</Code>
+                      <Code mono scroll>{streamRaw}</Code>
                     </details>
                   )}
                 </div>
@@ -314,12 +314,12 @@ export default function Playground() {
                   })()}
                   <details style={{ marginTop: 16, fontSize: 13 }}>
                     <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>完整 JSON</summary>
-                    <Code mono>{JSON.stringify(resp, null, 2)}</Code>
+                    <Code mono scroll>{JSON.stringify(resp, null, 2)}</Code>
                   </details>
                   {streamRaw && (
                     <details open style={{ marginTop: 12, fontSize: 13 }}>
                       <summary style={{ cursor: "pointer", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}>原始 SSE 事件</summary>
-                      <Code mono>{streamRaw}</Code>
+                      <Code mono scroll>{streamRaw}</Code>
                     </details>
                   )}
                 </div>
@@ -378,16 +378,16 @@ function Field({ label, children }) {
   );
 }
 
-function Code({ children, mono }) {
+function Code({ children, mono, scroll }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try { await navigator.clipboard.writeText(String(children)); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
   }
   return (
-    <div style={{ position: "relative", background: "var(--code-bg)", color: "var(--code-fg)", borderRadius: 8, padding: "14px 16px", fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+    <div style={{ position: "relative" }}>
       <button onClick={copy} style={{
-        position: "absolute", top: 8, right: 8,
-        background: "transparent", border: "1px solid var(--border-strong)",
+        position: "absolute", top: 8, right: 8, zIndex: 1,
+        background: "var(--code-bg)", border: "1px solid var(--border-strong)",
         color: copied ? "var(--ok)" : "var(--text-4)", padding: "4px 8px",
         borderRadius: 4, fontSize: 11, fontFamily: "var(--font-mono)", cursor: "pointer",
         display: "inline-flex", alignItems: "center", gap: 4,
@@ -395,7 +395,15 @@ function Code({ children, mono }) {
         {copied ? <Check size={11}/> : <Copy size={11}/>}
         {copied ? "已复制" : "复制"}
       </button>
-      {children}
+      <div style={{
+        background: "var(--code-bg)", color: "var(--code-fg)",
+        borderRadius: 8, padding: "14px 16px",
+        fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.6,
+        whiteSpace: "pre-wrap", wordBreak: "break-word",
+        ...(scroll ? { maxHeight: 360, overflow: "auto" } : {}),
+      }}>
+        {children}
+      </div>
     </div>
   );
 }
