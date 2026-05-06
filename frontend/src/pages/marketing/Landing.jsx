@@ -75,7 +75,7 @@ function Hero() {
         opacity: 0.6, pointerEvents: "none",
       }}/>
       <div style={{ maxWidth: 1216, margin: "0 auto", position: "relative" }}>
-        <SectionLabel>同源 · TONGYUAN · SAME SOURCE</SectionLabel>
+        <SectionLabel>枫连 · MAPLELINK · SAME SOURCE</SectionLabel>
         <h1 style={{
           fontFamily: "var(--font-serif)", fontSize: mobile ? 40 : 76, lineHeight: 1.05,
           fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 24px",
@@ -141,7 +141,7 @@ function SignalCompare() {
         </p>
         <div className="landing-compare-grid" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 16 }}>
           <div style={compareCard}>
-            <Pill tone="clay" dot style={{ marginBottom: 16 }}>同源</Pill>
+            <Pill tone="clay" dot style={{ marginBottom: 16 }}>枫连</Pill>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--clay-press)", marginBottom: 8 }}>完整透传 · 信号干净</div>
             <img src="/assets/signal-line.svg" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} alt="clean signal"/>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7, color: "var(--text-2)" }}>
@@ -325,7 +325,7 @@ function Faq() {
     ["你们怎么证明没有偷换模型？", "每一次请求我们都会把上行的 model / max_tokens / system 长度做哈希记录，控制台里可以按请求 ID 查询到完整审计。如果发现一次不一致，我们退一个月费用。"],
     ["延迟为什么比直连快？", "我们在中国大陆有四个机房（上海、北京、深圳）和香港中转，使用 Anthropic 的官方 API endpoint，没有 IP 池漂移。p99 延迟稳定在 500ms 内。"],
     ["新模型多久会上架？", "Anthropic 发布后通常 4 小时内可用。我们不会自作主张做 alias，所有模型用官方完整 ID。"],
-    ["支持哪些 SDK？", "完全兼容官方 anthropic-sdk-python / anthropic-sdk-typescript。把 base URL 换成 api.tongyuan.ai 就可以，其他什么都不用改。"],
+    ["支持哪些 SDK？", "完全兼容官方 anthropic-sdk-python / anthropic-sdk-typescript。把 base URL 换成 api.maplelink.ai 就可以，其他什么都不用改。"],
     ["可以发票吗？", "可开 6% 增值税专票，在控制台 → 账单 → 发票申请。"],
   ];
   return (
@@ -362,7 +362,7 @@ function Footer() {
           <div style={{ gridColumn: mobile ? "1 / -1" : "auto" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <LogoMark size={28} />
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 18, fontWeight: 600, color: "var(--text)" }}>同源</span>
+              <span style={{ fontFamily: "var(--font-serif)", fontSize: 18, fontWeight: 600, color: "var(--text)" }}>枫连</span>
             </div>
             <p style={{ fontSize: 13, lineHeight: 1.6, maxWidth: 320, color: "var(--text-2)", margin: 0 }}>
               链接稳定，模型保真。一个不掺水的 Claude 中转站。
@@ -390,7 +390,7 @@ function Footer() {
           ))}
         </div>
         <div style={{ borderTop: "1px solid var(--divider)", marginTop: 48, paddingTop: 24, display: "flex", justifyContent: "space-between", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>
-          <div>© 2026 同源 · 沪ICP备2026000000号</div>
+          <div>© 2026 枫连 · 沪ICP备2026000000号</div>
           <div>build · ty-2026.04.26 · cn-east-1</div>
         </div>
       </div>

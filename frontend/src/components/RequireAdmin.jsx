@@ -32,7 +32,7 @@ export default function RequireAdmin({ children }) {
           当前账户不具备后台管理权限。请使用 admin 账户登录后再访问该区域。
         </p>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>
-          <div>演示账户: admin@tongyuan.ai / admin1234</div>
+          <div>演示账户: admin@maplelink.ai / admin1234</div>
         </div>
       </div>
     );

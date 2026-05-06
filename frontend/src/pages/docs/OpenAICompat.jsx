@@ -3,7 +3,7 @@ import { Code } from "./Layout.jsx";
 import { useState, useEffect } from "react";
 
 function useOrigin() {
-  const [origin, setOrigin] = useState("https://your-domain.com");
+  const [origin, setOrigin] = useState("https://maplelink.club.com");
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
   }, []);
@@ -23,7 +23,7 @@ export default function OpenAICompatArticle() {
         OpenAI 兼容接口
       </h1>
       <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--text-2)", margin: "0 0 40px", maxWidth: 680 }}>
-        同源提供 <code style={ic}>POST /v1/chat/completions</code> 接口，格式与 OpenAI API 完全兼容。任何使用 OpenAI SDK 的工具，只需改 <code style={ic}>base_url</code>，无需改代码。
+        枫连提供 <code style={ic}>POST /v1/chat/completions</code> 接口，格式与 OpenAI API 完全兼容。任何使用 OpenAI SDK 的工具，只需改 <code style={ic}>base_url</code>，无需改代码。
       </p>
 
       <h2 id="endpoint" style={h2}>接口地址</h2>
@@ -79,7 +79,7 @@ for chunk in stream:
 
       <h2 id="notes" style={h2}>注意事项</h2>
       <p style={prose}>
-        模型 ID 使用同源的格式（如 <code style={ic}>claude-sonnet-4-6</code>），不是 OpenAI 的 <code style={ic}>gpt-4o</code>。可用模型列表见 <Link to="/docs/models" style={{ color: "var(--clay-press)" }}>模型映射</Link>。
+        模型 ID 使用枫连的格式（如 <code style={ic}>claude-sonnet-4-6</code>），不是 OpenAI 的 <code style={ic}>gpt-4o</code>。可用模型列表见 <Link to="/docs/models" style={{ color: "var(--clay-press)" }}>模型映射</Link>。
       </p>
       <p style={prose}>
         <code style={ic}>system</code> 消息会自动合并为 Anthropic 的 <code style={ic}>system</code> 字段。<code style={ic}>tool_calls</code> 和 <code style={ic}>tool_choice</code> 完整支持。

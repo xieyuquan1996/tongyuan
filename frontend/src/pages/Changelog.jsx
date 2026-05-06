@@ -23,7 +23,7 @@ export default function Changelog() {
       }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={26}/>
-          <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>同源</span>
+          <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>枫连</span>
           <span style={{ color: "var(--text-4)", margin: "0 4px" }}>/</span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-2)" }}>changelog</span>
         </Link>
@@ -42,7 +42,7 @@ export default function Changelog() {
           更新日志
         </div>
         <h1 style={{ fontFamily: "var(--font-serif)", fontSize: 48, fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 16px" }}>
-          同源 发布记录
+          枫连 发布记录
         </h1>
         <p style={{ fontSize: 16, color: "var(--text-2)", marginBottom: 48 }}>
           按时间倒序。重要更新会在控制台里横幅提示。

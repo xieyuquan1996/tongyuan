@@ -37,10 +37,10 @@ describe('install routes', () => {
     it('honors x-forwarded-proto and x-forwarded-host', async () => {
       const r = await get('/install', {
         'x-forwarded-proto': 'https',
-        'x-forwarded-host': 'claude-link.jinni.life',
+        'x-forwarded-host': 'maplelink.club',
       })
       expect(r.status).toBe(200)
-      expect(r.body).toContain('RELAY_BASE_URL="https://claude-link.jinni.life"')
+      expect(r.body).toContain('RELAY_BASE_URL="https://maplelink.club"')
       expect(r.body).not.toContain('relay.example.com')
     })
   })
@@ -49,11 +49,11 @@ describe('install routes', () => {
     it('serves a PowerShell installer with relay base URL substituted', async () => {
       const r = await get('/install.ps1', {
         'x-forwarded-proto': 'https',
-        'x-forwarded-host': 'claude-link.jinni.life',
+        'x-forwarded-host': 'maplelink.club',
       })
       expect(r.status).toBe(200)
       expect(r.headers.get('content-type') ?? '').toContain('text/plain')
-      expect(r.body).toContain('$RelayBaseUrl = "https://claude-link.jinni.life"')
+      expect(r.body).toContain('$RelayBaseUrl = "https://maplelink.club"')
       expect(r.body).toContain('Get-Command claude')
     })
   })
@@ -70,9 +70,9 @@ describe('install routes', () => {
     it('substitutes relay base URL from forwarded headers', async () => {
       const r = await get('/install/openclaw', {
         'x-forwarded-proto': 'https',
-        'x-forwarded-host': 'claude-link.jinni.life',
+        'x-forwarded-host': 'maplelink.club',
       })
-      expect(r.body).toContain('RELAY_BASE_URL="https://claude-link.jinni.life"')
+      expect(r.body).toContain('RELAY_BASE_URL="https://maplelink.club"')
     })
 
     it('checks Node >= 22.14 before installing openclaw', async () => {
@@ -130,11 +130,11 @@ describe('install routes', () => {
       // both wrong and unnecessary. Keep this test to prevent reintroducing it.
       const r = await get('/install/hermes', {
         'x-forwarded-proto': 'https',
-        'x-forwarded-host': 'claude-link.jinni.life',
+        'x-forwarded-host': 'maplelink.club',
       })
       expect(r.body).toContain('ANTHROPIC_BASE_URL')
       expect(r.body).toContain('ANTHROPIC_API_KEY')
-      expect(r.body).toContain('RELAY_BASE_URL="https://claude-link.jinni.life"')
+      expect(r.body).toContain('RELAY_BASE_URL="https://maplelink.club"')
       expect(r.body).not.toMatch(/custom_providers/)
       expect(r.body).not.toMatch(/api_mode:\s*anthropic_messages/)
       expect(r.body).not.toMatch(/PyYAML/)

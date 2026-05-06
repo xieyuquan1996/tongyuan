@@ -1,4 +1,4 @@
-# claude-link · Backend
+# maplelink · Backend
 
 Node.js + Hono 实现的 Claude 中转网关。提供完整的鉴权、上游 Key 池、`/v1/messages` 透传（流 / 非流）、审计哈希、计费、控制台查询与 Playground、Redis 限流与幂等、公开站点数据、可观测端点。
 

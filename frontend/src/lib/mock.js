@@ -101,7 +101,7 @@ function seed() {
 
   const demoUser = {
     id: userId,
-    email: "demo@tongyuan.ai",
+    email: "demo@maplelink.ai",
     name: "zhang",
     plan: "Pro",
     balance: "115.80",
@@ -109,7 +109,7 @@ function seed() {
     limit_this_month: "200.00",
     created_at: new Date(now - 30 * day).toISOString(),
     password: "demo1234",
-    company: "同源科技",
+    company: "枫连科技",
     phone: "",
     theme: "light",
     notify_email: true,
@@ -119,7 +119,7 @@ function seed() {
   };
   const adminUser = {
     id: adminId,
-    email: "admin@tongyuan.ai",
+    email: "admin@maplelink.ai",
     name: "root",
     plan: "Enterprise",
     balance: "0.00",
@@ -127,7 +127,7 @@ function seed() {
     limit_this_month: "0.00",
     created_at: new Date(now - 365 * day).toISOString(),
     password: "admin1234",
-    company: "同源科技 · 运营组",
+    company: "枫连科技 · 运营组",
     phone: "",
     theme: "light",
     notify_email: true,
@@ -192,8 +192,8 @@ function seed() {
   return {
     schema_version: 3,
     users: {
-      "demo@tongyuan.ai": demoUser,
-      "admin@tongyuan.ai": adminUser,
+      "demo@maplelink.ai": demoUser,
+      "admin@maplelink.ai": adminUser,
       ...otherUserMap,
     },
     sessions: {},

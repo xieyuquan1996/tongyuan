@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy claude-link to the Lightsail box.
+# Deploy maplelink to the Lightsail box.
 # Same pattern as claude-gateway/deploy.sh: build local images, docker save|ssh load,
 # retag :latest on remote, docker compose up -d, prune old tags.
 #
@@ -14,16 +14,16 @@ set -euo pipefail
 # Env vars:
 #   SSH_KEY   — path to the Lightsail PEM (default: ~/.ssh/LightsailDefaultKey-ca-central-1.pem)
 #   REMOTE    — ssh target (default: ubuntu@3.99.180.72)
-#   REMOTE_DIR — remote compose dir (default: /home/ubuntu/claude-link)
+#   REMOTE_DIR — remote compose dir (default: /home/ubuntu/maplelink)
 
 REMOTE="${REMOTE:-ubuntu@3.99.180.72}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/LightsailDefaultKey-ca-central-1.pem}"
-REMOTE_DIR="${REMOTE_DIR:-/home/ubuntu/claude-link}"
+REMOTE_DIR="${REMOTE_DIR:-/home/ubuntu/maplelink}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KEEP_VERSIONS=5
 
-BACKEND_IMAGE="claude-link-backend"
-FRONTEND_IMAGE="claude-link-frontend"
+BACKEND_IMAGE="maplelink-backend"
+FRONTEND_IMAGE="maplelink-frontend"
 
 ssh_cmd() { ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$REMOTE" "$@"; }
 scp_cmd() { scp -i "$SSH_KEY" -o StrictHostKeyChecking=no "$@"; }
@@ -121,9 +121,11 @@ bootstrap_remote() {
         echo \"METRICS_TOKEN=\$(openssl rand -hex 16)\"
         echo 'POSTGRES_USER=postgres'
         echo \"POSTGRES_PASSWORD=\$(openssl rand -hex 16)\"
-        echo 'POSTGRES_DB=claude_link'
+        echo 'POSTGRES_DB=maplelink'
         echo 'ANTHROPIC_UPSTREAM_BASE_URL=https://api.anthropic.com'
         echo 'HTTP_PORT=80'
+        echo 'HTTPS_PORT=443'
+        echo 'CERTS_DIR=./certs'
         echo 'LOG_LEVEL=info'
       } > .env
       chmod 600 .env
@@ -131,7 +133,27 @@ bootstrap_remote() {
       echo '   .env already exists, leaving it alone'
     fi
   "
-  echo "==> Bootstrap done. Remote dir: $REMOTE_DIR"
+
+  # 4. Ensure certs/ exists with at least a self-signed cert so nginx :443 can
+  # start. Replace with a Cloudflare Origin Certificate before going public —
+  # see deploy/README.md.
+  ssh_cmd "
+    set -e
+    cd $REMOTE_DIR
+    mkdir -p certs
+    if [ ! -f certs/origin.pem ] || [ ! -f certs/origin.key ]; then
+      echo '   generating self-signed origin cert (replace with CF Origin Cert before launch)...'
+      openssl req -x509 -nodes -newkey rsa:2048 \
+        -keyout certs/origin.key -out certs/origin.pem \
+        -days 3650 -subj '/CN=maplelink.club' >/dev/null 2>&1
+      chmod 600 certs/origin.key
+    else
+      echo '   certs/origin.{pem,key} already present, leaving alone'
+    fi
+  "
+  echo '==> Bootstrap done. Remote dir: '$REMOTE_DIR
+  echo '    Replace certs/origin.{pem,key} with a Cloudflare Origin Certificate'
+  echo '    before flipping CF SSL/TLS to Full (strict) — see deploy/README.md.'
 }
 
 ensure_bootstrapped() {

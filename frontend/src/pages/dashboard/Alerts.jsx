@@ -63,7 +63,7 @@ export default function Alerts() {
       return;
     }
     try {
-      new Notification("同源 · 测试通知", { body: "如果看到这条，说明浏览器通知工作正常。" });
+      new Notification("枫连 · 测试通知", { body: "如果看到这条，说明浏览器通知工作正常。" });
       setToast({ tone: "ok", text: "已发送测试通知" });
     } catch (e) {
       setToast({ tone: "err", text: "发送失败：" + (e.message || e) });

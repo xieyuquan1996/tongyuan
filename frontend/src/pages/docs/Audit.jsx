@@ -6,7 +6,7 @@ export default function AuditArticle() {
       <Breadcrumb section="保真承诺" page="请求审计" />
       <H1 id="top">请求审计：怎么知道你拿到的就是你点的</H1>
       <Lead>
-        对每一次 <IC>messages.create</IC>，我们记录上行（你 → 同源）和下行（同源 → Anthropic）
+        对每一次 <IC>messages.create</IC>，我们记录上行（你 → 枫连）和下行（枫连 → Anthropic）
         两份请求体的 SHA-256 哈希。两份哈希在控制台公开可查。
       </Lead>
 

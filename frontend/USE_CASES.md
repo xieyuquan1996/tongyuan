@@ -1,4 +1,4 @@
-# 同源 · 用户故事与 Use Case
+# 枫连 · 用户故事与 Use Case
 
 围绕五个表面（首页、营销站、登录/注册、控制台、开发者文档）整理常见流程。每条 case 给出：触发场景、涉及页面与接口、主路径、关键分支。
 
@@ -8,7 +8,7 @@
 
 **角色**：潜在客户，通过搜索或口碑进入 `/`。
 
-**触发**：浏览器打开 `https://tongyuan.ai/`。
+**触发**：浏览器打开 `https://maplelink.ai/`。
 
 **主路径**：
 1. `/` 加载 `MarketingLanding`，并发请求 `GET /api/public/stats` / `/models` / `/plans` / `/regions` 渲染 Hero、模型表、定价表、区域状态。

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Code } from "./Layout.jsx";
 
 function useOrigin() {
-  const [origin, setOrigin] = useState("https://your-domain.com");
+  const [origin, setOrigin] = useState("https://maplelink.club.com");
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
   }, []);
@@ -24,7 +24,7 @@ export default function OpenClawArticle() {
         接入 OpenClaw
       </h1>
       <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--text-2)", margin: "0 0 40px", maxWidth: 680 }}>
-        <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener" style={{ color: "var(--clay-press)" }}>OpenClaw</a>（Peter Steinberger）是一个本地优先的个人 AI 助手。它有自己的 provider registry，接入同源要走 <code style={ic}>models.providers</code> 通道。三种方式：一键脚本、交互式 onboarding，或直接编辑 <code style={ic}>~/.openclaw/openclaw.json</code>。
+        <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener" style={{ color: "var(--clay-press)" }}>OpenClaw</a>（Peter Steinberger）是一个本地优先的个人 AI 助手。它有自己的 provider registry，接入枫连要走 <code style={ic}>models.providers</code> 通道。三种方式：一键脚本、交互式 onboarding，或直接编辑 <code style={ic}>~/.openclaw/openclaw.json</code>。
       </p>
 
       <h2 id="script" style={h2}>方式 A · 一键脚本（推荐）</h2>
@@ -61,13 +61,13 @@ export default function OpenClawArticle() {
           <li style={{ marginBottom: 6 }}><strong>How do you want to provide this API key?</strong> — <code style={ic}>Paste API key now</code></li>
           <li style={{ marginBottom: 6 }}><strong>API Key</strong> — 粘贴控制台生成的 <code style={ic}>sk-relay-…</code></li>
           <li style={{ marginBottom: 6 }}><strong>Endpoint compatibility</strong> — <code style={ic}>Anthropic-compatible</code></li>
-          <li style={{ marginBottom: 6 }}><strong>Model ID</strong> — <code style={ic}>claude-opus-4-6</code>（或其他同源支持的模型名）</li>
-          <li style={{ marginBottom: 6 }}><strong>Endpoint ID</strong> — 保留默认，形如 <code style={ic}>custom-claude-link-jinni-life</code></li>
+          <li style={{ marginBottom: 6 }}><strong>Model ID</strong> — <code style={ic}>claude-opus-4-6</code>（或其他枫连支持的模型名）</li>
+          <li style={{ marginBottom: 6 }}><strong>Endpoint ID</strong> — 保留默认，形如 <code style={ic}>custom-maplelink-club</code></li>
           <li><strong>Model alias</strong> — 可选，起个短名方便以后 <code style={ic}>/model</code> 切换</li>
         </ul>
       </div>
       <p style={prose}>
-        走到 <code style={ic}>Verification successful</code> 就说明同源已经连通。走 <code style={ic}>Anthropic-compatible</code> 模式时，OpenClaw 会自动抑制 <code style={ic}>claude-code-20250219</code>、<code style={ic}>interleaved-thinking-*</code> 这类 beta header，避免代理返回 400。
+        走到 <code style={ic}>Verification successful</code> 就说明枫连已经连通。走 <code style={ic}>Anthropic-compatible</code> 模式时，OpenClaw 会自动抑制 <code style={ic}>claude-code-20250219</code>、<code style={ic}>interleaved-thinking-*</code> 这类 beta header，避免代理返回 400。
       </p>
 
       <h2 id="manual" style={h2}>方式 C · 手写配置</h2>
@@ -78,17 +78,17 @@ export default function OpenClawArticle() {
   "agents": {
     "defaults": {
       "models": {
-        "custom-claude-link-jinni-life/claude-opus-4-6": {}
+        "custom-maplelink-club/claude-opus-4-6": {}
       },
       "model": {
-        "primary": "custom-claude-link-jinni-life/claude-opus-4-6"
+        "primary": "custom-maplelink-club/claude-opus-4-6"
       }
     }
   },
   "models": {
     "mode": "merge",
     "providers": {
-      "custom-claude-link-jinni-life": {
+      "custom-maplelink-club": {
         "baseUrl": "${origin}",
         "api": "anthropic-messages",
         "apiKey": "sk-relay-xxxxxxxx",

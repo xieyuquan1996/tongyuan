@@ -91,8 +91,8 @@ export function AuthShell({ title, sub, children }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
           <LogoMark size={36}/>
           <div>
-            <div style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 600 }}>同源</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", color: "var(--text-3)" }}>TONGYUAN · SAME SOURCE</div>
+            <div style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 600 }}>枫连</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", color: "var(--text-3)" }}>MAPLELINK · SAME SOURCE</div>
           </div>
         </div>
         <h1 style={{ fontFamily: "var(--font-serif)", fontSize: 28, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 8px" }}>{title}</h1>

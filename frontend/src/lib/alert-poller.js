@@ -97,7 +97,7 @@ async function evaluateOnce() {
       // Only mark as fired if the notification actually went through.
       // Otherwise a denied permission would permanently suppress this alert
       // even after the user later grants access.
-      const ok = notify(`同源 · 告警触发`, `${label}当前 ${unit}${display}（阈值 ${unit}${threshold}）`);
+      const ok = notify(`枫连 · 告警触发`, `${label}当前 ${unit}${display}（阈值 ${unit}${threshold}）`);
       if (ok) {
         fired[key] = Date.now();
         dirty = true;

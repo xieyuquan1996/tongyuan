@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import * as modelsSvc from '../services/models.js'
 
 const BASH_SCRIPT = (baseUrl: string) => `#!/usr/bin/env bash
-# Claude Code installer for 同源 (Tongyuan) relay.
+# Claude Code installer for 枫连 (MapleLink) relay.
 #
 # What this does, in order:
 #   1) If \`claude\` is already on PATH        → skip install.
@@ -137,7 +137,7 @@ echo "  · 'Do you trust the files in this folder?'       → YES"
 echo "  · 'Detected a custom API key... use this?'        → 1. Yes（默认 No）"
 `
 
-const POWERSHELL_SCRIPT = (baseUrl: string) => `# Claude Code installer for 同源 (Tongyuan) relay — Windows PowerShell.
+const POWERSHELL_SCRIPT = (baseUrl: string) => `# Claude Code installer for 枫连 (MapleLink) relay — Windows PowerShell.
 #
 # 1) If \`claude\` already on PATH            → skip install.
 # 2) Else, if node missing                   → install via winget (Node 20 LTS).
@@ -236,7 +236,7 @@ Write-Host "  · 'Detected a custom API key... use this?'        → 1. Yes（�
 `
 
 const OPENCLAW_SCRIPT = (baseUrl: string, availableModels: string[], defaultModel: string) => `#!/usr/bin/env bash
-# OpenClaw connector for 同源 (Tongyuan) relay.
+# OpenClaw connector for 枫连 (MapleLink) relay.
 #
 # What this does, in order:
 #   1) If \`openclaw\` is missing         → install it globally via npm (@latest).
@@ -422,12 +422,12 @@ if ! openclaw gateway restart; then
 fi
 
 echo ""
-log "✓ 完成。接入同源的 OpenClaw 已经就绪。"
+log "✓ 完成。接入枫连的 OpenClaw 已经就绪。"
 log "可以用 /model 在会话里切换，也可以跑 'openclaw agent --message \\"hi\\"' 快速验证。"
 `
 
 const HERMES_SCRIPT = (baseUrl: string, availableModels: string[], defaultModel: string) => `#!/usr/bin/env bash
-# Hermes Agent connector for 同源 (Tongyuan) relay.
+# Hermes Agent connector for 枫连 (MapleLink) relay.
 #
 # Hermes honors the standard ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY env vars,
 # so configuring it is just "write two exports into your shell rc" — same
@@ -559,9 +559,9 @@ if [ "\$HERMES_PRESENT" = "0" ]; then
   echo ""
   echo "    curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash"
   echo ""
-  log "官方安装脚本收尾会自动进 TUI；按 Ctrl+C 退出即可。之后 'hermes' 启动就会走同源。"
+  log "官方安装脚本收尾会自动进 TUI；按 Ctrl+C 退出即可。之后 'hermes' 启动就会走枫连。"
 else
-  log "本 shell 生效 env 后，'hermes' 就会走同源；或者新开一个终端（\$RC_SHORT 会自动被加载）也行。"
+  log "本 shell 生效 env 后，'hermes' 就会走枫连；或者新开一个终端（\$RC_SHORT 会自动被加载）也行。"
 fi
 `
 

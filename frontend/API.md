@@ -1,4 +1,4 @@
-# 同源 · API 文档
+# 枫连 · API 文档
 
 中转网关 REST API。前端通过 `src/lib/api.js` 的 `api(path, opts)` 统一调用；默认命中 `src/lib/mock.js` 的浏览器内 Mock 后端，真实后端按同样的路径和返回结构实现即可。
 
@@ -409,7 +409,7 @@ Overview 页用的聚合数据。
 
 ## 4. 后台管理（需 `role=admin`）
 
-所有 `/api/admin/*` 接口都要求登录会话对应的用户 `role === "admin"`，否则返回 `403 forbidden`。Mock 环境预置账号 `admin@tongyuan.ai / admin1234`。
+所有 `/api/admin/*` 接口都要求登录会话对应的用户 `role === "admin"`，否则返回 `403 forbidden`。Mock 环境预置账号 `admin@maplelink.ai / admin1234`。
 
 所有写操作都会写入 `store.audit_log`，可通过 `GET /api/admin/audit` 查询。
 

@@ -15,7 +15,7 @@ export default function QuickstartArticle() {
   return (
     <article>
       <Breadcrumb section="入门" page="快速开始" />
-      <H1 id="top">5 分钟接入 同源</H1>
+      <H1 id="top">5 分钟接入 枫连</H1>
       <Lead>
         把官方 Anthropic SDK 的 base URL 换成 <IC>{host}</IC>，其他不用改。
         下面是 Python 和 TypeScript 的最小示例。

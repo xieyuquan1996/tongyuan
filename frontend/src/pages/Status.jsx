@@ -16,7 +16,7 @@ export default function StatusPage() {
       <header style={topBar}>
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={26}/>
-          <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>同源</span>
+          <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>枫连</span>
           <span style={{ color: "var(--text-4)", margin: "0 4px" }}>/</span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-2)" }}>status</span>
         </Link>

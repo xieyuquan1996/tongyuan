@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Code } from "./Layout.jsx";
 
 function useOrigin() {
-  const [origin, setOrigin] = useState("https://your-domain.com");
+  const [origin, setOrigin] = useState("https://maplelink.club.com");
   useEffect(() => {
     if (typeof window !== "undefined") setOrigin(window.location.origin);
   }, []);
@@ -23,7 +23,7 @@ export default function HermesArticle() {
         接入 Hermes Agent
       </h1>
       <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--text-2)", margin: "0 0 40px", maxWidth: 680 }}>
-        <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener" style={{ color: "var(--clay-press)" }}>Hermes Agent</a>（Nous Research）认标准的 <code style={ic}>ANTHROPIC_BASE_URL</code> / <code style={ic}>ANTHROPIC_API_KEY</code> 环境变量，接入同源只需要在 shell rc 里写两行 export。
+        <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener" style={{ color: "var(--clay-press)" }}>Hermes Agent</a>（Nous Research）认标准的 <code style={ic}>ANTHROPIC_BASE_URL</code> / <code style={ic}>ANTHROPIC_API_KEY</code> 环境变量，接入枫连只需要在 shell rc 里写两行 export。
       </p>
 
       <h2 id="script" style={h2}>方式 A · 一键脚本（推荐）</h2>
@@ -36,7 +36,7 @@ export default function HermesArticle() {
       </p>
       <Code language="BASH">{`curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash`}</Code>
       <p style={prose}>
-        装完 TUI 起来时，Ctrl+C 退出，新开终端（env 已在 rc 里），直接 <code style={ic}>hermes</code> 就会走同源。免交互设密钥：<code style={ic}>HERMES_LINK_API_KEY=sk-relay-xxxxx curl … | bash</code>。
+        装完 TUI 起来时，Ctrl+C 退出，新开终端（env 已在 rc 里），直接 <code style={ic}>hermes</code> 就会走枫连。免交互设密钥：<code style={ic}>HERMES_LINK_API_KEY=sk-relay-xxxxx curl … | bash</code>。
       </p>
 
       <h2 id="manual" style={h2}>方式 B · 手写配置</h2>
@@ -46,7 +46,7 @@ export default function HermesArticle() {
       <Code language="BASH">{`export ANTHROPIC_BASE_URL="${origin}"
 export ANTHROPIC_API_KEY="sk-relay-xxxxxxxx"`}</Code>
       <p style={prose}>
-        <code style={ic}>source</code> rc 或新开终端后，<code style={ic}>hermes</code> 就会把所有 Anthropic 流量发给同源。sk-relay-* 从
+        <code style={ic}>source</code> rc 或新开终端后，<code style={ic}>hermes</code> 就会把所有 Anthropic 流量发给枫连。sk-relay-* 从
         <Link to="/dashboard/keys" style={{ color: "var(--clay-press)" }}> 控制台 → API 密钥 </Link>
         创建。
       </p>

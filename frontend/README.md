@@ -1,4 +1,4 @@
-# 同源 · Frontend
+# 枫连 · Frontend
 
 Vite + React + React Router SPA。包含首页、登录、市场站、控制台、开发者文档五个表面，全部通过 `/api/*` 调用后端。
 
@@ -12,7 +12,7 @@ npm run build    # 生产构建 → dist/
 npm run preview  # 本地预览生产构建
 ```
 
-登录 demo 账号：`demo@tongyuan.ai` / `demo1234`（登录页已预填）。
+登录 demo 账号：`demo@maplelink.ai` / `demo1234`（登录页已预填）。
 
 ## 路由
 

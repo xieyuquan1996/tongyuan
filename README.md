@@ -1,4 +1,4 @@
-# 同源 · Tongyuan
+# 枫连 · MapleLink
 
 Claude API 中转网关。链接稳定，模型保真，绝不掺水。
 
@@ -17,10 +17,10 @@ Claude API 中转网关。链接稳定，模型保真，绝不掺水。
 
 ```bash
 # Linux / macOS
-bash <(curl -fsSL https://your-domain/api/install)
+bash <(curl -fsSL https://maplelink.club/api/install)
 
 # Windows PowerShell
-iex (iwr https://your-domain/api/install.ps1).Content
+iex (iwr https://maplelink.club/api/install.ps1).Content
 ```
 
 脚本会自动安装 Claude Code、写入 `ANTHROPIC_BASE_URL`，并引导你输入 API 密钥。
@@ -28,7 +28,7 @@ iex (iwr https://your-domain/api/install.ps1).Content
 ### 手动配置
 
 ```bash
-export ANTHROPIC_BASE_URL=https://your-domain
+export ANTHROPIC_BASE_URL=https://maplelink.club
 export ANTHROPIC_API_KEY=sk-relay-xxxxxxxx   # 从控制台 → API 密钥 获取
 claude
 ```
@@ -64,7 +64,7 @@ docker compose up -d --build
 注册账号后，执行：
 
 ```bash
-docker compose exec postgres psql -U postgres -d claude_link \
+docker compose exec postgres psql -U postgres -d maplelink \
   -c "UPDATE users SET role='admin' WHERE email='YOUR_EMAIL'"
 ```
 
@@ -83,7 +83,7 @@ docker compose exec postgres psql -U postgres -d claude_link \
 
 ```
 用户 (Claude Code / SDK)
-  │  ANTHROPIC_BASE_URL=https://your-domain
+  │  ANTHROPIC_BASE_URL=https://maplelink.club
   ▼
 nginx (TLS 终止 + 静态前端)
   │  /api/* /v1/*
@@ -107,7 +107,7 @@ docker compose logs -f backend
 docker compose restart backend
 
 # 备份数据库
-docker compose exec postgres pg_dump -U postgres claude_link > backup.sql
+docker compose exec postgres pg_dump -U postgres maplelink > backup.sql
 
 # 更新版本
 git pull && docker compose up -d --build

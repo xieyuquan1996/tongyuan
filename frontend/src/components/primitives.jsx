@@ -119,7 +119,7 @@ export function LogoLockup({ size = 28 }) {
           letterSpacing: "-0.01em",
         }}
       >
-        同源
+        枫连
       </span>
     </div>
   );

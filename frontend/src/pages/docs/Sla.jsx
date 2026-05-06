@@ -25,7 +25,7 @@ export default function SlaArticle() {
       </div>
 
       <H2 id="consistency">一致性 SLA</H2>
-      <P>这一条是同源的立身之本：</P>
+      <P>这一条是枫连的立身之本：</P>
       <Callout tone="clay" title="字节级一致率 100%">
         任何一次请求的 <IC>model</IC>、<IC>max_tokens</IC>、<IC>system</IC>、<IC>messages</IC> 被我们修改，我们退 <strong>一个月的费用</strong>，不争辩。
       </Callout>

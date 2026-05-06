@@ -3,7 +3,7 @@ import { Terminal, KeyRound, Monitor, Apple, Check, AlertCircle } from "lucide-r
 import { Breadcrumb, H1, H2, Lead, P, IC, Code } from "./Layout.jsx";
 
 // Everything here references the origin the user is viewing. No hard-coded
-// domain — whatever the operator deploys to (localhost:5174, cg.jinni.life,
+// domain — whatever the operator deploys to (localhost:5174, maplelink.club,
 // your-own.example.com) is the same URL the install scripts ship with.
 function useOrigin() {
   const [origin, setOrigin] = useState("https://your-relay.example.com");

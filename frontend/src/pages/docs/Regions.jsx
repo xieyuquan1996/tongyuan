@@ -5,7 +5,7 @@ export default function RegionsArticle() {
     <article>
       <Breadcrumb section="入门" page="区域选择"/>
       <H1 id="top">区域选择</H1>
-      <Lead>同源在中国大陆、香港和美西各有机房。默认根据客户端 IP 就近路由，你也可以显式指定。</Lead>
+      <Lead>枫连在中国大陆、香港和美西各有机房。默认根据客户端 IP 就近路由，你也可以显式指定。</Lead>
 
       <H2 id="list">机房一览</H2>
       <Code language="TABLE">{`cn-east-1   上海     p50 ~180ms   主力节点

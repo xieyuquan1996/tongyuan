@@ -6,7 +6,7 @@ export default function AuthArticle() {
       <Breadcrumb section="入门" page="认证与密钥"/>
       <H1 id="top">认证与密钥</H1>
       <Lead>
-        同源使用 Bearer Token 认证，格式和 Anthropic 官方兼容。你的密钥同时作为 <IC>x-api-key</IC> 头
+        枫连使用 Bearer Token 认证，格式和 Anthropic 官方兼容。你的密钥同时作为 <IC>x-api-key</IC> 头
         或 <IC>Authorization: Bearer</IC> 发送都可以。
       </Lead>
 
@@ -20,7 +20,7 @@ export default function AuthArticle() {
       <P>2. 应用同时支持两把（旧的仍然有效）；</P>
       <P>3. 监控无流量打到旧密钥 24h 后在控制台撤销。</P>
       <Callout tone="warn" title="不要把密钥写进源码">
-        使用环境变量 <IC>TONGYUAN_API_KEY</IC> 或密钥管理服务。我们会在控制台对提交到公开 Git 仓库的密钥做扫描告警，但不依赖。
+        使用环境变量 <IC>MAPLELINK_API_KEY</IC> 或密钥管理服务。我们会在控制台对提交到公开 Git 仓库的密钥做扫描告警，但不依赖。
       </Callout>
 
       <H2 id="scope">子密钥 / 限制（Pro）</H2>
