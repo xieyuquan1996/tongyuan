@@ -1,35 +1,49 @@
-import { useState } from "react";
-import { Download, X, ChevronRight } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Download, X, ChevronRight, Info } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { useAsync, fmtRelative } from "../../lib/hooks.js";
 import { Loading, ErrorBox, Pill } from "../../components/primitives.jsx";
 import { PageHeader } from "../../components/dashboard-widgets.jsx";
 
+const PAGE_SIZE = 50;
+
 export default function Logs() {
   const [status, setStatus] = useState("");
   const [model, setModel] = useState("");
+  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState(null);
+
   const qs = new URLSearchParams();
   if (status) qs.set("status", status);
   if (model) qs.set("model", model);
+  qs.set("limit", String(PAGE_SIZE));
+  qs.set("offset", String(page * PAGE_SIZE));
+
   const { loading, data, error } = useAsync(
     () => api("/api/console/logs?" + qs.toString()),
-    [status, model]
+    [status, model, page]
   );
   const statusOptions = data?.facets?.statuses || [];
   const modelOptions = data?.facets?.models || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  function handleFilterChange(setter) {
+    return (e) => { setter(e.target.value); setPage(0); };
+  }
 
   return (
     <div style={{ position: "relative" }}>
-      <PageHeader title="请求日志" sub={loading ? "加载中…" : `共 ${data?.total || 0} 条 · 过去 24 小时`} />
+      <PageHeader title="请求日志" sub={loading ? "加载中…" : `共 ${total} 条`} />
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        <select value={status} onChange={(e) => setStatus(e.target.value)} style={filterBtn}>
+        <select value={status} onChange={handleFilterChange(setStatus)} style={filterBtn}>
           <option value="">状态: 全部</option>
           {statusOptions.map((s) => (
             <option key={s} value={String(s)}>{s} {statusLabel(s)}</option>
           ))}
         </select>
-        <select value={model} onChange={(e) => setModel(e.target.value)} style={filterBtn}>
+        <select value={model} onChange={handleFilterChange(setModel)} style={filterBtn}>
           <option value="">模型: 全部</option>
           {modelOptions.map((id) => (
             <option key={id} value={id}>{id}</option>
@@ -41,6 +55,9 @@ export default function Logs() {
       </div>
       {error ? <ErrorBox error={error} /> : loading ? <Loading /> : (
         <LogsTable rows={data.logs} onRowClick={(r) => setSelected(r)} />
+      )}
+      {totalPages > 1 && (
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       )}
       {selected && <AuditDrawer log={selected} onClose={() => setSelected(null)} />}
     </div>
@@ -89,7 +106,7 @@ function LogsTable({ rows, onRowClick }) {
               </td>
               <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.model}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                {(r.input_tokens || 0).toLocaleString()}
+                <TokenCell row={r} />
               </td>
               <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                 {(r.output_tokens || 0).toLocaleString()}
@@ -110,6 +127,83 @@ function LogsTable({ rows, onRowClick }) {
   );
 }
 
+function TokenCell({ row }) {
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!pos) return;
+    function handler(e) {
+      if (btnRef.current && !btnRef.current.contains(e.target)) setPos(null);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [pos]);
+
+  const total = row.input_tokens || 0;
+  const raw = row.input_tokens_raw || 0;
+  const cacheRead = row.cache_read_tokens || 0;
+  const cacheWrite5m = row.cache_write_tokens || 0;
+  const cacheWrite1h = row.cache_write_1h_tokens || 0;
+
+  function handleToggle(e) {
+    e.stopPropagation();
+    if (pos) { setPos(null); return; }
+    const rect = btnRef.current.getBoundingClientRect();
+    const popupH = 220;
+    const openUp = window.innerHeight - rect.bottom < popupH;
+    setPos({
+      right: window.innerWidth - rect.right,
+      ...(openUp
+        ? { bottom: window.innerHeight - rect.top + 6 }
+        : { top: Math.min(rect.bottom + 6, window.innerHeight - popupH) }),
+    });
+  }
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+      {total.toLocaleString()}
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "var(--text-3)", display: "inline-flex", alignItems: "center" }}
+      >
+        <Info size={12} />
+      </button>
+      {pos && createPortal(
+        <div style={{
+          position: "fixed", ...pos, zIndex: 9999,
+          background: "var(--surface-2)", border: "1px solid var(--border-strong)",
+          borderRadius: 8, padding: "12px 14px", boxShadow: "var(--shadow-modal)",
+          minWidth: 200, fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 2,
+          whiteSpace: "nowrap",
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 6, color: "var(--text)", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase" }}>输入 Token 明细</div>
+          <TokenRow label="基础输入" value={raw} />
+          <TokenRow label="缓存读取" value={cacheRead} highlight="ok" />
+          <TokenRow label="缓存写入 5m" value={cacheWrite5m} highlight="warn" />
+          <TokenRow label="缓存写入 1h" value={cacheWrite1h} highlight="warn" />
+          <div style={{ borderTop: "1px solid var(--border)", marginTop: 6, paddingTop: 6, display: "flex", justifyContent: "space-between", color: "var(--text)", fontWeight: 600 }}>
+            <span>合计</span>
+            <span>{total.toLocaleString()}</span>
+          </div>
+        </div>,
+        document.body
+      )}
+    </span>
+  );
+}
+
+function TokenRow({ label, value, highlight }) {
+  const colorMap = { ok: "var(--ok-text)", warn: "var(--warn-text)" };
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 24, color: highlight ? colorMap[highlight] : "var(--text-2)" }}>
+      <span>{label}</span>
+      <span>{value.toLocaleString()}</span>
+    </div>
+  );
+}
+
 function StatusDot({ status }) {
   const color = status === 200 ? "var(--ok)" : status === 429 ? "var(--warn)" : "var(--err)";
   return (
@@ -124,6 +218,56 @@ function fmtTime(ts) {
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function Pagination({ page, totalPages, onChange }) {
+  const pages = buildPageList(page, totalPages);
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 16 }}>
+      <PageBtn disabled={page === 0} onClick={() => onChange(page - 1)}>‹</PageBtn>
+      {pages.map((p, i) =>
+        p === "…" ? (
+          <span key={i} style={{ padding: "0 4px", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 13 }}>…</span>
+        ) : (
+          <PageBtn key={p} active={p === page} onClick={() => onChange(p)}>{p + 1}</PageBtn>
+        )
+      )}
+      <PageBtn disabled={page >= totalPages - 1} onClick={() => onChange(page + 1)}>›</PageBtn>
+    </div>
+  );
+}
+
+function PageBtn({ children, onClick, disabled, active }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: 32, height: 32, padding: "0 6px",
+        background: active ? "var(--clay)" : "transparent",
+        color: active ? "var(--on-clay)" : disabled ? "var(--text-3)" : "var(--text-2)",
+        border: "1px solid", borderColor: active ? "var(--clay)" : "var(--border)",
+        borderRadius: 6, fontFamily: "var(--font-mono)", fontSize: 13,
+        cursor: disabled ? "default" : "pointer",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function buildPageList(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
+  const pages = new Set([0, total - 1, current, current - 1, current + 1].filter(p => p >= 0 && p < total));
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result = [];
+  let prev = -1;
+  for (const p of sorted) {
+    if (p - prev > 1) result.push("…");
+    result.push(p);
+    prev = p;
+  }
+  return result;
 }
 
 function statusLabel(s) {

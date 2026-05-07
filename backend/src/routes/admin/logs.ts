@@ -1,11 +1,12 @@
 // backend/src/routes/admin/logs.ts
 import { Hono } from 'hono'
-import { and, desc, eq, ilike, sql } from 'drizzle-orm'
+import { and, count, desc, eq, ilike } from 'drizzle-orm'
 import { requireBearer } from '../../middleware/auth-bearer.js'
 import { requireAdmin } from '../../middleware/auth-admin.js'
 import { db } from '../../db/client.js'
 import { requestLogs, users } from '../../db/schema.js'
 import { AppError } from '../../shared/errors.js'
+import { parseStatusFilter, serializeTokenFields, serializeFacets } from '../shared/logs-helpers.js'
 
 export const adminLogsRoutes = new Hono()
 adminLogsRoutes.use('*', requireBearer, requireAdmin)
@@ -15,21 +16,16 @@ adminLogsRoutes.get('/', async (c) => {
   const model = c.req.query('model')
   const userEmail = c.req.query('user_email')
   const limit = Math.min(Number(c.req.query('limit') ?? 100), 500)
+  const offset = Math.max(Number(c.req.query('offset') ?? 0), 0)
 
   const conds = []
-  if (status) {
-    const m = /^([2-5])xx$/i.exec(status)
-    if (m) {
-      const lo = Number(m[1]) * 100
-      conds.push(sql`${requestLogs.status}::int >= ${lo} AND ${requestLogs.status}::int < ${lo + 100}`)
-    } else {
-      conds.push(eq(requestLogs.status, status))
-    }
-  }
+  if (status) conds.push(parseStatusFilter(status))
   if (model) conds.push(eq(requestLogs.model, model))
   if (userEmail) conds.push(ilike(users.email, `%${userEmail}%`))
 
-  const [rows, statusFacet, modelFacet] = await Promise.all([
+  const where = conds.length ? and(...conds) : undefined
+
+  const [rows, countRows, statusFacet, modelFacet] = await Promise.all([
     db.select({
       id: requestLogs.id,
       status: requestLogs.status,
@@ -49,9 +45,13 @@ adminLogsRoutes.get('/', async (c) => {
       userEmail: users.email,
     }).from(requestLogs)
       .innerJoin(users, eq(users.id, requestLogs.userId))
-      .where(conds.length ? and(...conds) : undefined)
+      .where(where)
       .orderBy(desc(requestLogs.createdAt))
-      .limit(limit),
+      .limit(limit)
+      .offset(offset),
+    db.select({ total: count() }).from(requestLogs)
+      .innerJoin(users, eq(users.id, requestLogs.userId))
+      .where(where),
     db.selectDistinct({ status: requestLogs.status }).from(requestLogs),
     db.selectDistinct({ model: requestLogs.model }).from(requestLogs),
   ])
@@ -65,9 +65,7 @@ adminLogsRoutes.get('/', async (c) => {
       stream: r.stream,
       type: r.endpoint?.includes('/batches') ? 'Batch' : r.stream ? 'SSE' : 'HTTP',
       latency_ms: Number(r.latencyMs),
-      input_tokens: Number(r.inputTokens) + Number(r.cacheReadTokens) + Number(r.cacheWriteTokens) + Number(r.cacheWrite1hTokens),
-      output_tokens: Number(r.outputTokens),
-      tokens: Number(r.inputTokens) + Number(r.cacheReadTokens) + Number(r.cacheWriteTokens) + Number(r.cacheWrite1hTokens) + Number(r.outputTokens),
+      ...serializeTokenFields(r),
       cost: Number(r.costUsd).toFixed(4),
       region: 'cn-east-1',
       created_at: r.createdAt,
@@ -76,11 +74,8 @@ adminLogsRoutes.get('/', async (c) => {
       user_email: r.userEmail,
       owner_email: r.userEmail,
     })),
-    total: rows.length,
-    facets: {
-      statuses: statusFacet.map((r) => Number(r.status)).filter((n) => Number.isFinite(n)).sort((a, b) => a - b),
-      models: modelFacet.map((r) => r.model).filter(Boolean).sort(),
-    },
+    total: countRows[0]?.total ?? 0,
+    facets: serializeFacets(statusFacet, modelFacet),
   })
 })
 
@@ -94,8 +89,7 @@ adminLogsRoutes.get('/:id', async (c) => {
   return c.json({
     log: {
       id: row.id, status: Number(row.status), model: row.model,
-      latency_ms: Number(row.latencyMs),
-      tokens: Number(row.inputTokens) + Number(row.cacheReadTokens) + Number(row.cacheWriteTokens) + Number(row.cacheWrite1hTokens) + Number(row.outputTokens),
+      latency_ms: Number(row.latencyMs), tokens: serializeTokenFields(row).tokens,
       cost: Number(row.costUsd).toFixed(4),
       region: 'cn-east-1',
       created_at: row.createdAt,
