@@ -127,6 +127,7 @@ bootstrap_remote() {
         echo 'HTTPS_PORT=443'
         echo 'CERTS_DIR=./certs'
         echo 'LOG_LEVEL=info'
+        echo 'DISABLE_USER_QUOTA='
       } > .env
       chmod 600 .env
     else
