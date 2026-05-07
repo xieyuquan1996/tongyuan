@@ -27,7 +27,7 @@ analyticsRoutes.get('/', async (c) => {
   const daily = await db.select({
     date: sql<string>`to_char(created_at::date, 'YYYY-MM-DD')`,
     requests: sql<number>`count(*)::int`,
-    tokens: sql<number>`coalesce(sum(input_tokens::int + output_tokens::int), 0)::int`,
+    tokens: sql<number>`coalesce(sum(input_tokens::int + cache_read_tokens::int + cache_write_tokens::int + cache_write_1h_tokens::int + output_tokens::int), 0)::int`,
     cost_usd: sql<string>`coalesce(sum(cost_usd), 0)::text`,
   }).from(requestLogs)
     .where(scope)
@@ -38,7 +38,7 @@ analyticsRoutes.get('/', async (c) => {
   const byModelRaw = await db.select({
     model: requestLogs.model,
     requests: sql<number>`count(*)::int`,
-    tokens: sql<number>`coalesce(sum(input_tokens::int + output_tokens::int), 0)::int`,
+    tokens: sql<number>`coalesce(sum(input_tokens::int + cache_read_tokens::int + cache_write_tokens::int + cache_write_1h_tokens::int + output_tokens::int), 0)::int`,
     cost_usd: sql<string>`coalesce(sum(cost_usd), 0)::text`,
   }).from(requestLogs)
     .where(scope)

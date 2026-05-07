@@ -43,9 +43,9 @@ logsRoutes.get('/', async (c) => {
       status: Number(r.status),
       model: r.model,
       latency_ms: Number(r.latencyMs),
-      input_tokens: Number(r.inputTokens),
+      input_tokens: Number(r.inputTokens) + Number(r.cacheReadTokens) + Number(r.cacheWriteTokens) + Number(r.cacheWrite1hTokens),
       output_tokens: Number(r.outputTokens),
-      tokens: Number(r.inputTokens) + Number(r.outputTokens),
+      tokens: Number(r.inputTokens) + Number(r.cacheReadTokens) + Number(r.cacheWriteTokens) + Number(r.cacheWrite1hTokens) + Number(r.outputTokens),
       cost: Number(r.costUsd).toFixed(4),
       region: 'cn-east-1',
       type: r.endpoint?.includes('/batches') ? 'Batch' : r.stream ? 'SSE' : 'HTTP',
@@ -71,7 +71,7 @@ logsRoutes.get('/:id', async (c) => {
   return c.json({
     log: {
       id: row.id, status: Number(row.status), model: row.model,
-      latency_ms: Number(row.latencyMs), tokens: Number(row.inputTokens) + Number(row.outputTokens),
+      latency_ms: Number(row.latencyMs), tokens: Number(row.inputTokens) + Number(row.cacheReadTokens) + Number(row.cacheWriteTokens) + Number(row.cacheWrite1hTokens) + Number(row.outputTokens),
       cost: Number(row.costUsd).toFixed(4), region: 'cn-east-1',
       created_at: row.createdAt, audit_match: row.auditMatch,
     },

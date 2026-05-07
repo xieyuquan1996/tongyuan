@@ -55,7 +55,7 @@ overviewRoutes.get('/', async (c) => {
       status: Number(r.status),
       model: r.model,
       latency_ms: Number(r.latencyMs),
-      tokens: Number(r.inputTokens) + Number(r.outputTokens),
+      tokens: Number(r.inputTokens) + Number(r.cacheReadTokens) + Number(r.cacheWriteTokens) + Number(r.cacheWrite1hTokens) + Number(r.outputTokens),
       cost: Number(r.costUsd).toFixed(4),
       region: 'cn-east-1',
       created_at: r.createdAt,
