@@ -38,10 +38,16 @@ export function estimateInputTokens(body: any): number {
   return Math.ceil((chars / CHARS_PER_TOK) * SAFETY)
 }
 
-export function estimateOutputTokens(body: any, defaultCap: number): number {
+// For streaming requests the reservation is held for the entire stream duration
+// (potentially tens of seconds), so we cap at a fraction of the OTPM budget to
+// allow concurrent SSE streams. Non-streaming requests release their reservation
+// within seconds, so the full estimate is fine there.
+const STREAM_OTPM_FRACTION = 0.3
+
+export function estimateOutputTokens(body: any, defaultCap: number, isStream = false): number {
+  const streamCap = isStream ? Math.ceil(defaultCap * STREAM_OTPM_FRACTION) : defaultCap
   const max = Number(body?.max_tokens)
-  if (Number.isFinite(max) && max > 0) return Math.min(max, defaultCap)
-  // No max_tokens — assume half the family's per-minute OTPM budget as a rough
-  // upper bound for a single request. Reconciled on response.
-  return Math.floor(defaultCap / 2)
+  if (Number.isFinite(max) && max > 0) return Math.min(max, streamCap)
+  // No max_tokens — use 50% of the effective cap as a rough upper bound.
+  return Math.floor(streamCap / 2)
 }

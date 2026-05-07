@@ -6,6 +6,7 @@ import { ensurePlaygroundKey } from '../../services/api-keys.js'
 import { getById as getModel } from '../../services/models.js'
 import { handleNonStream, handleStream } from '../../gateway/handle-messages.js'
 import { AppError } from '../../shared/errors.js'
+import { extractUpstreamHeaders, extractQueryString } from '../../shared/proxy-headers.js'
 
 export const playgroundRoutes = new Hono()
 // Playground 已迁到后台管理，只允许 admin 调用，防止普通用户刷 token。
@@ -38,7 +39,8 @@ playgroundRoutes.post('/', async (c) => {
     rawBody,
     model,
     idempotencyKey: c.req.header('idempotency-key') ?? null,
-    anthropicVersion: c.req.header('anthropic-version') ?? '2023-06-01',
+    upstreamHeaders: extractUpstreamHeaders(c.req.raw.headers),
+    queryString: extractQueryString(c.req.url),
   }
 
   if (body.stream === true) {

@@ -6,6 +6,7 @@ import { getById as getModel } from '../../services/models.js'
 import { handleNonStream, handleStream } from '../../gateway/handle-messages.js'
 import { oaiToAnthropic, anthropicToOai, transformAnthropicStream } from '../../gateway/openai-compat.js'
 import { AppError } from '../../shared/errors.js'
+import { extractUpstreamHeaders, extractQueryString } from '../../shared/proxy-headers.js'
 
 export const v1ChatCompletions = new Hono()
 
@@ -41,7 +42,11 @@ v1ChatCompletions.post('/', async (c) => {
     rawBody,
     model,
     idempotencyKey: c.req.header('idempotency-key') ?? null,
-    anthropicVersion: '2023-06-01',
+    upstreamHeaders: {
+      ...extractUpstreamHeaders(c.req.raw.headers),
+      'anthropic-version': '2023-06-01',  // OAI compat always uses this version
+    },
+    queryString: extractQueryString(c.req.url),
   }
 
   if (oaiBody.stream === true) {

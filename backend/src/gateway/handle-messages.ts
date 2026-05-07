@@ -24,7 +24,11 @@ export type HandleMessagesInput = {
   rawBody: string
   model: ModelRow
   idempotencyKey: string | null
-  anthropicVersion: string
+  // All Anthropic-specific headers from the client request — forwarded verbatim
+  // to the upstream. Includes anthropic-version, anthropic-beta, etc. The proxy
+  // layer will override x-api-key and content-type, so those are safe to include.
+  upstreamHeaders: Record<string, string>
+  queryString: string | undefined
 }
 
 // Reconcile the reservation with actual usage. cache_read tokens are excluded
@@ -63,7 +67,7 @@ async function reserveTpm(apiKey: ApiKeyRow, body: any): Promise<tpm.TpmReservat
 
 export async function handleNonStream(c: Context, input: HandleMessagesInput): Promise<Response> {
   const started = Date.now()
-  const { user, apiKey, body, model, idempotencyKey, anthropicVersion } = input
+  const { user, apiKey, body, model, idempotencyKey, upstreamHeaders, queryString } = input
 
   const requestHash = hashBody(body)
   const forwardBody = JSON.stringify(body)
@@ -82,9 +86,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
   const tpmReservation = await reserveTpm(apiKey, body)
 
   try {
-    const att = await forwardNonStream('/v1/messages', {
-      'anthropic-version': anthropicVersion,
-    }, forwardBody)
+    const att = await forwardNonStream('/v1/messages', upstreamHeaders, forwardBody, queryString)
     upstream = att.upstream
     response = att.response
     reservation = att.reservation
@@ -178,7 +180,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
 
 export async function handleStream(c: Context, input: HandleMessagesInput): Promise<Response> {
   const started = Date.now()
-  const { user, apiKey, body, rawBody, model, idempotencyKey, anthropicVersion } = input
+  const { user, apiKey, body, rawBody, model, idempotencyKey, upstreamHeaders, queryString } = input
 
   const requestHash = hashBody(body)
   const forwardBody = rawBody
@@ -192,9 +194,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
   const tpmReservation = await reserveTpm(apiKey, body)
 
   try {
-    const att = await forwardStream('/v1/messages', {
-      'anthropic-version': anthropicVersion,
-    }, forwardBody)
+    const att = await forwardStream('/v1/messages', upstreamHeaders, forwardBody, queryString)
     upstream = att.upstream
     response = att.response
     reservation = att.reservation

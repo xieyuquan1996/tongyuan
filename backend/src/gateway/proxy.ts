@@ -1,5 +1,5 @@
 // backend/src/gateway/proxy.ts
-import { getAnthropicBaseUrl } from '../env.js'
+import { getAnthropicBaseUrl, env } from '../env.js'
 import { scheduler } from './scheduler.js'
 import { AppError } from '../shared/errors.js'
 import type { UpstreamRow } from '../services/upstream-keys.js'
@@ -63,16 +63,25 @@ function weightedShuffle(pool: UpstreamRow[]): UpstreamRow[] {
 // have headroom. Pool is weighted-shuffled per call so two keys with equal
 // weight each get ~50% of traffic; a key with weight 300 vs weight 100
 // gets picked first ~75% of the time.
-async function reserveOne(family: Family, body: any): Promise<{ upstream: UpstreamRow; res: Reservation } | null> {
+async function reserveOne(family: Family, body: any, stream: boolean): Promise<{ upstream: UpstreamRow; res: Reservation } | null> {
   const rawPool = await scheduler.snapshot()
   if (rawPool.length === 0) return null
   const pool = weightedShuffle(rawPool)
+
+  // When quota is disabled, skip admission control entirely — just pick the
+  // first reachable key. Anthropic's own 429 is still handled downstream.
+  if (env.DISABLE_USER_QUOTA) {
+    const upstream = pool[0]!
+    const bucket = Math.floor(Date.now() / 60_000)
+    return { upstream, res: { upstreamId: upstream.id, family, bucket, estIn: 0, estOut: 0 } }
+  }
+
   for (const upstream of pool) {
     // Per-key budget: an admin can give each upstream its own limits (Scale
     // tier vs Build Tier 1, etc.), so we resolve inside the loop.
     const budget = await resolveBudget(upstream.id, family)
     const estIn = estimateInputTokens(body)
-    const estOut = estimateOutputTokens(body, budget.otpm)
+    const estOut = estimateOutputTokens(body, budget.otpm, stream)
     const r = await quota.reserve(upstream.id, family, budget, estIn, estOut)
     if (r.ok) {
       return { upstream, res: { upstreamId: upstream.id, family, bucket: r.bucket, estIn: r.estIn, estOut: r.estOut } }
@@ -83,13 +92,14 @@ async function reserveOne(family: Family, body: any): Promise<{ upstream: Upstre
 
 type ForwardArgs = {
   path: string
+  queryString?: string
   headers: Record<string, string>
   body: string
   bodyJson: any
   stream: boolean
 }
 
-async function forward({ path, headers, body, bodyJson, stream }: ForwardArgs): Promise<ProxyAttempt> {
+async function forward({ path, queryString, headers, body, bodyJson, stream }: ForwardArgs): Promise<ProxyAttempt> {
   const family = familyOf(String(bodyJson?.model ?? ''))
 
   const tried: { id: string; status: number | 'network' | 'no_budget' }[] = []
@@ -97,7 +107,7 @@ async function forward({ path, headers, body, bodyJson, stream }: ForwardArgs): 
   // that land mid-flight after reserve() said we had headroom.
   const MAX_ATTEMPTS = 4
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const got = await reserveOne(family, bodyJson)
+    const got = await reserveOne(family, bodyJson, stream)
     if (!got) {
       // No key has headroom. If we've tried nothing yet and there are no
       // active upstreams at all, the classic all_upstreams_down applies.
@@ -108,7 +118,9 @@ async function forward({ path, headers, body, bodyJson, stream }: ForwardArgs): 
     }
     const { upstream, res: reservation } = got
     const apiKey = await scheduler.decrypt(upstream)
-    const url = new URL(path, resolveBaseUrl(upstream)).toString()
+    const base = new URL(path, resolveBaseUrl(upstream))
+    if (queryString) base.search = queryString
+    const url = base.toString()
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -158,18 +170,20 @@ export async function forwardNonStream(
   path: string,
   headers: Record<string, string>,
   body: string,
+  queryString?: string,
 ): Promise<ProxyAttempt> {
   let parsed: any = {}
   try { parsed = JSON.parse(body) } catch {}
-  return forward({ path, headers, body, bodyJson: parsed, stream: false })
+  return forward({ path, queryString, headers, body, bodyJson: parsed, stream: false })
 }
 
 export async function forwardStream(
   path: string,
   headers: Record<string, string>,
   body: string,
+  queryString?: string,
 ): Promise<ProxyAttempt> {
   let parsed: any = {}
   try { parsed = JSON.parse(body) } catch {}
-  return forward({ path, headers, body, bodyJson: parsed, stream: true })
+  return forward({ path, queryString, headers, body, bodyJson: parsed, stream: true })
 }
