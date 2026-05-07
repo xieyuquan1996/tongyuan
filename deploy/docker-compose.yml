@@ -72,6 +72,7 @@ services:
       ANTHROPIC_UPSTREAM_BASE_URL: ${ANTHROPIC_UPSTREAM_BASE_URL:-https://api.anthropic.com}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       METRICS_TOKEN: ${METRICS_TOKEN}
+      DISABLE_USER_QUOTA: ${DISABLE_USER_QUOTA:-}
     depends_on:
       postgres:
         condition: service_healthy

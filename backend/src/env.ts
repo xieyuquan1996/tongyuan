@@ -16,6 +16,11 @@ const schema = z.object({
   // so existing deployments don't need a new env. Set this when you want to
   // rotate API key fingerprints without touching sessions, or vice versa.
   API_KEY_HMAC_PEPPER: z.string().min(32).optional(),
+  // Kill-switch for user-facing quotas (per-API-key RPM in rate-limit
+  // middleware and per-API-key TPM reservation in handle-messages). Does NOT
+  // affect upstream Anthropic key admission control in gateway/quota.ts —
+  // disabling that would just shift the 429 to Anthropic's side.
+  DISABLE_USER_QUOTA: z.string().optional().transform((v) => v === '1' || v === 'true'),
 })
 
 export type Env = z.infer<typeof schema>

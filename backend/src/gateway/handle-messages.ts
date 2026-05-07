@@ -10,6 +10,7 @@ import { AppError } from '../shared/errors.js'
 import { extractUsage, iterSSE, splitCacheWrite } from './sse.js'
 import * as quota from './quota.js'
 import * as tpm from '../middleware/tpm-limit.js'
+import { env } from '../env.js'
 import { estimateInputTokens, estimateOutputTokens } from './estimate.js'
 import type { UpstreamRow } from '../services/upstream-keys.js'
 import type { ModelRow } from '../services/models.js'
@@ -49,6 +50,7 @@ async function reconcile(
 // Returns null when no limit is configured. Throws rate_limit if the cap
 // would be exceeded — the caller should let that propagate.
 async function reserveTpm(apiKey: ApiKeyRow, body: any): Promise<tpm.TpmReservation | null> {
+  if (env.DISABLE_USER_QUOTA) return null
   const cap = apiKey.tpmLimit ? Number(apiKey.tpmLimit) : null
   if (!cap || !Number.isFinite(cap) || cap <= 0) return null
   const estIn = estimateInputTokens(body)
