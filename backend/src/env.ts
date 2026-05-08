@@ -37,6 +37,10 @@ export function getEnv(): Env {
     // eslint-disable-next-line no-console
     console.warn('[env] WARN: NODE_ENV=production but METRICS_TOKEN is empty — /metrics is publicly accessible')
   }
+  if (_env.DISABLE_USER_QUOTA) {
+    // eslint-disable-next-line no-console
+    console.warn('[env] WARN: DISABLE_USER_QUOTA is enabled — all per-user RPM/TPM limits are bypassed')
+  }
   return _env
 }
 export const env: Env = new Proxy({} as Env, { get(_t, k) { return (getEnv() as any)[k] } })
