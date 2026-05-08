@@ -67,4 +67,24 @@ describe('rateLimit (token bucket)', () => {
     const r3 = await app.fetch(new Request('http://x/'))
     expect(r3.status).toBe(200)
   })
+
+  it('refills tokens over time at the configured rate', { timeout: 5000 }, async () => {
+    // Use a 60 RPM limit → 1 token/second refill rate
+    const app = mkApp(60)
+    // Drain the entire bucket (60 tokens)
+    for (let i = 0; i < 60; i++) {
+      const r = await app.fetch(new Request('http://x/'))
+      expect(r.status).toBe(200)
+    }
+    // Bucket is now empty — next request fails
+    const rejected = await app.fetch(new Request('http://x/'))
+    expect(rejected.status).toBe(429)
+
+    // Wait ~1100ms (slightly over 1 second) for at least 1 token to refill
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+
+    // After refill, at least 1 request should succeed
+    const refilled = await app.fetch(new Request('http://x/'))
+    expect(refilled.status).toBe(200)
+  })
 })

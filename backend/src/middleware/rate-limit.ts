@@ -24,7 +24,7 @@ local state = redis.call('HMGET', key, 'tokens', 'last_ms')
 local tokens = tonumber(state[1])
 local last_ms = tonumber(state[2])
 
-if not tokens then
+if not tokens or not last_ms then
   tokens = capacity
   last_ms = now_ms
 end
