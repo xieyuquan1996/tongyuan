@@ -35,6 +35,43 @@ export class AppError extends Error {
   }
 }
 
+export class RateLimitError extends AppError {
+  readonly retryAfterSec: number
+  readonly rateLimitHeaders: Record<string, string>
+
+  constructor(
+    message: string,
+    opts: {
+      retryAfterSec: number
+      limitRequests?: number
+      remainingRequests?: number
+      limitTokens?: number
+      remainingTokens?: number
+    },
+  ) {
+    super('rate_limit', message)
+    this.retryAfterSec = opts.retryAfterSec
+    const resetAt = new Date(Date.now() + opts.retryAfterSec * 1000).toISOString()
+    this.rateLimitHeaders = {
+      'retry-after': String(Math.ceil(opts.retryAfterSec)),
+      ...(opts.limitRequests !== undefined
+        ? {
+            'x-ratelimit-limit-requests': String(opts.limitRequests),
+            'x-ratelimit-remaining-requests': String(Math.max(0, opts.remainingRequests ?? 0)),
+            'x-ratelimit-reset-requests': resetAt,
+          }
+        : {}),
+      ...(opts.limitTokens !== undefined
+        ? {
+            'x-ratelimit-limit-tokens': String(opts.limitTokens),
+            'x-ratelimit-remaining-tokens': String(Math.max(0, opts.remainingTokens ?? 0)),
+            'x-ratelimit-reset-tokens': resetAt,
+          }
+        : {}),
+    }
+  }
+}
+
 export function toErrorBody(e: unknown): { error: ErrorCode; message?: string } {
   if (e instanceof AppError) return { error: e.code, message: e.message !== e.code ? e.message : undefined }
   // duck-type fallback for ESM module instance mismatch

@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { AppError, toErrorBody } from './shared/errors.js'
+import { AppError, RateLimitError, toErrorBody } from './shared/errors.js'
 import { requestId } from './middleware/request-id.js'
 import { authRoutes } from './routes/console/auth.js'
 import { keysRoutes } from './routes/console/keys.js'
@@ -44,13 +44,19 @@ export function createApp() {
   app.use('*', requestId)
 
   app.onError((err, c) => {
+    if (err instanceof RateLimitError) {
+      return c.json(
+        { type: 'error', error: { type: 'rate_limit_error', message: err.message } },
+        429,
+        err.rateLimitHeaders,
+      )
+    }
     const e = err as any
     const status: number =
       err instanceof AppError ? err.status :
       (e && typeof e.status === 'number' && typeof e.code === 'string') ? e.status :
       500
-    const body = toErrorBody(err)
-    return c.json(body, status as any)
+    return c.json(toErrorBody(err), status as any)
   })
 
   app.get('/healthz', (c) => c.json({ ok: true }))

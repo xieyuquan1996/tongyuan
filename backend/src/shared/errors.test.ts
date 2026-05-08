@@ -1,6 +1,6 @@
 // backend/src/shared/errors.test.ts
 import { describe, it, expect } from 'vitest'
-import { AppError, toErrorBody } from './errors.js'
+import { AppError, RateLimitError, toErrorBody } from './errors.js'
 
 describe('AppError', () => {
   it('maps code to http status', () => {
@@ -25,5 +25,28 @@ describe('AppError', () => {
     const body = toErrorBody(new AppError('unauthorized'))
     expect(body.message).toBeUndefined()
     expect(body.error).toBe('unauthorized')
+  })
+})
+
+describe('RateLimitError', () => {
+  it('is an AppError with status 429', () => {
+    const e = new RateLimitError('60 RPM exceeded', { retryAfterSec: 12, limitRequests: 60 })
+    expect(e).toBeInstanceOf(AppError)
+    expect(e.status).toBe(429)
+    expect(e.code).toBe('rate_limit')
+  })
+
+  it('includes Retry-After and X-RateLimit-* headers', () => {
+    const e = new RateLimitError('60 RPM exceeded', { retryAfterSec: 12, limitRequests: 60, remainingRequests: 0 })
+    expect(e.rateLimitHeaders['retry-after']).toBe('12')
+    expect(e.rateLimitHeaders['x-ratelimit-limit-requests']).toBe('60')
+    expect(e.rateLimitHeaders['x-ratelimit-remaining-requests']).toBe('0')
+    expect(e.rateLimitHeaders['x-ratelimit-reset-requests']).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('includes token headers when limitTokens is provided', () => {
+    const e = new RateLimitError('TPM exceeded', { retryAfterSec: 5, limitTokens: 100000 })
+    expect(e.rateLimitHeaders['x-ratelimit-limit-tokens']).toBe('100000')
+    expect(e.rateLimitHeaders['x-ratelimit-remaining-tokens']).toBe('0')
   })
 })
