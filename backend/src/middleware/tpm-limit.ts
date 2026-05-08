@@ -1,95 +1,119 @@
-// Per-API-key TPM (tokens-per-minute) admission control.
+// Per-API-key TPM (tokens-per-minute) admission control via token bucket.
 //
-// Mirrors the upstream-quota Lua pattern (gateway/quota.ts): we need an
-// atomic "check-and-increment" so two concurrent requests can't both see
-// headroom and slip past the ceiling. Without this, a burst of N requests
-// arriving inside the same millisecond would all admit even when the limit
-// is 1.
-//
-// Flow (called by the /v1/messages handler, after requireApiKey + after
-// the body has been parsed):
-//   1) reserve()  — pre-flight estimate (input + output). If admitting
-//                   would exceed tpm_limit, throw rate_limit.
-//   2) reconcile() — at biller commit time, adjust the bucket by
-//                    (actual - estimate). Released fully on failure.
-//
-// Counters live in a fixed minute window keyed by `tpm:keyId:bucket`. We
-// don't bother with sliding window — the upstream limits are also stated
-// per-minute, and matching their clock is what users expect.
+// Three operations:
+//   reserve(apiKeyId, cap, estimate) — pre-flight: atomically deduct estimate.
+//                                      Throws RateLimitError if bucket empty.
+//   reconcile(reservation, actual)  — post-response: refund/charge the delta
+//                                      between estimate and actual token usage.
+//   release(reservation)            — request failed: refund the full estimate.
 
 import { redis } from '../redis/client.js'
-import { AppError } from '../shared/errors.js'
+import { RateLimitError } from '../shared/errors.js'
 
-const KEY_TTL_SEC = 120 // covers clock skew + late commits
+// Atomic token bucket check-and-deduct. Same algorithm as rate-limit.ts but
+// cost is variable (estimated token count instead of fixed 1).
+const TOKEN_BUCKET_LUA = `
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local rate = tonumber(ARGV[2])
+local cost = tonumber(ARGV[3])
+local now_ms = tonumber(ARGV[4])
 
-function bucketNow(now = Date.now()): number {
-  return Math.floor(now / 60_000)
-}
+local state = redis.call('HMGET', key, 'tokens', 'last_ms')
+local tokens = tonumber(state[1])
+local last_ms = tonumber(state[2])
 
-function tpmKey(apiKeyId: string, bucket: number): string {
-  return `tpm:${apiKeyId}:${bucket}`
-}
-
-// Atomic check-and-increment. Returns 1 on admission, 0 on reject. The Lua
-// avoids the increment-then-rollback race where N parallel callers all add
-// past the ceiling and then all decrement back, denying everyone.
-const RESERVE_LUA = `
-local current = tonumber(redis.call('GET', KEYS[1]) or '0')
-local estimate = tonumber(ARGV[1])
-local cap = tonumber(ARGV[2])
-local ttl = tonumber(ARGV[3])
-if current + estimate > cap then
-  return 0
+if not tokens or not last_ms then
+  tokens = capacity
+  last_ms = now_ms
 end
-redis.call('INCRBY', KEYS[1], estimate)
-redis.call('EXPIRE', KEYS[1], ttl)
-return 1
+
+local elapsed = math.max(0, now_ms - last_ms)
+tokens = math.min(capacity, tokens + elapsed * rate)
+
+local ttl_ms = math.ceil(capacity / rate * 2)
+
+if tokens < cost then
+  redis.call('HSET', key, 'tokens', tokens, 'last_ms', now_ms)
+  redis.call('PEXPIRE', key, ttl_ms)
+  local retry_after_ms = math.ceil((cost - tokens) / rate)
+  return {0, retry_after_ms, math.floor(tokens)}
+end
+
+tokens = tokens - cost
+redis.call('HSET', key, 'tokens', tokens, 'last_ms', now_ms)
+redis.call('PEXPIRE', key, ttl_ms)
+return {1, 0, math.floor(tokens)}
+`
+
+// Adjust the bucket by (estimate - actual).
+// Positive delta = over-estimated → refund tokens back.
+// Negative delta = under-estimated → charge extra tokens.
+// Capped between 0 and capacity.
+const RECONCILE_LUA = `
+local key = KEYS[1]
+local delta = tonumber(ARGV[1])
+local capacity = tonumber(ARGV[2])
+local rate = tonumber(ARGV[3])
+
+local tokens = tonumber(redis.call('HGET', key, 'tokens') or '0')
+local new_tokens = math.max(0, math.min(capacity, tokens + delta))
+redis.call('HSET', key, 'tokens', new_tokens)
+local ttl_ms = math.ceil(capacity / rate * 2)
+redis.call('PEXPIRE', key, ttl_ms)
+return math.floor(new_tokens)
 `
 
 export type TpmReservation = {
   apiKeyId: string
-  bucket: number
   estimate: number
   cap: number
 }
 
-// Reserve `estimate` tokens against this minute's bucket. Throws rate_limit
-// if it would exceed the cap. Caller is responsible for reconciling or
-// releasing — leaking a reservation only over-counts for one minute, but
-// it's still worth wiring properly.
-export async function reserve(apiKeyId: string, cap: number, estimate: number): Promise<TpmReservation> {
-  const bucket = bucketNow()
-  const ok = await redis.eval(
-    RESERVE_LUA,
-    1,
-    tpmKey(apiKeyId, bucket),
-    String(estimate),
-    String(cap),
-    String(KEY_TTL_SEC),
-  ) as number
-  if (ok !== 1) {
-    throw new AppError('rate_limit', `tpm exceeded (limit ${cap}/min)`)
-  }
-  return { apiKeyId, bucket, estimate, cap }
+function tpmKey(apiKeyId: string): string {
+  return `rl:tb:${apiKeyId}:tpm`
 }
 
-// Adjust the bucket by (actual - estimate). Called from biller after the
-// upstream returns authoritative usage. Negative deltas (over-reserved)
-// hand budget back to other in-flight requests.
+export async function reserve(apiKeyId: string, cap: number, estimate: number): Promise<TpmReservation> {
+  const ratePerMs = cap / 60_000
+  const result = (await redis.eval(
+    TOKEN_BUCKET_LUA,
+    1,
+    tpmKey(apiKeyId),
+    String(cap),
+    String(ratePerMs),
+    String(estimate),
+    String(Date.now()),
+  )) as [number, number, number]
+
+  const [allowed, retryAfterMs, remaining] = result
+  if (allowed !== 1) {
+    const retryAfterSec = Math.max(1, Math.ceil(retryAfterMs / 1000))
+    throw new RateLimitError(
+      `Rate limit exceeded: ${cap} TPM. Retry after ${retryAfterSec}s.`,
+      { retryAfterSec, limitTokens: cap, remainingTokens: remaining },
+    )
+  }
+  return { apiKeyId, estimate, cap }
+}
+
 export async function reconcile(reservation: TpmReservation, actual: number): Promise<void> {
-  const delta = actual - reservation.estimate
+  const delta = reservation.estimate - actual  // positive = refund, negative = extra charge
   if (delta === 0) return
   try {
-    await redis.incrby(tpmKey(reservation.apiKeyId, reservation.bucket), delta)
+    await redis.eval(
+      RECONCILE_LUA,
+      1,
+      tpmKey(reservation.apiKeyId),
+      String(delta),
+      String(reservation.cap),
+      String(reservation.cap / 60_000),
+    )
   } catch {
-    // Reconciliation is best-effort — a missed reconcile only over- or
-    // under-counts a single request's usage for one minute.
+    // Best-effort: a missed reconcile only over/under-counts for the TTL window.
   }
 }
 
-// Release the full reservation (request was rejected before reaching upstream
-// or the connection died pre-response). Equivalent to reconcile(_, 0) but
-// reads more clearly at call sites.
 export async function release(reservation: TpmReservation): Promise<void> {
   await reconcile(reservation, 0)
 }

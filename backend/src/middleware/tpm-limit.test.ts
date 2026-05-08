@@ -8,14 +8,12 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest'
 import { reserve, reconcile, release } from './tpm-limit.js'
 import { redis } from '../redis/client.js'
-import { AppError } from '../shared/errors.js'
+import { RateLimitError } from '../shared/errors.js'
 
 const KEY_ID = `tpm-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 async function clearBuckets() {
-  // Clear every minute bucket we might have touched, plus a couple of
-  // adjacent ones in case the test crosses a minute boundary.
-  const keys = await redis.keys(`tpm:${KEY_ID}:*`)
+  const keys = await redis.keys(`rl:tb:${KEY_ID}*`)
   if (keys.length) await redis.del(...keys)
 }
 
@@ -34,7 +32,7 @@ describe('tpm reserve/reconcile', () => {
     // 800 + 300 = 1100 > 1000 → reject. Crucially, the rejected call must
     // NOT have incremented the bucket; otherwise a flood of failed
     // attempts would lock the limiter open.
-    await expect(reserve(KEY_ID, 1000, 300)).rejects.toThrow(AppError)
+    await expect(reserve(KEY_ID, 1000, 300)).rejects.toThrow(RateLimitError)
     // Confirm the bucket is still at 800.
     const r = await reserve(KEY_ID, 1000, 200)
     expect(r.estimate).toBe(200)
@@ -53,7 +51,7 @@ describe('tpm reserve/reconcile', () => {
     await reconcile(r, 400) // we under-reserved by 300
     // 400 used. Another 700 fits, but 701 doesn't.
     await reserve(KEY_ID, 1000, 600)
-    await expect(reserve(KEY_ID, 1000, 200)).rejects.toThrow(AppError)
+    await expect(reserve(KEY_ID, 1000, 200)).rejects.toThrow(RateLimitError)
   })
 
   it('release returns the full reservation', async () => {
