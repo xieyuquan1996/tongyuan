@@ -67,7 +67,13 @@ export async function api(path, opts = {}) {
   const text = await r.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if (!r.ok) throw new ApiError(r.status, data);
+  if (!r.ok) {
+    if (r.status === 401) {
+      session.clear();
+      window.location.href = "/login";
+    }
+    throw new ApiError(r.status, data);
+  }
   return data;
 }
 
