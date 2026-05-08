@@ -44,6 +44,9 @@ export function createApp() {
   app.use('*', requestId)
 
   app.onError((err, c) => {
+    // RateLimitError emits the Anthropic SDK envelope with Retry-After headers.
+    // Plain AppError('rate_limit') still uses toErrorBody() below — this split
+    // resolves once rate-limit.ts and tpm-limit.ts migrate to RateLimitError.
     if (err instanceof RateLimitError) {
       return c.json(
         { type: 'error', error: { type: 'rate_limit_error', message: err.message } },
