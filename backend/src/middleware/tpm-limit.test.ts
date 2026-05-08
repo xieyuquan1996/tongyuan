@@ -13,7 +13,7 @@ import { RateLimitError } from '../shared/errors.js'
 const KEY_ID = `tpm-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 async function clearBuckets() {
-  const keys = await redis.keys(`rl:tb:${KEY_ID}*`)
+  const keys = await redis.keys(`rl:tpm:${KEY_ID}*`)
   if (keys.length) await redis.del(...keys)
 }
 

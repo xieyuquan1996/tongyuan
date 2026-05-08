@@ -56,7 +56,9 @@ local delta = tonumber(ARGV[1])
 local capacity = tonumber(ARGV[2])
 local rate = tonumber(ARGV[3])
 
-local tokens = tonumber(redis.call('HGET', key, 'tokens') or '0')
+local raw = redis.call('HGET', key, 'tokens')
+if not raw then return 0 end
+local tokens = tonumber(raw)
 local new_tokens = math.max(0, math.min(capacity, tokens + delta))
 redis.call('HSET', key, 'tokens', new_tokens)
 local ttl_ms = math.ceil(capacity / rate * 2)
@@ -71,7 +73,7 @@ export type TpmReservation = {
 }
 
 function tpmKey(apiKeyId: string): string {
-  return `rl:tb:${apiKeyId}:tpm`
+  return `rl:tpm:${apiKeyId}`
 }
 
 export async function reserve(apiKeyId: string, cap: number, estimate: number): Promise<TpmReservation> {
