@@ -116,4 +116,13 @@ describe('quota.markFamilyCooldown', () => {
     const r = await quota.reserve(id, 'sonnet', DEFAULT_BUDGETS.sonnet, 10, 10)
     expect(r.ok).toBe(true)
   })
+
+  it('does not block when cooldown timestamp is already past', async () => {
+    // Mark a cooldown that expired 1ms ago
+    await quota.markFamilyCooldown(id, 'opus', Date.now() - 1, 'http_429')
+    const r = await quota.reserve(id, 'opus', DEFAULT_BUDGETS.opus, 10, 10)
+    // With the old Lua (no time check) this would return ok=false because
+    // the key still exists in Redis (TTL=1s). With the fix it should admit.
+    expect(r.ok).toBe(true)
+  })
 })

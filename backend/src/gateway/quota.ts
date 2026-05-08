@@ -43,8 +43,14 @@ function cooldownKey(upstreamId: string, family: Family) {
 // Implemented with EVAL so the three reads + three writes happen as a unit —
 // otherwise two concurrent requests could each see headroom and both succeed.
 const RESERVE_LUA = `
-local cooldown = redis.call('GET', KEYS[4])
-if cooldown then return {0, 'cooldown', cooldown} end
+local cooldown_until = redis.call('GET', KEYS[4])
+if cooldown_until then
+  local t = redis.call('TIME')
+  local now_ms = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
+  if tonumber(cooldown_until) > now_ms then
+    return {0, 'cooldown', cooldown_until}
+  end
+end
 
 local req = tonumber(redis.call('GET', KEYS[1]) or '0')
 local inTok = tonumber(redis.call('GET', KEYS[2]) or '0')
