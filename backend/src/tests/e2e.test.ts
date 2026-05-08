@@ -10,7 +10,7 @@ import { db, pool } from '../db/client.js'
 import { users, apiKeys, upstreamKeys, models, requestLogs } from '../db/schema.js'
 import { and, eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
-import { setAnthropicBaseUrlOverride } from '../env.js'
+import { setAnthropicBaseUrlOverride, env } from '../env.js'
 import { newApiKey } from '../crypto/tokens.js'
 import { hashPassword } from '../crypto/password.js'
 import * as upstreamSvc from '../services/upstream-keys.js'
@@ -197,10 +197,11 @@ describe('e2e: all upstreams down', () => {
 })
 
 describe('rate limiting', () => {
-  it('returns 429 with Retry-After and rate limit headers when RPM exceeded', async () => {
+  it.skipIf(env.DISABLE_USER_QUOTA)('returns 429 with Retry-After and rate limit headers when RPM exceeded', async () => {
     // Look up the API key row first so we can reference its id in cleanup.
     const [keyRow] = await db.select().from(apiKeys).where(eq(apiKeys.userId, userId))
-    const keyId = keyRow!.id
+    if (!keyRow) throw new Error('API key row not found in rate-limit test setup')
+    const keyId = keyRow.id
 
     const mock = await startMockUpstream([
       { kind: 'ok', usage: { input: 10, output: 5 } },
