@@ -1,7 +1,7 @@
 // backend/src/middleware/auth-bearer.ts
 import type { MiddlewareHandler } from 'hono'
 import { AppError } from '../shared/errors.js'
-import { resolveSession } from '../services/sessions.js'
+import { resolveSession, shouldRefresh, touchSession } from '../services/sessions.js'
 import { db } from '../db/client.js'
 import { users } from '../db/schema.js'
 import { eq } from 'drizzle-orm'
@@ -25,5 +25,8 @@ export const requireBearer: MiddlewareHandler = async (c, next) => {
   if (user.status === 'suspended') throw new AppError('account_suspended')
   c.set('user', user)
   c.set('sessionToken', token)
+  if (shouldRefresh(session.expiresAt)) {
+    touchSession(session.id, session.createdAt).catch(() => {})
+  }
   await next()
 }
