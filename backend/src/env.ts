@@ -21,6 +21,12 @@ const schema = z.object({
   // affect upstream Anthropic key admission control in gateway/quota.ts —
   // disabling that would just shift the 429 to Anthropic's side.
   DISABLE_USER_QUOTA: z.string().optional().transform((v) => v === '1' || v === 'true'),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+  FRONTEND_URL: z.string().url().optional(),
 })
 
 export type Env = z.infer<typeof schema>

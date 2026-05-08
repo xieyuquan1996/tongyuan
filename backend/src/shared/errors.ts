@@ -8,7 +8,7 @@ export type ErrorCode =
   | 'insufficient_balance' | 'rate_limit'
   | 'unknown_model' | 'method_not_allowed'
   | 'all_upstreams_down' | 'upstream_error'
-  | 'not_implemented' | 'internal_error'
+  | 'not_implemented' | 'internal_error' | 'invalid_or_expired_token'
 
 const STATUS: Record<ErrorCode, number> = {
   unauthorized: 401, invalid_credentials: 401, wrong_password: 401,
@@ -23,6 +23,7 @@ const STATUS: Record<ErrorCode, number> = {
   internal_error: 500,
   not_implemented: 501,
   all_upstreams_down: 502, upstream_error: 502,
+  invalid_or_expired_token: 400,
 }
 
 export class AppError extends Error {
