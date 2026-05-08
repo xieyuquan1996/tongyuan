@@ -16,6 +16,9 @@ import { hashPassword } from '../crypto/password.js'
 import * as upstreamSvc from '../services/upstream-keys.js'
 import * as quota from '../gateway/quota.js'
 import { startMockUpstream } from './mock-upstream.js'
+import { delCached } from '../services/api-key-cache.js'
+import { hmacApiKey } from '../crypto/apikey-hmac.js'
+import { redis } from '../redis/client.js'
 
 const app = createApp()
 
@@ -187,6 +190,67 @@ describe('e2e: all upstreams down', () => {
       expect(logs.length).toBeGreaterThan(0)
       expect(logs[logs.length - 1]!.errorCode).toBe('all_upstreams_down')
     } finally {
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+    }
+  })
+})
+
+describe('rate limiting', () => {
+  it('returns 429 with Retry-After and rate limit headers when RPM exceeded', async () => {
+    // Look up the API key row first so we can reference its id in cleanup.
+    const [keyRow] = await db.select().from(apiKeys).where(eq(apiKeys.userId, userId))
+    const keyId = keyRow!.id
+
+    const mock = await startMockUpstream([
+      { kind: 'ok', usage: { input: 10, output: 5 } },
+      { kind: 'ok', usage: { input: 10, output: 5 } },
+    ])
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream()
+
+      // Set a low rpm_limit so we can exhaust it in one request.
+      // Invalidate the Redis API-key cache so the new rpmLimit is picked up
+      // immediately (cache TTL is 5 min; without this, previous tests would
+      // leave a stale entry with the default 60 RPM limit).
+      // Also delete the token-bucket key so this test always starts with a
+      // clean bucket regardless of how many requests earlier tests made.
+      await db.update(apiKeys).set({ rpmLimit: '1' }).where(eq(apiKeys.userId, userId))
+      await delCached(hmacApiKey(skRelay))
+      await redis.del(`rl:tb:${keyId}`)
+
+      const makeRequest = () =>
+        post('/v1/messages', {
+          model: 'e2e-test-model',
+          messages: [{ role: 'user', content: 'hi' }],
+          max_tokens: 10,
+        })
+
+      // First request: should succeed (consumes the 1 RPM token)
+      const r1 = await makeRequest()
+      expect(r1.status).toBe(200)
+
+      // Second request: RPM exceeded
+      const r2 = await makeRequest()
+      expect(r2.status).toBe(429)
+      expect(r2.headers.get('retry-after')).not.toBeNull()
+      expect(r2.headers.get('x-ratelimit-limit-requests')).toBe('1')
+      expect(r2.headers.get('x-ratelimit-remaining-requests')).toBe('0')
+      expect(r2.headers.get('x-ratelimit-reset-requests')).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+
+      const body = await r2.json() as any
+      expect(body.type).toBe('error')
+      expect(body.error.type).toBe('rate_limit_error')
+      expect(body.error.message).toMatch(/RPM/)
+    } finally {
+      // Reset rpm_limit, flush the API-key cache, and delete the Redis
+      // token-bucket so later tests see a clean rate-limit state (the drained
+      // bucket would otherwise throttle the very next request in the streaming
+      // test, since a 1-RPM bucket needs 60 s to refill from 0).
+      await db.update(apiKeys).set({ rpmLimit: null }).where(eq(apiKeys.userId, userId))
+      await delCached(hmacApiKey(skRelay))
+      await redis.del(`rl:tb:${keyId}`)
       await mock.close()
       setAnthropicBaseUrlOverride(undefined)
     }
