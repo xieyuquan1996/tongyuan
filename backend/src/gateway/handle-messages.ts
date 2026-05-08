@@ -122,60 +122,68 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
     throw new AppError((errorCode as any) ?? 'all_upstreams_down')
   }
 
-  const text = await response.text()
-  let parsed: any = null
-  try { parsed = JSON.parse(text) } catch {}
-  const usage = parsed?.usage ?? {}
+  let reconciled = false
+  try {
+    const text = await response.text()
+    let parsed: any = null
+    try { parsed = JSON.parse(text) } catch {}
+    const usage = parsed?.usage ?? {}
 
-  const inputTokens = Number(usage.input_tokens ?? 0)
-  const outputTokens = Number(usage.output_tokens ?? 0)
-  const cacheReadTokens = Number(usage.cache_read_input_tokens ?? 0)
-  const { w5m: cacheWriteTokens, w1h: cacheWrite1hTokens } = splitCacheWrite(usage)
+    const inputTokens = Number(usage.input_tokens ?? 0)
+    const outputTokens = Number(usage.output_tokens ?? 0)
+    const cacheReadTokens = Number(usage.cache_read_input_tokens ?? 0)
+    const { w5m: cacheWriteTokens, w1h: cacheWrite1hTokens } = splitCacheWrite(usage)
 
-  // Anthropic's ITPM excludes cache reads. Both 5m and 1h writes count toward
-  // ITPM, so we reconcile on the combined write total.
-  await reconcile(reservation, inputTokens + cacheWriteTokens + cacheWrite1hTokens, outputTokens)
-  // Reconcile per-key TPM against actual usage (input + output, billable).
-  if (tpmReservation) {
-    await tpm.reconcile(tpmReservation, inputTokens + outputTokens)
+    // Anthropic's ITPM excludes cache reads. Both 5m and 1h writes count toward
+    // ITPM, so we reconcile on the combined write total.
+    await reconcile(reservation, inputTokens + cacheWriteTokens + cacheWrite1hTokens, outputTokens)
+    // Reconcile per-key TPM against actual usage (input + output, billable).
+    if (tpmReservation) {
+      await tpm.reconcile(tpmReservation, inputTokens + outputTokens)
+      reconciled = true
+    }
+
+    const { costUsd, chargeUsd } = computeCost({
+      inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
+      model: {
+        inputPriceUsdPerMtok: model.inputPriceUsdPerMtok,
+        outputPriceUsdPerMtok: model.outputPriceUsdPerMtok,
+        cacheReadPriceUsdPerMtok: model.cacheReadPriceUsdPerMtok,
+        cacheWritePriceUsdPerMtok: model.cacheWritePriceUsdPerMtok,
+        cacheWrite1hPriceUsdPerMtok: model.cacheWrite1hPriceUsdPerMtok,
+        markupPct: model.markupPct,
+      },
+    })
+
+    await commitRequest({
+      id,
+      userId: user.id,
+      apiKeyId: apiKey.id,
+      upstreamKeyId: upstream.id,
+      model: body.model,
+      upstreamModel: parsed?.model ?? body.model,
+      endpoint: '/v1/messages',
+      stream: false,
+      status: response.status,
+      errorCode: response.status >= 400 ? `upstream_${response.status}` : null,
+      latencyMs: Date.now() - started,
+      ttfbMs: null,
+      inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
+      chargeUsd, costUsd,
+      requestHash, upstreamRequestHash,
+      auditMatch: requestHash === upstreamRequestHash,
+      idempotencyKey,
+    })
+
+    return new Response(text, {
+      status: response.status,
+      headers: { 'content-type': response.headers.get('content-type') ?? 'application/json' },
+    })
+  } finally {
+    if (tpmReservation && !reconciled) {
+      await tpm.release(tpmReservation)
+    }
   }
-
-  const { costUsd, chargeUsd } = computeCost({
-    inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
-    model: {
-      inputPriceUsdPerMtok: model.inputPriceUsdPerMtok,
-      outputPriceUsdPerMtok: model.outputPriceUsdPerMtok,
-      cacheReadPriceUsdPerMtok: model.cacheReadPriceUsdPerMtok,
-      cacheWritePriceUsdPerMtok: model.cacheWritePriceUsdPerMtok,
-      cacheWrite1hPriceUsdPerMtok: model.cacheWrite1hPriceUsdPerMtok,
-      markupPct: model.markupPct,
-    },
-  })
-
-  await commitRequest({
-    id,
-    userId: user.id,
-    apiKeyId: apiKey.id,
-    upstreamKeyId: upstream.id,
-    model: body.model,
-    upstreamModel: parsed?.model ?? body.model,
-    endpoint: '/v1/messages',
-    stream: false,
-    status: response.status,
-    errorCode: response.status >= 400 ? `upstream_${response.status}` : null,
-    latencyMs: Date.now() - started,
-    ttfbMs: null,
-    inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, cacheWrite1hTokens,
-    chargeUsd, costUsd,
-    requestHash, upstreamRequestHash,
-    auditMatch: requestHash === upstreamRequestHash,
-    idempotencyKey,
-  })
-
-  return new Response(text, {
-    status: response.status,
-    headers: { 'content-type': response.headers.get('content-type') ?? 'application/json' },
-  })
 }
 
 export async function handleStream(c: Context, input: HandleMessagesInput): Promise<Response> {
