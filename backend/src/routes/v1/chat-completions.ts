@@ -13,11 +13,9 @@ export const v1ChatCompletions = new Hono()
 v1ChatCompletions.use('*', requireApiKey)
 v1ChatCompletions.use('*', rateLimit((c) => {
   const apiKey = c.get('apiKey')
-  const bucket = Math.floor(Date.now() / 60_000)
   return {
-    key: `rl:api_key:${apiKey.id}:${bucket}`,
+    key: apiKey.id,
     limit: apiKey.rpmLimit ? Number(apiKey.rpmLimit) : DEFAULT_RPM,
-    windowSec: 60,
   }
 }))
 
