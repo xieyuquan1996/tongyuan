@@ -1,12 +1,12 @@
-import type { EventContext } from '@cloudflare/workers-types'
-import type { Env } from './_middleware.js'
+import type { EventContext, D1Database } from '@cloudflare/workers-types'
+import type { Env, AppLocals } from './_middleware.js'
 
-export async function fetchCadUsdRate(db: any, pair = 'CAD_USD'): Promise<{ rate: number; date: string; source: string }> {
+export async function fetchCadUsdRate(db: D1Database, pair = 'CAD_USD'): Promise<{ rate: number; date: string; source: string }> {
   const today = new Date().toISOString().slice(0, 10)
 
   const cached = await db.prepare(
     'SELECT rate, date FROM exchange_rate_cache WHERE pair = ? AND date = ?'
-  ).bind(pair, today).first() as { rate: number; date: string } | undefined
+  ).bind(pair, today).first<{ rate: number; date: string }>()
 
   if (cached) return { rate: cached.rate, date: cached.date, source: 'cache' }
 
@@ -14,7 +14,7 @@ export async function fetchCadUsdRate(db: any, pair = 'CAD_USD'): Promise<{ rate
   if (!res.ok) throw new Error(`exchange rate fetch failed: ${res.status}`)
   const data = await res.json() as { rates: Record<string, number>; date: string }
   const rate = data.rates['USD']
-  if (!rate) throw new Error('CAD/USD rate not found in response')
+  if (rate === undefined || rate === null) throw new Error('CAD/USD rate not found in response')
 
   await db.prepare(
     'INSERT OR REPLACE INTO exchange_rate_cache (pair, rate, date) VALUES (?, ?, ?)'
@@ -23,7 +23,7 @@ export async function fetchCadUsdRate(db: any, pair = 'CAD_USD'): Promise<{ rate
   return { rate, date: today, source: 'api' }
 }
 
-export const onRequestGet = async (ctx: EventContext<Env, string, Record<string, string>>) => {
+export const onRequestGet = async (ctx: EventContext<Env, string, AppLocals>) => {
   try {
     const result = await fetchCadUsdRate(ctx.env.DB)
     return Response.json(result)

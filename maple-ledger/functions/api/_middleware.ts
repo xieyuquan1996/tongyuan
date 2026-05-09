@@ -1,7 +1,7 @@
-import type { EventContext } from '@cloudflare/workers-types'
+import type { EventContext, D1Database } from '@cloudflare/workers-types'
 
 export interface Env {
-  DB: any
+  DB: D1Database
 }
 
 export interface AppLocals {
