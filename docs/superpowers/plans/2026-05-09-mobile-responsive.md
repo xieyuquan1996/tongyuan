@@ -1044,7 +1044,226 @@ git commit -m "feat(frontend): hide secondary table columns on mobile for logs a
 
 ---
 
-## Task 5: 收尾验证与合并
+## Task 5: Maple Ledger 移动端适配
+
+**Files:**
+- Modify: `maple-ledger/src/components/Layout.tsx`
+- Modify: `maple-ledger/src/pages/Transactions.tsx`
+- Modify: `maple-ledger/src/pages/MonthlyReport.tsx`
+- Modify: `maple-ledger/src/pages/ExchangeLoss.tsx`
+- Modify: `maple-ledger/src/components/TransactionForm.tsx`
+
+- [ ] **Step 1: Layout.tsx — 导航栏手机换行**
+
+在 `maple-ledger/src/components/Layout.tsx` 中，将 nav 改为支持换行：
+
+```tsx
+export default function Layout() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <span className="font-bold text-lg text-gray-900 shrink-0">🍁 Maple Ledger</span>
+        <div className="flex items-center gap-4 flex-wrap">
+          <NavLink
+            to="/transactions"
+            className={({ isActive }) =>
+              `text-sm ${isActive ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`
+            }
+          >
+            交易记录
+          </NavLink>
+          <NavLink
+            to="/reports/monthly"
+            className={({ isActive }) =>
+              `text-sm ${isActive ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`
+            }
+          >
+            月度报表
+          </NavLink>
+          <NavLink
+            to="/reports/exchange-loss"
+            className={({ isActive }) =>
+              `text-sm ${isActive ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`
+            }
+          >
+            汇率损耗
+          </NavLink>
+        </div>
+      </nav>
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+```
+
+- [ ] **Step 2: Transactions.tsx — 表格加 overflow 容器，顶部操作区响应式**
+
+在 `maple-ledger/src/pages/Transactions.tsx` 中，做两处修改：
+
+**顶部操作区**（约第 25-35 行），将：
+```tsx
+<div className="flex items-center justify-between mb-4">
+  <div className="flex items-center gap-3">
+```
+改为：
+```tsx
+<div className="flex flex-wrap items-center gap-3 mb-4">
+  <div className="flex items-center gap-2">
+```
+
+并将 `justify-between` 的第二个子 div：
+```tsx
+<div className="flex items-center gap-3">
+  <select ...>...</select>
+  <button ...>+ 新增交易</button>
+</div>
+```
+改为：
+```tsx
+<div className="flex items-center gap-2 ml-auto">
+  <select ...>...</select>
+  <button ...>+ 新增</button>
+</div>
+```
+
+**表格容器**，将：
+```tsx
+<div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <table className="w-full text-sm">
+```
+改为：
+```tsx
+<div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+  <table className="w-full text-sm min-w-[560px]">
+```
+
+同时给次要列加 `hidden sm:table-cell` class，在手机上隐藏：
+
+**thead 中的"备注"列：**
+```tsx
+{/* 原来 */}
+<th className="text-left px-4 py-3 text-gray-600 font-medium">备注</th>
+{/* 改为 */}
+<th className="text-left px-4 py-3 text-gray-600 font-medium hidden sm:table-cell">备注</th>
+```
+
+**tbody 中的"备注"td：**
+```tsx
+{/* 原来 */}
+<td className="px-4 py-3 text-gray-500">{tx.note ?? '-'}</td>
+{/* 改为 */}
+<td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{tx.note ?? '-'}</td>
+```
+
+- [ ] **Step 3: MonthlyReport.tsx — 表格加 overflow 容器**
+
+在 `maple-ledger/src/pages/MonthlyReport.tsx` 中，找到：
+
+```tsx
+<div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <table className="w-full text-sm">
+```
+
+改为：
+
+```tsx
+<div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+  <table className="w-full text-sm min-w-[480px]">
+```
+
+- [ ] **Step 4: ExchangeLoss.tsx — 表格加 overflow 容器，隐藏次要列**
+
+在 `maple-ledger/src/pages/ExchangeLoss.tsx` 中，找到：
+
+```tsx
+<div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <table className="w-full text-sm">
+    <thead className="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th className="text-left px-4 py-3 text-gray-600 font-medium">日期</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">金额 (CAD)</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">银行汇率</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">市场汇率</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">损耗 (CAD)</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">损耗%</th>
+      </tr>
+    </thead>
+```
+
+替换为：
+
+```tsx
+<div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+  <table className="w-full text-sm min-w-[420px]">
+    <thead className="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th className="text-left px-4 py-3 text-gray-600 font-medium">日期</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium hidden sm:table-cell">金额 (CAD)</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium hidden sm:table-cell">银行汇率</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium hidden sm:table-cell">市场汇率</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">损耗 (CAD)</th>
+        <th className="text-right px-4 py-3 text-gray-600 font-medium">损耗%</th>
+      </tr>
+    </thead>
+```
+
+同样给 tbody 对应 td 加 `hidden sm:table-cell`：
+
+```tsx
+{/* 原来 */}
+<td className="px-4 py-3 text-right text-gray-700">CA${r.amount.toFixed(2)}</td>
+<td className="px-4 py-3 text-right text-gray-600">{r.bank_rate.toFixed(4)}</td>
+<td className="px-4 py-3 text-right text-gray-600">{r.market_rate_at_purchase.toFixed(4)}</td>
+{/* 改为 */}
+<td className="px-4 py-3 text-right text-gray-700 hidden sm:table-cell">CA${r.amount.toFixed(2)}</td>
+<td className="px-4 py-3 text-right text-gray-600 hidden sm:table-cell">{r.bank_rate.toFixed(4)}</td>
+<td className="px-4 py-3 text-right text-gray-600 hidden sm:table-cell">{r.market_rate_at_purchase.toFixed(4)}</td>
+```
+
+- [ ] **Step 5: TransactionForm.tsx — 表单网格响应式**
+
+在 `maple-ledger/src/components/TransactionForm.tsx` 中，将所有固定列数的 grid 改为响应式：
+
+```tsx
+{/* 原来 */}
+<div className="grid grid-cols-2 gap-3">
+{/* 改为 */}
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+```
+
+```tsx
+{/* 原来 */}
+<div className="grid grid-cols-3 gap-2">
+{/* 改为 */}
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+```
+
+底部的 SummaryCards 已经用了 `grid-cols-2 md:grid-cols-4`，不需要改。
+
+- [ ] **Step 6: 验证 maple-ledger**
+
+```bash
+cd maple-ledger && npm test
+```
+
+Expected: 13 个测试全部通过（TransactionForm.test.tsx 会验证表单渲染）
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add maple-ledger/src/components/Layout.tsx \
+        maple-ledger/src/pages/Transactions.tsx \
+        maple-ledger/src/pages/MonthlyReport.tsx \
+        maple-ledger/src/pages/ExchangeLoss.tsx \
+        maple-ledger/src/components/TransactionForm.tsx
+git commit -m "feat(maple-ledger): mobile responsive layout, table overflow, form grid"
+```
+
+---
+
+## Task 6: 收尾验证与合并
 
 - [ ] **Step 1: 前端构建验证**
 
@@ -1070,8 +1289,9 @@ Expected: 所有现有测试通过（Keys.test.jsx、ResetPassword.test.jsx 等�
 - `/dashboard/logs`：次要列隐藏，表格可滚动
 - `/admin/overview`：汉堡按钮和 Drawer 正常
 - `/docs/quickstart`：本来已正常，确认无回归
+- maple-ledger（`npm run dev` 独立启动）：导航栏换行正常；交易/汇率损耗表格可滚动；TransactionForm 在手机上各字段单列显示
 
-桌面（>768px）：所有页面与改动前一致（有侧边栏，4 列 MetricCard，完整日志表格）
+桌面（>768px）：所有页面与改动前一致（有侧边栏，4 列 MetricCard，完整日志表格；maple-ledger 多列表格正常）
 
 - [ ] **Step 4: Commit 并合并**
 
