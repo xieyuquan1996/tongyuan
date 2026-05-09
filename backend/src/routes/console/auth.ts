@@ -14,6 +14,7 @@ import { toCny, getRate } from '../../shared/fx.js'
 import { randomBytes } from 'node:crypto'
 import { redis } from '../../redis/client.js'
 import { getMailer } from '../../services/mailer/index.js'
+import { renderResetPassword } from '../../services/email-templates/reset-password.js'
 import { env } from '../../env.js'
 
 export const authRoutes = new Hono()
@@ -114,11 +115,8 @@ authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string().max(2
   const resetLink = `${baseUrl}/reset-password?token=${token}`
 
   try {
-    await getMailer().send({
-      to: user.email,
-      subject: '密码重置链接',
-      text: `请点击以下链接重置您的密码（1小时内有效）：\n\n${resetLink}\n\n如果您未申请重置密码，请忽略此邮件。`,
-    })
+    const { subject, html, text } = renderResetPassword({ resetLink })
+    await getMailer().send({ to: user.email, subject, text, html })
   } catch (err) {
     console.warn('[auth] failed to send reset email', err)
   }
