@@ -1,24 +1,28 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import {
-  LayoutDashboard, KeyRound, List, Receipt, BookOpen, Activity,
+  LayoutDashboard, KeyRound, List, Receipt, BookOpen,
   ChevronDown, LogOut, User, CreditCard, BarChart3,
   Bell, Settings as SettingsIcon, Sun, Moon, Command, ShieldCheck,
+  Menu, X,
 } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
 import { api, session, logout } from "../../lib/api.js";
 import { useTheme } from "../../lib/theme.jsx";
+import { useIsMobile } from "../../lib/hooks.js";
 import { startAlertPoller, stopAlertPoller } from "../../lib/alert-poller.js";
 
 export default function DashboardLayout() {
   const nav = useNavigate();
   const [user, setUser] = useState(session.user);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [banners, setBanners] = useState([]);
   const [dismissed, setDismissed] = useState(() => {
     try { return JSON.parse(localStorage.getItem("ty.dismissed_banners") || "[]"); } catch { return []; }
   });
   const { theme, setTheme } = useTheme();
+  const mobile = useIsMobile(768);
 
   useEffect(() => {
     api("/api/console/me")
@@ -47,6 +51,8 @@ export default function DashboardLayout() {
   const limit = hasLimit ? parseFloat(limitRaw) : 0;
   const pct = hasLimit ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
 
+  const sidebarProps = { user, pct, hasLimit };
+
   return (
     <div>
       {banners.filter(b => !dismissed.includes(b.id)).map(b => (
@@ -57,21 +63,32 @@ export default function DashboardLayout() {
         }}/>
       ))}
       <header style={topNav}>
+        {mobile && (
+          <button
+            onClick={() => setDrawerOpen(o => !o)}
+            aria-label="菜单"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-2)", padding: 4, display: "flex", alignItems: "center" }}
+          >
+            {drawerOpen ? <X size={22}/> : <Menu size={22}/>}
+          </button>
+        )}
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={26}/>
           <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>枫连</span>
-          <span style={{ color: "var(--text-4)", margin: "0 4px" }}>/</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-2)" }}>console</span>
+          {!mobile && <>
+            <span style={{ color: "var(--text-4)", margin: "0 4px" }}>/</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-2)" }}>console</span>
+          </>}
         </Link>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-          <KShortcutHint/>
+          {!mobile && <KShortcutHint/>}
           <button onClick={() => setTheme(theme === "light" ? "dark" : "light")} title="切换主题"
             style={iconOnlyBtn}>
             {theme === "light" ? <Moon size={14}/> : <Sun size={14}/>}
           </button>
           <button onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }} style={userBtn}>
             <div style={avatar}>{(user.name || user.email || "?")[0].toUpperCase()}</div>
-            <span style={{ fontSize: 13 }}>{user.name || user.email}</span>
+            {!mobile && <span style={{ fontSize: 13 }}>{user.name || user.email}</span>}
             <ChevronDown size={14} color="var(--text-3)"/>
           </button>
           {menuOpen && (
@@ -89,44 +106,71 @@ export default function DashboardLayout() {
         </div>
       </header>
 
-      <div style={{ display: "flex" }}>
-        <aside className="app-sidebar" style={sidebar}>
-          <Group>主菜单</Group>
-          <SideItem to="/dashboard/overview" icon={LayoutDashboard}>概览</SideItem>
-          <SideItem to="/dashboard/analytics" icon={BarChart3}>使用分析</SideItem>
-          <SideItem to="/dashboard/keys" icon={KeyRound}>API 密钥</SideItem>
-          <SideItem to="/dashboard/logs" icon={List}>请求日志</SideItem>
-          <Group style={{ marginTop: 16 }}>账户</Group>
-          <SideItem to="/dashboard/billing" icon={Receipt}>账单</SideItem>
-          <SideItem to="/dashboard/recharge" icon={CreditCard}>充值</SideItem>
-          <SideItem to="/dashboard/alerts" icon={Bell}>告警</SideItem>
-          <SideItem to="/dashboard/settings" icon={SettingsIcon}>设置</SideItem>
-          {user.role === "admin" && (
-            <>
-              <Group style={{ marginTop: 16 }}>管理</Group>
-              <SideItem to="/admin/overview" icon={ShieldCheck}>后台管理</SideItem>
-            </>
-          )}
-          <Group style={{ marginTop: 16 }}>资源</Group>
-          <SideItem href="/docs" icon={BookOpen}>文档</SideItem>
-          {/* <SideItem href="/status" icon={Activity}>状态页</SideItem> */}
-          <div style={{ flex: 1 }}/>
-          <div style={{ padding: 12, border: "1px solid var(--border)", borderRadius: 8 }}>
-            <div style={miniLabel}>本月用量</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>¥{user.spent_this_month}</div>
-            <div style={{ width: "100%", height: 4, background: "var(--surface-3)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
-              <div style={{ width: pct + "%", height: "100%", background: "var(--clay)" }}/>
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>
-              {pct}% · 上限 {hasLimit ? "¥" + user.limit_this_month : "∞"}
-            </div>
-          </div>
+      {mobile && drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "var(--overlay-bg)", zIndex: 19 }}
+        />
+      )}
+
+      {mobile && drawerOpen && (
+        <aside className="app-sidebar" style={{
+          ...sidebar,
+          position: "fixed", top: 64, left: 0,
+          width: 280, height: "calc(100vh - 64px)",
+          zIndex: 20, boxShadow: "var(--shadow-modal)",
+        }}>
+          <SidebarContent {...sidebarProps} onNavClick={() => setDrawerOpen(false)}/>
         </aside>
-        <main style={{ flex: 1, padding: "32px 32px 64px", maxWidth: 1280, minWidth: 0 }}>
+      )}
+
+      <div style={{ display: "flex" }}>
+        {!mobile && (
+          <aside className="app-sidebar" style={sidebar}>
+            <SidebarContent {...sidebarProps}/>
+          </aside>
+        )}
+        <main style={{ flex: 1, padding: mobile ? "16px 16px 64px" : "32px 32px 64px", maxWidth: 1280, minWidth: 0 }}>
           <Outlet context={{ user }}/>
         </main>
       </div>
     </div>
+  );
+}
+
+function SidebarContent({ user, pct, hasLimit, onNavClick }) {
+  return (
+    <>
+      <Group>主菜单</Group>
+      <SideItem to="/dashboard/overview" icon={LayoutDashboard} onClick={onNavClick}>概览</SideItem>
+      <SideItem to="/dashboard/analytics" icon={BarChart3} onClick={onNavClick}>使用分析</SideItem>
+      <SideItem to="/dashboard/keys" icon={KeyRound} onClick={onNavClick}>API 密钥</SideItem>
+      <SideItem to="/dashboard/logs" icon={List} onClick={onNavClick}>请求日志</SideItem>
+      <Group style={{ marginTop: 16 }}>账户</Group>
+      <SideItem to="/dashboard/billing" icon={Receipt} onClick={onNavClick}>账单</SideItem>
+      <SideItem to="/dashboard/recharge" icon={CreditCard} onClick={onNavClick}>充值</SideItem>
+      <SideItem to="/dashboard/alerts" icon={Bell} onClick={onNavClick}>告警</SideItem>
+      <SideItem to="/dashboard/settings" icon={SettingsIcon} onClick={onNavClick}>设置</SideItem>
+      {user.role === "admin" && (
+        <>
+          <Group style={{ marginTop: 16 }}>管理</Group>
+          <SideItem to="/admin/overview" icon={ShieldCheck} onClick={onNavClick}>后台管理</SideItem>
+        </>
+      )}
+      <Group style={{ marginTop: 16 }}>资源</Group>
+      <SideItem href="/docs" icon={BookOpen} onClick={onNavClick}>文档</SideItem>
+      <div style={{ flex: 1 }}/>
+      <div style={{ padding: 12, border: "1px solid var(--border)", borderRadius: 8 }}>
+        <div style={miniLabel}>本月用量</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>¥{user.spent_this_month}</div>
+        <div style={{ width: "100%", height: 4, background: "var(--surface-3)", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+          <div style={{ width: pct + "%", height: "100%", background: "var(--clay)" }}/>
+        </div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-3)", marginTop: 6 }}>
+          {pct}% · 上限 {hasLimit ? "¥" + user.limit_this_month : "∞"}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -160,7 +204,7 @@ function Group({ children, style }) {
   );
 }
 
-function SideItem({ to, href, icon: Icon, children }) {
+function SideItem({ to, href, icon: Icon, children, onClick }) {
   const base = {
     display: "flex", alignItems: "center", gap: 10,
     padding: "8px 12px", borderRadius: 6,
@@ -171,7 +215,7 @@ function SideItem({ to, href, icon: Icon, children }) {
   };
   if (href) {
     return (
-      <a href={href} style={base}
+      <a href={href} style={base} onClick={onClick}
         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-3)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
         <Icon size={16}/>{children}
@@ -179,7 +223,7 @@ function SideItem({ to, href, icon: Icon, children }) {
     );
   }
   return (
-    <NavLink to={to} style={({ isActive }) => ({
+    <NavLink to={to} onClick={onClick} style={({ isActive }) => ({
       ...base,
       background: isActive ? "var(--surface-3)" : "transparent",
       color: isActive ? "var(--text)" : "var(--text-2)",
@@ -234,7 +278,7 @@ function NavMenuItem({ to, icon: Icon, onClick, children }) {
 const topNav = {
   position: "sticky", top: 0, zIndex: 10,
   height: 64, display: "flex", alignItems: "center",
-  padding: "0 24px", gap: 16,
+  padding: "0 16px", gap: 12,
   background: "var(--surface-2)",
   borderBottom: "1px solid var(--border)",
 };
