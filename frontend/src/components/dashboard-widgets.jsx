@@ -133,7 +133,7 @@ export function RequestsTable({ rows, onRowClick, compact }) {
               </td>
               <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.id}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.model}</td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.latency_ms ? r.latency_ms + "ms" : "—"}</td>
+              <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.display_latency_ms ? r.display_latency_ms + "ms" : "—"}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{(r.tokens || 0).toLocaleString()}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>
                 {new Date(r.created_at).toLocaleTimeString("zh-CN", { hour12: false })}

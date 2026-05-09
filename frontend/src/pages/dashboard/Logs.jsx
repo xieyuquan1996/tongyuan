@@ -304,7 +304,7 @@ function AuditDrawer({ log, onClose }) {
           </div>
           <h3 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 6px", fontFamily: "var(--font-mono)" }}>{log.id}</h3>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>
-            {fmtRelative(log.created_at)} · {log.model} · {log.tokens} tokens · {log.latency_ms || "—"}ms
+            {fmtRelative(log.created_at)} · {log.model} · {log.tokens} tokens · {log.display_latency_ms || "—"}ms
           </div>
         </div>
         <div style={{ padding: 24, overflow: "auto", flex: 1 }}>
@@ -342,7 +342,7 @@ x-api-key: sk-ant-api03-•••••
               <Label>区域 / 延迟 / 费用</Label>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontFamily: "var(--font-mono)", fontSize: 12 }}>
                 <Kv k="region" v={log.region} />
-                <Kv k="latency" v={(log.latency_ms || "—") + "ms"} />
+                <Kv k="latency" v={(log.display_latency_ms || "—") + "ms"} />
                 <Kv k="cost" v={"$" + log.cost} />
               </div>
             </>
