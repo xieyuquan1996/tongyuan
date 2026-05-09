@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Alerts from './Alerts.jsx'
 
@@ -30,16 +30,60 @@ afterEach(() => {
 })
 
 describe('Alerts page — email channel', () => {
-  it('邮件 appears as channel option in CHANNELS', async () => {
+  it('邮件 appears as channel option when the channel select is opened', async () => {
     mockFetch({ alerts: [] }, { notify_email: true })
     render(<MemoryRouter><Alerts /></MemoryRouter>)
+
+    // Open the new-alert form
     const addBtn = await screen.findByText('新增告警')
-    addBtn.click()
+    fireEvent.click(addBtn)
+
+    // Wait for the form to render — the default channel is "browser" so
+    // the channel select button should show "浏览器推送"
     await waitFor(() => {
-      // The default channel display button shows the current channel label
-      // When CHANNELS includes email, "邮件" or "浏览器推送" will appear
-      // We check that at least one channel select shows, indicating CHANNELS loaded
-      expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
+      expect(screen.getByText('浏览器推送')).toBeTruthy()
+    })
+
+    // Click the channel select button to open the dropdown
+    const channelSelectBtn = screen.getByText('浏览器推送').closest('button')
+    fireEvent.click(channelSelectBtn)
+
+    // The dropdown options should now be visible — "邮件" must be one of them
+    await waitFor(() => {
+      expect(screen.getByText('邮件')).toBeTruthy()
+    })
+  })
+
+  it('email banner shown in new-alert form when channel is email and notifyEmail is false', async () => {
+    mockFetch({ alerts: [] }, { notify_email: false })
+    render(<MemoryRouter><Alerts /></MemoryRouter>)
+
+    // Open the new-alert form
+    const addBtn = await screen.findByText('新增告警')
+    fireEvent.click(addBtn)
+
+    // Default channel is "browser" — no banner yet
+    await waitFor(() => {
+      expect(screen.getByText('浏览器推送')).toBeTruthy()
+    })
+    expect(screen.queryByText(/邮件通知未开启/)).toBeNull()
+
+    // Open the channel dropdown and select "邮件"
+    const channelSelectBtn = screen.getByText('浏览器推送').closest('button')
+    fireEvent.click(channelSelectBtn)
+
+    // Wait for the dropdown to render with the "邮件" option
+    await waitFor(() => {
+      expect(screen.getByText('邮件')).toBeTruthy()
+    })
+
+    // Click the "邮件" option
+    const emailOption = screen.getByText('邮件')
+    fireEvent.click(emailOption)
+
+    // The EmailBanner should now appear because notifyEmail is false
+    await waitFor(() => {
+      expect(screen.queryByText(/邮件通知未开启/)).not.toBeNull()
     })
   })
 
