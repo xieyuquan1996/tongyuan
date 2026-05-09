@@ -6,6 +6,7 @@ import { hashBody } from '../shared/canonicalize.js'
 import { forwardNonStream, forwardStream, type Reservation } from './proxy.js'
 import { computeCost } from './meter.js'
 import { commitRequest } from './biller.js'
+import { checkRequestAlerts } from '../services/alert-notifier.js'
 import { AppError } from '../shared/errors.js'
 import { extractUsage, iterSSE, splitCacheWrite } from './sse.js'
 import * as quota from './quota.js'
@@ -119,6 +120,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
       auditMatch: requestHash === upstreamRequestHash,
       idempotencyKey,
     })
+    checkRequestAlerts(user.id, { errorRate: 1, p99Ms: Date.now() - started })
     throw new AppError((errorCode as any) ?? 'all_upstreams_down')
   }
 
@@ -175,6 +177,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
       idempotencyKey,
     })
 
+    checkRequestAlerts(user.id, { errorRate: response.status >= 400 ? 1 : 0, p99Ms: Date.now() - started })
     return new Response(text, {
       status: response.status,
       headers: { 'content-type': response.headers.get('content-type') ?? 'application/json' },
@@ -235,6 +238,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
       auditMatch: requestHash === upstreamRequestHash,
       idempotencyKey,
     })
+    checkRequestAlerts(user.id, { errorRate: 1, p99Ms: Date.now() - started })
     throw new AppError((errorCode as any) ?? 'all_upstreams_down')
   }
 
@@ -305,6 +309,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
         auditMatch: requestHash === upstreamRequestHash,
         idempotencyKey,
       })
+      checkRequestAlerts(user.id, { errorRate: response!.status >= 400 ? 1 : 0, p99Ms: Date.now() - started })
     }
   })
 }

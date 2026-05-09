@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { users, requestLogs, billingLedger } from '../db/schema.js'
 import { gatewayRequests, gatewayLatency, billingUsdConsumed } from '../observability/metrics.js'
+import { checkBillingAlerts } from '../services/alert-notifier.js'
 
 export type CommitInput = {
   id: string
@@ -82,5 +83,8 @@ export async function commitRequest(input: CommitInput): Promise<void> {
   }
   if (Number(input.chargeUsd) > 0) {
     billingUsdConsumed.inc({ model: input.model }, Number(input.chargeUsd))
+  }
+  if (Number(input.chargeUsd) > 0) {
+    checkBillingAlerts(input.userId)
   }
 }
