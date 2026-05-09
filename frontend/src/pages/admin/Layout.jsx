@@ -1,19 +1,27 @@
 import { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Users, KeyRound, List, CreditCard, Cpu, Globe2,
+  LayoutDashboard, Users, KeyRound, List, CreditCard, Cpu,
   Megaphone, History, ShieldCheck, ChevronDown, LogOut, User, Sun, Moon,
-  Command, Key, Settings, FlaskConical,
+  Command, Key, Settings, FlaskConical, Menu, X,
 } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
 import { api, session, logout } from "../../lib/api.js";
 import { useTheme } from "../../lib/theme.jsx";
+import { useIsMobile } from "../../lib/hooks.js";
 
 export default function AdminLayout() {
   const nav = useNavigate();
   const [user, setUser] = useState(session.user);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const mobile = useIsMobile(768);
+  const location = useLocation();
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     api("/api/console/me")
@@ -37,6 +45,15 @@ export default function AdminLayout() {
   return (
     <div>
       <header style={topNav}>
+        {mobile && (
+          <button
+            onClick={() => setDrawerOpen(o => !o)}
+            aria-label="菜单"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-2)", padding: 4, display: "flex", alignItems: "center" }}
+          >
+            {drawerOpen ? <X size={22}/> : <Menu size={22}/>}
+          </button>
+        )}
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <LogoMark size={26}/>
           <span style={{ fontFamily: "var(--font-serif)", fontSize: 17, fontWeight: 600 }}>枫连</span>
@@ -48,25 +65,29 @@ export default function AdminLayout() {
           }}>ADMIN</span>
         </Link>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-          <Link to="/dashboard/overview" style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "4px 10px",
-            border: "1px solid var(--border)", borderRadius: 6,
-            fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-2)",
-            textDecoration: "none",
-          }}>
-            <LayoutDashboard size={12}/> 我的控制台
-          </Link>
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent("ty:open-palette"))}
-            title="命令面板" style={kBtn}>
-            <Command size={12}/> K
-          </button>
+          {!mobile && (
+            <Link to="/dashboard/overview" style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "4px 10px",
+              border: "1px solid var(--border)", borderRadius: 6,
+              fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-2)",
+              textDecoration: "none",
+            }}>
+              <LayoutDashboard size={12}/> 我的控制台
+            </Link>
+          )}
+          {!mobile && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("ty:open-palette"))}
+              title="命令面板" style={kBtn}>
+              <Command size={12}/> K
+            </button>
+          )}
           <button onClick={() => setTheme(theme === "light" ? "dark" : "light")} title="切换主题" style={iconOnlyBtn}>
             {theme === "light" ? <Moon size={14}/> : <Sun size={14}/>}
           </button>
           <button onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }} style={userBtn}>
             <div style={avatar}>{(user.name || user.email || "?")[0].toUpperCase()}</div>
-            <span style={{ fontSize: 13 }}>{user.name || user.email}</span>
+            {!mobile && <span style={{ fontSize: 13 }}>{user.name || user.email}</span>}
             <ChevronDown size={14} color="var(--text-3)"/>
           </button>
           {menuOpen && (
@@ -84,39 +105,66 @@ export default function AdminLayout() {
         </div>
       </header>
 
-      <div style={{ display: "flex" }}>
-        <aside className="app-sidebar" style={sidebar}>
-          <Group>运营总览</Group>
-          <SideItem to="/admin/overview" icon={LayoutDashboard}>平台概览</SideItem>
-          <SideItem to="/admin/audit" icon={History}>审计日志</SideItem>
-          <Group style={{ marginTop: 16 }}>账户管理</Group>
-          <SideItem to="/admin/users" icon={Users}>用户</SideItem>
-          <SideItem to="/admin/keys" icon={KeyRound}>全部密钥</SideItem>
-          <SideItem to="/admin/logs" icon={List}>全部请求</SideItem>
-          <SideItem to="/admin/billing" icon={CreditCard}>账单 / 收入</SideItem>
-          <Group style={{ marginTop: 16 }}>平台配置</Group>
-          <SideItem to="/admin/upstream-keys" icon={Key}>上游密钥</SideItem>
-          <SideItem to="/admin/models" icon={Cpu}>模型</SideItem>
-          <SideItem to="/admin/playground" icon={FlaskConical}>Playground</SideItem>
-          {/* <SideItem to="/admin/regions" icon={Globe2}>区域 / 状态</SideItem> */}{/* 暂时隐藏 */}
-          <SideItem to="/admin/announcements" icon={Megaphone}>公告</SideItem>
-          <SideItem to="/admin/settings" icon={Settings}>平台设置</SideItem>
-          <div style={{ flex: 1 }}/>
-          <div style={{ padding: 12, border: "1px solid var(--clay)", background: "var(--clay-soft)", borderRadius: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--clay-press)", marginBottom: 4 }}>
-              <ShieldCheck size={14}/>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" }}>后台管理</span>
-            </div>
-            <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
-              所有改动都会写入审计日志。请谨慎操作。
-            </div>
-          </div>
+      {mobile && drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{ position: "fixed", inset: 0, background: "var(--overlay-bg)", zIndex: 19 }}
+        />
+      )}
+
+      {mobile && drawerOpen && (
+        <aside className="app-sidebar" style={{
+          ...sidebar,
+          position: "fixed", top: 64, left: 0,
+          width: 280, height: "calc(100vh - 64px)",
+          zIndex: 20, boxShadow: "var(--shadow-modal)",
+        }}>
+          <AdminSidebarContent onNavClick={() => setDrawerOpen(false)}/>
         </aside>
-        <main style={{ flex: 1, padding: "32px 32px 64px", maxWidth: 1280, minWidth: 0 }}>
+      )}
+
+      <div style={{ display: "flex" }}>
+        {!mobile && (
+          <aside className="app-sidebar" style={sidebar}>
+            <AdminSidebarContent/>
+          </aside>
+        )}
+        <main style={{ flex: 1, padding: mobile ? "16px 16px 64px" : "32px 32px 64px", maxWidth: 1280, minWidth: 0 }}>
           <Outlet context={{ user }}/>
         </main>
       </div>
     </div>
+  );
+}
+
+function AdminSidebarContent({ onNavClick }) {
+  return (
+    <>
+      <Group>运营总览</Group>
+      <SideItem to="/admin/overview" icon={LayoutDashboard} onClick={onNavClick}>平台概览</SideItem>
+      <SideItem to="/admin/audit" icon={History} onClick={onNavClick}>审计日志</SideItem>
+      <Group style={{ marginTop: 16 }}>账户管理</Group>
+      <SideItem to="/admin/users" icon={Users} onClick={onNavClick}>用户</SideItem>
+      <SideItem to="/admin/keys" icon={KeyRound} onClick={onNavClick}>全部密钥</SideItem>
+      <SideItem to="/admin/logs" icon={List} onClick={onNavClick}>全部请求</SideItem>
+      <SideItem to="/admin/billing" icon={CreditCard} onClick={onNavClick}>账单 / 收入</SideItem>
+      <Group style={{ marginTop: 16 }}>平台配置</Group>
+      <SideItem to="/admin/upstream-keys" icon={Key} onClick={onNavClick}>上游密钥</SideItem>
+      <SideItem to="/admin/models" icon={Cpu} onClick={onNavClick}>模型</SideItem>
+      <SideItem to="/admin/playground" icon={FlaskConical} onClick={onNavClick}>Playground</SideItem>
+      <SideItem to="/admin/announcements" icon={Megaphone} onClick={onNavClick}>公告</SideItem>
+      <SideItem to="/admin/settings" icon={Settings} onClick={onNavClick}>平台设置</SideItem>
+      <div style={{ flex: 1 }}/>
+      <div style={{ padding: 12, border: "1px solid var(--clay)", background: "var(--clay-soft)", borderRadius: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--clay-press)", marginBottom: 4 }}>
+          <ShieldCheck size={14}/>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase" }}>后台管理</span>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
+          所有改动都会写入审计日志。请谨慎操作。
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -130,7 +178,7 @@ function Group({ children, style }) {
   );
 }
 
-function SideItem({ to, icon: Icon, children }) {
+function SideItem({ to, icon: Icon, children, onClick }) {
   const base = {
     display: "flex", alignItems: "center", gap: 10,
     padding: "8px 12px", borderRadius: 6,
@@ -140,7 +188,7 @@ function SideItem({ to, icon: Icon, children }) {
     cursor: "pointer",
   };
   return (
-    <NavLink to={to} style={({ isActive }) => ({
+    <NavLink to={to} onClick={onClick} style={({ isActive }) => ({
       ...base,
       background: isActive ? "var(--surface-3)" : "transparent",
       color: isActive ? "var(--text)" : "var(--text-2)",
@@ -195,7 +243,7 @@ function NavMenuItem({ to, icon: Icon, onClick, children }) {
 const topNav = {
   position: "sticky", top: 0, zIndex: 10,
   height: 64, display: "flex", alignItems: "center",
-  padding: "0 24px", gap: 16,
+  padding: "0 16px", gap: 12,
   background: "var(--surface-2)",
   borderBottom: "1px solid var(--border)",
 };
