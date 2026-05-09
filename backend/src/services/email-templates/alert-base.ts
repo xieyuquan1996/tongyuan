@@ -11,7 +11,7 @@ export function wrapLayout(title: string, bodyHtml: string): string {
   <tr><td align="center">
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
       <!-- Header -->
-      <tr><td style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:28px 32px;border-radius:12px 12px 0 0;">
+      <tr><td style="background:#667eea;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:28px 32px;border-radius:12px 12px 0 0;">
         <div style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">Claude Link</div>
         <div style="color:rgba(255,255,255,0.85);font-size:13px;margin-top:4px;">${title}</div>
       </td></tr>
