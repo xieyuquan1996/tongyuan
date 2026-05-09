@@ -83,8 +83,6 @@ export async function commitRequest(input: CommitInput): Promise<void> {
   }
   if (Number(input.chargeUsd) > 0) {
     billingUsdConsumed.inc({ model: input.model }, Number(input.chargeUsd))
-  }
-  if (Number(input.chargeUsd) > 0) {
     checkBillingAlerts(input.userId)
   }
 }
