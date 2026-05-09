@@ -24,6 +24,11 @@ describe('renderP99Latency', () => {
     expect(html).toContain('#f59e0b')
   })
 
+  it('html uses indigo color for threshold card', () => {
+    const { html } = renderP99Latency(data)
+    expect(html).toContain('#4338ca')
+  })
+
   it('text fallback contains values', () => {
     const { text } = renderP99Latency(data)
     expect(text).toContain('2000ms')
