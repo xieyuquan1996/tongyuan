@@ -196,7 +196,7 @@
   }
   /* Playground stack vertically */
   .playground-layout {
-    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
   }
   /* Playground tabs horizontal scroll */
   .playground-tabs {
