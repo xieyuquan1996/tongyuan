@@ -11,7 +11,7 @@ export default function Overview() {
   return (
     <div>
       <PageHeader title="概览" sub="cn-east-1 · 实时" />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 16 }}>
+      <div className="metrics-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 16 }}>
         <MetricCard label="UPTIME · 30D" value={m.uptime_30d} unit="%" delta="+0.04 vs 上月" deltaTone="up" />
         <MetricCard label="P99 · LIVE" value={m.p99_live_ms} unit="ms" delta="−18 vs 1h 前" deltaTone="up" />
         <MetricCard label="请求 · 30D" value={m.requests_30d} unit="" delta="较上月 +12%" deltaTone="up" />

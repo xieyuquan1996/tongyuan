@@ -125,3 +125,41 @@
 .thin-scroll::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Overview metrics grid */
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Keys row card layout */
+@media (max-width: 768px) {
+  .key-row {
+    flex-wrap: wrap;
+    gap: 6px 0;
+  }
+  .key-row-meta {
+    width: 100%;
+    font-size: 11px;
+    color: #9ca3af;
+    display: flex;
+    gap: 12px;
+    padding: 0 12px 8px;
+  }
+  .key-row-actions {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .log-col-hide {
+    display: none;
+  }
+  .req-col-hide {
+    display: none;
+  }
+  .log-table {
+    min-width: unset !important;
+  }
+}

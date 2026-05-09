@@ -3,7 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom'
 export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-6">
+      <nav className="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2">
         <span className="font-bold text-lg text-gray-900">Maple Ledger</span>
         <NavLink
           to="/transactions"

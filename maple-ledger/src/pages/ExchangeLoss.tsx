@@ -47,14 +47,14 @@ export default function ExchangeLoss() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left px-4 py-3 text-gray-600 font-medium">日期</th>
-                  <th className="text-right px-4 py-3 text-gray-600 font-medium">金额 (CAD)</th>
-                  <th className="text-right px-4 py-3 text-gray-600 font-medium">银行汇率</th>
-                  <th className="text-right px-4 py-3 text-gray-600 font-medium">市场汇率</th>
+                  <th className="hidden sm:table-cell text-right px-4 py-3 text-gray-600 font-medium">金额 (CAD)</th>
+                  <th className="hidden sm:table-cell text-right px-4 py-3 text-gray-600 font-medium">银行汇率</th>
+                  <th className="hidden sm:table-cell text-right px-4 py-3 text-gray-600 font-medium">市场汇率</th>
                   <th className="text-right px-4 py-3 text-gray-600 font-medium">损耗 (CAD)</th>
                   <th className="text-right px-4 py-3 text-gray-600 font-medium">损耗%</th>
                 </tr>
@@ -63,9 +63,9 @@ export default function ExchangeLoss() {
                 {data.records.map(r => (
                   <tr key={r.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 text-gray-700">{r.date}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">CA${r.amount.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{r.bank_rate.toFixed(4)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{r.market_rate_at_purchase.toFixed(4)}</td>
+                    <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-700">CA${r.amount.toFixed(2)}</td>
+                    <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-600">{r.bank_rate.toFixed(4)}</td>
+                    <td className="hidden sm:table-cell px-4 py-3 text-right text-gray-600">{r.market_rate_at_purchase.toFixed(4)}</td>
                     <td className="px-4 py-3 text-right text-red-600">CA${r.loss_cad.toFixed(4)}</td>
                     <td className="px-4 py-3 text-right text-red-600">{r.loss_pct.toFixed(2)}%</td>
                   </tr>
