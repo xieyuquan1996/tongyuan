@@ -3,7 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import TransactionForm from './TransactionForm.js'
 
 beforeEach(() => {
-  vi.spyOn(globalThis, 'fetch')
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    new Response(JSON.stringify({ rate: 0.74, date: '2026-05-09', source: 'cache' }), { status: 200 })
+  )
 })
 afterEach(() => {
   vi.restoreAllMocks()
