@@ -4,6 +4,7 @@ import type { Env, AppLocals } from './_middleware.js'
 
 function calcAmountCad(type: string, amount: number, usdRmbRate: number | null, cadUsdRate: number | null): number {
   if (type === 'expense') return amount
+  if (type !== 'income') throw new Error(`invalid type: ${type}`)
   if (!usdRmbRate || !cadUsdRate) throw new Error('income requires usd_rmb_rate and cad_usd_market_rate')
   return amount / usdRmbRate * cadUsdRate
 }
@@ -36,17 +37,26 @@ export const onRequestGet = async (ctx: EventContext<Env, string, AppLocals>) =>
 }
 
 export const onRequestPost = async (ctx: EventContext<Env, string, AppLocals>) => {
-  const body = await ctx.request.json() as {
+  let body: {
     type: string; date: string; amount: number; currency: string
     usdRmbRate?: number; cadUsdMarketRate?: number; note?: string
     category: string; tax?: number; bankRate?: number; marketRateAtPurchase?: number
+  }
+  try {
+    body = await ctx.request.json() as typeof body
+  } catch {
+    return Response.json({ error: 'invalid JSON' }, { status: 400 })
+  }
+
+  if (!body.type || !body.date || body.amount === undefined || !body.currency || !body.category) {
+    return Response.json({ error: 'missing required fields: type, date, amount, currency, category' }, { status: 400 })
   }
 
   let amountCad: number
   try {
     amountCad = calcAmountCad(body.type, body.amount, body.usdRmbRate ?? null, body.cadUsdMarketRate ?? null)
   } catch (err) {
-    return Response.json({ error: String(err) }, { status: 400 })
+    return Response.json({ error: (err as Error).message }, { status: 400 })
   }
 
   const id = nanoid()
