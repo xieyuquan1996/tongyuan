@@ -129,7 +129,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
                 <input id="amount-rmb" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">USD/RMB 汇率</label>
                   <input type="number" step="0.0001" value={usdRmbRate} onChange={e => setUsdRmbRate(e.target.value)} required
@@ -144,7 +144,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-700 mb-1" htmlFor="amount-cad">支出加币 (CAD)</label>
                   <input id="amount-cad" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required
@@ -160,7 +160,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
                   <p className="text-xs text-gray-400 mt-1">银行账单中的 GST/消费税</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-700 mb-1">购入美元 <span className="text-gray-400">（选填，涉及换汇时填）</span></label>
                   <input type="number" step="0.01" value={usdAmount} onChange={e => setUsdAmount(e.target.value)}
@@ -189,7 +189,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-gray-700 mb-1">分类</label>
               <select value={category} onChange={e => setCategory(e.target.value)}

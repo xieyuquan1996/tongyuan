@@ -97,8 +97,8 @@ export default function Transactions() {
         />
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 text-gray-600 font-medium">日期</th>
@@ -106,7 +106,7 @@ export default function Transactions() {
               <th className="text-right px-4 py-3 text-gray-600 font-medium">金额</th>
               <th className="text-right px-4 py-3 text-gray-600 font-medium">CAD</th>
               <th className="text-left px-4 py-3 text-gray-600 font-medium">分类</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">备注</th>
+              <th className="hidden sm:table-cell text-left px-4 py-3 text-gray-600 font-medium">备注</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -128,7 +128,7 @@ export default function Transactions() {
                   CA${tx.amount_cad.toFixed(4)}
                 </td>
                 <td className="px-4 py-3 text-gray-500">{CATEGORY_LABELS[tx.category] ?? tx.category}</td>
-                <td className="px-4 py-3 text-gray-500">{tx.note ?? '-'}</td>
+                <td className="hidden sm:table-cell px-4 py-3 text-gray-500">{tx.note ?? '-'}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setEditing(tx); setShowForm(true) }}

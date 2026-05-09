@@ -66,8 +66,8 @@ export default function MonthlyReport() {
       )}
 
       <h3 className="text-sm font-medium text-gray-600 mb-3">近 6 个月利润趋势</h3>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <table className="w-full min-w-[480px] text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 text-gray-600 font-medium">月份</th>
