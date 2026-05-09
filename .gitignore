@@ -44,5 +44,8 @@ coverage/
 # Drizzle generated (keep migrations, ignore kit cache)
 drizzle/
 
+# Git worktrees
+.worktrees/
+
 # Misc
 *.local

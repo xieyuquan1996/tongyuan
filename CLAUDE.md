@@ -87,3 +87,37 @@ npm run test:live   # 验证真实 SMTP 投递
 - **Env:** `backend/.env` (copy from `.env.example`)
 - **Migrations:** `npx tsx src/db/migrate.ts`
 - **Typecheck:** `npx tsc --noEmit`
+
+## Development workflow — Git Worktrees
+
+**每次改代码都必须在独立的 worktree 中进行，不在 main 分支直接修改。**
+
+### 创建 worktree
+
+```bash
+# 在项目根目录执行
+git worktree add .worktrees/<feature-name> -b <feature-name>
+cd .worktrees/<feature-name>
+
+# 安装依赖（如果 package.json 有变化）
+cd backend && npm install && cd ..
+
+# 验证基线测试通过
+cd backend
+set -a && source .env && set +a
+npm test
+```
+
+`.worktrees/` 已加入 `.gitignore`，不会被 git 追踪。
+
+### 完成后合并
+
+```bash
+# 在 worktree 内确认测试全通过后
+cd /path/to/project-root   # 切回主仓库
+git merge <feature-name>
+git worktree remove .worktrees/<feature-name>
+git branch -d <feature-name>
+```
+
+或通过 `superpowers:finishing-a-development-branch` 技能处理合并 / PR 流程。
