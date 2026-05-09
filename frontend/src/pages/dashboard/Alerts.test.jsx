@@ -90,7 +90,30 @@ describe('Alerts page — email channel', () => {
   it('no email warning shown when notifyEmail is true', async () => {
     mockFetch({ alerts: [] }, { notify_email: true })
     render(<MemoryRouter><Alerts /></MemoryRouter>)
-    await screen.findByText('新增告警')
+
+    // Open the new-alert form
+    const addBtn = await screen.findByText('新增告警')
+    fireEvent.click(addBtn)
+
+    // Wait for the form to render with the default channel button
+    await waitFor(() => {
+      expect(screen.getByText('浏览器推送')).toBeTruthy()
+    })
+
+    // Open the channel dropdown
+    const channelSelectBtn = screen.getByText('浏览器推送').closest('button')
+    fireEvent.click(channelSelectBtn)
+
+    // Wait for the "邮件" option to appear
+    await waitFor(() => {
+      expect(screen.getByText('邮件')).toBeTruthy()
+    })
+
+    // Click the "邮件" option
+    const emailOption = screen.getByText('邮件')
+    fireEvent.click(emailOption)
+
+    // No banner should appear because notifyEmail is true
     await waitFor(() => {
       expect(screen.queryByText(/邮件通知未开启/)).toBeNull()
     })
