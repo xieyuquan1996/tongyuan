@@ -40,7 +40,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
         .then(d => setCadUsdRate(String(d.rate)))
         .catch(() => {})
     }
-  }, [type])
+  }, [type, cadUsdRate])
 
   const amountCadPreview = () => {
     if (type === 'expense') return Number(amount) || 0
