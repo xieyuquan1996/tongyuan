@@ -1,3 +1,149 @@
+import { useState, useEffect, useCallback } from 'react'
+import SummaryCards from '../components/SummaryCards.js'
+import TransactionForm from '../components/TransactionForm.js'
+import { api } from '../lib/api.js'
+
+interface Transaction {
+  id: string; type: string; date: string; amount: number; currency: string
+  usdRmbRate?: number; cadUsdMarketRate?: number; amount_cad: number
+  note?: string; category: string; created_by: string
+}
+
+interface MonthlyReport {
+  income_rmb: number; income_cad: number; expense_cad: number; profit_cad: number; tx_count: number
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  api_topup: 'API充值', user_payment: '用户付款', server: '服务器', other: '其他',
+}
+
 export default function Transactions() {
-  return <div>Transactions</div>
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [report, setReport] = useState<MonthlyReport | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState<Transaction | undefined>()
+  const [filterType, setFilterType] = useState('')
+
+  const load = useCallback(async () => {
+    const params = new URLSearchParams({ month })
+    if (filterType) params.set('type', filterType)
+    const [txs, rep] = await Promise.all([
+      api<Transaction[]>(`/api/transactions?${params}`),
+      api<MonthlyReport>(`/api/reports/monthly?month=${month}`),
+    ])
+    setTransactions(txs)
+    setReport(rep)
+  }, [month, filterType])
+
+  useEffect(() => { load() }, [load])
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('确认删除此交易？')) return
+    await api(`/api/transactions/${id}`, { method: 'DELETE' })
+    load()
+  }
+
+  const prevMonth = () => {
+    const d = new Date(`${month}-01`)
+    d.setMonth(d.getMonth() - 1)
+    setMonth(d.toISOString().slice(0, 7))
+  }
+  const nextMonth = () => {
+    const d = new Date(`${month}-01`)
+    d.setMonth(d.getMonth() + 1)
+    setMonth(d.toISOString().slice(0, 7))
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <button onClick={prevMonth} className="text-gray-500 hover:text-gray-900 px-2">‹</button>
+          <span className="text-lg font-semibold">{month}</span>
+          <button onClick={nextMonth} className="text-gray-500 hover:text-gray-900 px-2">›</button>
+        </div>
+        <div className="flex items-center gap-3">
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <option value="">全部类型</option>
+            <option value="income">收入</option>
+            <option value="expense">支出</option>
+          </select>
+          <button onClick={() => { setEditing(undefined); setShowForm(true) }}
+            className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700">
+            + 新增交易
+          </button>
+        </div>
+      </div>
+
+      {report && (
+        <SummaryCards
+          incomeCad={report.income_cad}
+          expenseCad={report.expense_cad}
+          profitCad={report.profit_cad}
+          txCount={report.tx_count}
+        />
+      )}
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="text-left px-4 py-3 text-gray-600 font-medium">日期</th>
+              <th className="text-left px-4 py-3 text-gray-600 font-medium">类型</th>
+              <th className="text-right px-4 py-3 text-gray-600 font-medium">金额</th>
+              <th className="text-right px-4 py-3 text-gray-600 font-medium">CAD</th>
+              <th className="text-left px-4 py-3 text-gray-600 font-medium">分类</th>
+              <th className="text-left px-4 py-3 text-gray-600 font-medium">备注</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map(tx => (
+              <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="px-4 py-3 text-gray-700">{tx.date}</td>
+                <td className="px-4 py-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    tx.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                  }`}>
+                    {tx.type === 'income' ? '收入' : '支出'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right text-gray-700">
+                  {tx.currency === 'RMB' ? '¥' : 'CA$'}{tx.amount.toFixed(2)}
+                </td>
+                <td className="px-4 py-3 text-right font-medium text-gray-900">
+                  CA${tx.amount_cad.toFixed(4)}
+                </td>
+                <td className="px-4 py-3 text-gray-500">{CATEGORY_LABELS[tx.category] ?? tx.category}</td>
+                <td className="px-4 py-3 text-gray-500">{tx.note ?? '-'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => { setEditing(tx); setShowForm(true) }}
+                      className="text-blue-500 hover:text-blue-700 text-xs">编辑</button>
+                    <button onClick={() => handleDelete(tx.id)}
+                      className="text-red-400 hover:text-red-600 text-xs">删除</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {transactions.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">本月暂无交易记录</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showForm && (
+        <TransactionForm
+          initial={editing}
+          onClose={() => setShowForm(false)}
+          onSaved={() => { setShowForm(false); load() }}
+        />
+      )}
+    </div>
+  )
 }
