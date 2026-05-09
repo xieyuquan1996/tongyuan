@@ -78,6 +78,18 @@ describe('alerts routes', () => {
     expect(r.status).toBe(400)
   })
 
+  it('creates an email-channel alert', async () => {
+    const r = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({ kind: 'spend_daily', threshold: '10.00', channel: 'email', enabled: true }),
+    })
+    expect(r.status).toBe(201)
+    const j = await r.json()
+    expect(j.channel).toBe('email')
+    // clean up
+    await req(`/api/console/alerts/${j.id}`, { method: 'DELETE' })
+  })
+
   it('cross-user DELETE returns 404 and leaves alert intact', async () => {
     // User A creates an alert (using existing token)
     const cr = await req('/api/console/alerts', {
