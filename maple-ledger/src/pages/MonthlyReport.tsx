@@ -20,29 +20,29 @@ export default function MonthlyReport() {
   }, [month])
 
   useEffect(() => {
+    const [y, mo] = month.split('-').map(Number)
     const months: Promise<Report>[] = []
     for (let i = 5; i >= 0; i--) {
-      const d = new Date()
-      d.setMonth(d.getMonth() - i)
-      const m = d.toISOString().slice(0, 7)
+      const d = new Date(y, (mo as number) - 1 - i, 1)
+      const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       months.push(api<Report>(`/api/reports/monthly?month=${m}`))
     }
     Promise.all(months).then(setHistory).catch(() => {})
-  }, [])
+  }, [month])
 
   const profitRate = report && report.income_cad > 0
     ? (report.profit_cad / report.income_cad * 100).toFixed(1)
     : null
 
   const prevMonth = () => {
-    const d = new Date(`${month}-01`)
-    d.setMonth(d.getMonth() - 1)
-    setMonth(d.toISOString().slice(0, 7))
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, (m as number) - 2, 1)
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
   const nextMonth = () => {
-    const d = new Date(`${month}-01`)
-    d.setMonth(d.getMonth() + 1)
-    setMonth(d.toISOString().slice(0, 7))
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, m as number, 1)
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
   return (

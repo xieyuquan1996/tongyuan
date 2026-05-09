@@ -40,19 +40,23 @@ export default function Transactions() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('确认删除此交易？')) return
-    await api(`/api/transactions/${id}`, { method: 'DELETE' })
-    load()
+    try {
+      await api(`/api/transactions/${id}`, { method: 'DELETE' })
+      load()
+    } catch (err) {
+      alert(`删除失败：${(err as Error).message}`)
+    }
   }
 
   const prevMonth = () => {
-    const d = new Date(`${month}-01`)
-    d.setMonth(d.getMonth() - 1)
-    setMonth(d.toISOString().slice(0, 7))
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, (m as number) - 2, 1)
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
   const nextMonth = () => {
-    const d = new Date(`${month}-01`)
-    d.setMonth(d.getMonth() + 1)
-    setMonth(d.toISOString().slice(0, 7))
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, m as number, 1)
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
   }
 
   return (
