@@ -1,7 +1,9 @@
 // backend/src/routes/console/auth.test.ts
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { createApp } from '../../app.js'
 import { pool } from '../../db/client.js'
+import { setMailer } from '../../services/mailer/index.js'
+import type { SendOptions } from '../../services/mailer/index.js'
 
 const app = createApp()
 
@@ -71,10 +73,20 @@ describe('auth routes', () => {
   describe('password reset', () => {
     let resetEmail: string
     let capturedToken: string
+    let mailCalls: SendOptions[] = []
 
     beforeAll(async () => {
       resetEmail = `auth-test-reset-${Date.now()}@example.com`
       await post('/api/console/register', { email: resetEmail, password: 'oldpass1', name: 'R' })
+    })
+
+    beforeEach(() => {
+      mailCalls = []
+      setMailer({ async send(o) { mailCalls.push(o) } })
+    })
+
+    afterEach(() => {
+      setMailer(null)
     })
 
     it('forgot with unknown email returns 200 (no enumeration)', async () => {
@@ -84,20 +96,11 @@ describe('auth routes', () => {
     })
 
     it('forgot with known email returns 200 and stores token in Redis', async () => {
-      // Capture what ConsoleMailer would log
-      const logs: string[] = []
-      const orig = console.log
-      console.log = (...args: unknown[]) => { logs.push(args.join(' ')); orig(...args) }
-
       const r = await post('/api/console/forgot', { email: resetEmail })
-
-      console.log = orig
       expect(r.status).toBe(200)
 
-      // Extract token from console log line
-      const logLine = logs.find(l => l.includes('reset-password'))
-      expect(logLine).toBeDefined()
-      const match = logLine!.match(/token=([a-f0-9]{64})/)
+      expect(mailCalls).toHaveLength(1)
+      const match = mailCalls[0]!.text.match(/token=([a-f0-9]{64})/)
       expect(match).toBeTruthy()
       capturedToken = match![1]!
     })

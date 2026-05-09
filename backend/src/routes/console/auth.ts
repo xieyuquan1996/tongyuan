@@ -125,12 +125,14 @@ authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string() })), 
 authRoutes.post('/reset', zValidator('json', z.object({ token: z.string(), password: z.string() })), async (c) => {
   const { token, password } = c.req.valid('json')
 
-  const userId = await redis.get(`pw_reset:${token}`)
-  if (!userId) throw new AppError('invalid_or_expired_token')
   if (password.length < 6) throw new AppError('weak_password')
 
+  // Atomically claim and delete the token so concurrent requests cannot reuse it.
+  const userId = await redis.getdel(`pw_reset:${token}`)
+  if (!userId) throw new AppError('invalid_or_expired_token')
+
+  // Token is already gone — safe to do the slow bcrypt hash now.
   await db.update(users).set({ passwordHash: await hashPassword(password), updatedAt: new Date() }).where(eq(users.id, userId))
-  await redis.del(`pw_reset:${token}`)
 
   return c.json({ ok: true })
 })
