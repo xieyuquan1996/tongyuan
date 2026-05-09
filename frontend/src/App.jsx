@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Forgot from "./pages/Forgot.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import MarketingLanding from "./pages/marketing/Landing.jsx";
 import { AboutPage, ContactPage, TermsPage, PrivacyPage } from "./pages/marketing/StaticPages.jsx";
 import StatusPage from "./pages/Status.jsx";
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot" element={<Forgot />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/status" element={<StatusPage />} />
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/about" element={<AboutPage />} />
