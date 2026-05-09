@@ -112,12 +112,14 @@ export default function AdminLayout() {
         />
       )}
 
-      {mobile && drawerOpen && (
+      {mobile && (
         <aside className="app-sidebar" style={{
           ...sidebar,
           position: "fixed", top: 64, left: 0,
           width: 280, height: "calc(100vh - 64px)",
           zIndex: 20, boxShadow: "var(--shadow-modal)",
+          transform: drawerOpen ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s ease",
         }}>
           <AdminSidebarContent onNavClick={() => setDrawerOpen(false)}/>
         </aside>
