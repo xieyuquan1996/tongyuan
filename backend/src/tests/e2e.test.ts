@@ -140,8 +140,11 @@ describe('e2e: failover', () => {
     ])
     try {
       setAnthropicBaseUrlOverride(mock.baseUrl)
-      const a = await seedUpstream('e2e-failover-A', 100)
-      const b = await seedUpstream('e2e-failover-B', 200)
+      // Give A an overwhelming weight (9999:1) so weightedShuffle deterministically
+      // picks A first. Without explicit weights, both default to 100 and the 50/50
+      // shuffle makes the test order-dependent and flaky.
+      const a = await upstreamSvc.create({ alias: 'e2e-failover-A', secret: 'e2e-failover-A', priority: 100, weight: 9999 })
+      const b = await upstreamSvc.create({ alias: 'e2e-failover-B', secret: 'e2e-failover-B', priority: 200, weight: 1 })
 
       const r = await post('/v1/messages', {
         model: 'e2e-test-model',
@@ -197,6 +200,13 @@ describe('e2e: all upstreams down', () => {
 })
 
 describe('rate limiting', () => {
+  // Helper: get the API key row for the test user (shared across rate-limit tests).
+  async function getKeyId(): Promise<string> {
+    const [keyRow] = await db.select().from(apiKeys).where(eq(apiKeys.userId, userId))
+    if (!keyRow) throw new Error('API key row not found in rate-limit test setup')
+    return keyRow.id
+  }
+
   it.skipIf(env.DISABLE_USER_QUOTA)('returns 429 with Retry-After and rate limit headers when RPM exceeded', async () => {
     // Look up the API key row first so we can reference its id in cleanup.
     const [keyRow] = await db.select().from(apiKeys).where(eq(apiKeys.userId, userId))
@@ -249,6 +259,115 @@ describe('rate limiting', () => {
       // token-bucket so later tests see a clean rate-limit state (the drained
       // bucket would otherwise throttle the very next request in the streaming
       // test, since a 1-RPM bucket needs 60 s to refill from 0).
+      await db.update(apiKeys).set({ rpmLimit: null }).where(eq(apiKeys.userId, userId))
+      await delCached(hmacApiKey(skRelay))
+      await redis.del(`rl:tb:${keyId}`)
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+    }
+  })
+
+  it.skipIf(env.DISABLE_USER_QUOTA)('returns 429 with token headers when TPM exhausted on /v1/messages', async () => {
+    // estimateInputTokens({ messages: [{role:'user',content:'hi'}], max_tokens:10 })
+    //   = ceil((17 chars / 4) * 1.1) = 5
+    // estimateOutputTokens(..., cap=50) = min(10, 50) = 10
+    // Total estimate per request = 15. Mock actual = input(10)+output(5) = 15.
+    // delta = 0 on each reconcile → net cost = 15 tokens/request.
+    // After 3 requests: 50 - 45 = 5 remaining. 4th estimate(15) > 5 → 429.
+    const keyId = await getKeyId()
+    const mock = await startMockUpstream([
+      { kind: 'ok', usage: { input: 10, output: 5 } },
+      { kind: 'ok', usage: { input: 10, output: 5 } },
+      { kind: 'ok', usage: { input: 10, output: 5 } },
+    ])
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream()
+
+      await db.update(apiKeys).set({ tpmLimit: '50' }).where(eq(apiKeys.userId, userId))
+      await delCached(hmacApiKey(skRelay))
+      await redis.del(`rl:tpm:${keyId}`)
+
+      const makeRequest = () =>
+        post('/v1/messages', {
+          model: 'e2e-test-model',
+          messages: [{ role: 'user', content: 'hi' }],
+          max_tokens: 10,
+        })
+
+      expect((await makeRequest()).status).toBe(200)
+      expect((await makeRequest()).status).toBe(200)
+      expect((await makeRequest()).status).toBe(200)
+
+      // 4th request: TPM exhausted
+      const r4 = await makeRequest()
+      expect(r4.status).toBe(429)
+      expect(r4.headers.get('retry-after')).not.toBeNull()
+      expect(r4.headers.get('x-ratelimit-limit-tokens')).toBe('50')
+      expect(r4.headers.get('x-ratelimit-remaining-tokens')).toMatch(/^\d+$/)
+      expect(r4.headers.get('x-ratelimit-reset-tokens')).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+      // RPM headers must NOT appear on a TPM-triggered 429
+      expect(r4.headers.get('x-ratelimit-limit-requests')).toBeNull()
+
+      const body = await r4.json() as any
+      expect(body.type).toBe('error')
+      expect(body.error.type).toBe('rate_limit_error')
+      expect(body.error.message).toMatch(/TPM/)
+    } finally {
+      await db.update(apiKeys).set({ tpmLimit: null }).where(eq(apiKeys.userId, userId))
+      await delCached(hmacApiKey(skRelay))
+      await redis.del(`rl:tpm:${keyId}`)
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+    }
+  })
+
+  it.skipIf(env.DISABLE_USER_QUOTA)('returns 429 with rate limit headers on /v1/chat/completions when RPM exceeded', async () => {
+    const keyId = await getKeyId()
+    const mock = await startMockUpstream([
+      { kind: 'ok', usage: { input: 10, output: 5 } },
+    ])
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream()
+
+      await db.update(apiKeys).set({ rpmLimit: '1' }).where(eq(apiKeys.userId, userId))
+      await delCached(hmacApiKey(skRelay))
+      await redis.del(`rl:tb:${keyId}`)
+
+      const makeRequest = () =>
+        app.fetch(new Request('http://x/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'x-api-key': skRelay,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'e2e-test-model',
+            messages: [{ role: 'user', content: 'hi' }],
+            max_tokens: 10,
+          }),
+        }))
+
+      // First request: passes, response is in OpenAI format
+      const r1 = await makeRequest()
+      expect(r1.status).toBe(200)
+      const body1 = await r1.json() as any
+      expect(body1.choices).toBeDefined()
+
+      // Second request: RPM exceeded — 429 with standard rate-limit headers
+      const r2 = await makeRequest()
+      expect(r2.status).toBe(429)
+      expect(r2.headers.get('retry-after')).not.toBeNull()
+      expect(r2.headers.get('x-ratelimit-limit-requests')).toBe('1')
+      expect(r2.headers.get('x-ratelimit-remaining-requests')).toBe('0')
+      expect(r2.headers.get('x-ratelimit-reset-requests')).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+
+      const body2 = await r2.json() as any
+      expect(body2.type).toBe('error')
+      expect(body2.error.type).toBe('rate_limit_error')
+      expect(body2.error.message).toMatch(/RPM/)
+    } finally {
       await db.update(apiKeys).set({ rpmLimit: null }).where(eq(apiKeys.userId, userId))
       await delCached(hmacApiKey(skRelay))
       await redis.del(`rl:tb:${keyId}`)
