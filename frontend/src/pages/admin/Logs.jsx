@@ -89,7 +89,7 @@ export default function AdminLogs() {
                     {(l.output_tokens || 0).toLocaleString()}
                   </td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{l.type || "HTTP"}</td>
-                  <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{l.latency_ms ? l.latency_ms + "ms" : "—"}</td>
+                  <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{l.display_latency_ms ? l.display_latency_ms + "ms" : "—"}</td>
                   <td style={td}>{l.audit_match ? <Pill tone="ok" dot>一致</Pill> : <Pill tone="err" dot>不一致</Pill>}</td>
                   <td style={{ ...td, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>{fmtRelative(l.created_at)}</td>
                 </tr>
@@ -201,7 +201,7 @@ function Drawer({ log, onClose }) {
           </div>
           <h3 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 6px", fontFamily: "var(--font-mono)" }}>{log.id}</h3>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>
-            {log.owner_email} · {log.model} · {log.latency_ms || "—"}ms · {fmtRelative(log.created_at)}
+            {log.owner_email} · {log.model} · {log.display_latency_ms || "—"}ms · {fmtRelative(log.created_at)}
           </div>
         </div>
         <div style={{ padding: 24, overflow: "auto", flex: 1 }}>
