@@ -108,10 +108,10 @@ export function RequestsTable({ rows, onRowClick, compact }) {
         <thead>
           <tr style={{ background: "var(--surface-3)" }}>
             <th style={th}>状态</th>
-            <th style={th}>请求 ID</th>
+            <th className="req-col-hide" style={th}>请求 ID</th>
             <th style={th}>模型</th>
             <th style={th}>延迟</th>
-            <th style={th}>Tokens</th>
+            <th className="req-col-hide" style={th}>Tokens</th>
             <th style={th}>时间</th>
           </tr>
         </thead>
@@ -131,10 +131,10 @@ export function RequestsTable({ rows, onRowClick, compact }) {
                 <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: dotColor(r.status), marginRight: 8 }} />
                 {r.status}
               </td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.id}</td>
+              <td className="req-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.id}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.model}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.display_latency_ms ? r.display_latency_ms + "ms" : "—"}</td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{(r.tokens || 0).toLocaleString()}</td>
+              <td className="req-col-hide" style={{ ...td, fontFamily: "var(--font-mono)" }}>{(r.tokens || 0).toLocaleString()}</td>
               <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>
                 {new Date(r.created_at).toLocaleTimeString("zh-CN", { hour12: false })}
               </td>

@@ -71,17 +71,17 @@ function LogsTable({ rows, onRowClick }) {
       background: "var(--surface-2)", border: "1px solid var(--border)",
       borderRadius: 12, overflow: "auto",
     }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 960 }}>
+      <table className="log-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ background: "var(--surface-3)" }}>
             <th style={th}>时间</th>
-            <th style={th}>请求 ID</th>
+            <th className="log-col-hide" style={th}>请求 ID</th>
             <th style={th}>模型</th>
             <th style={{ ...th, textAlign: "right" }}>输入<br />Tokens</th>
             <th style={{ ...th, textAlign: "right" }}>输出<br />Tokens</th>
-            <th style={th}>类型</th>
-            <th style={th}>服务层</th>
-            <th style={th}>请求路径</th>
+            <th className="log-col-hide" style={th}>类型</th>
+            <th className="log-col-hide" style={th}>服务层</th>
+            <th className="log-col-hide" style={th}>请求路径</th>
             <th style={{ ...th, width: 24 }} />
           </tr>
         </thead>
@@ -100,7 +100,7 @@ function LogsTable({ rows, onRowClick }) {
               <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)", whiteSpace: "nowrap" }}>
                 {fmtTime(r.created_at)}
               </td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>
+              <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>
                 <StatusDot status={r.status} />
                 {r.id}
               </td>
@@ -111,9 +111,9 @@ function LogsTable({ rows, onRowClick }) {
               <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                 {(r.output_tokens || 0).toLocaleString()}
               </td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.type || "HTTP"}</td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.service_tier === "Standard" ? "标准" : (r.service_tier || "标准")}</td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>
+              <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.type || "HTTP"}</td>
+              <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.service_tier === "Standard" ? "标准" : (r.service_tier || "标准")}</td>
+              <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>
                 {r.endpoint || "/v1/messages"}
               </td>
               <td style={{ ...td, color: "var(--text-3)" }}>
