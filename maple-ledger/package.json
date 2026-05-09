@@ -1,0 +1,39 @@
+{
+  "name": "maple-ledger",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "wrangler d1 execute maple-ledger --file=db/migrations/0001_init.sql",
+    "db:migrate:local": "wrangler d1 execute maple-ledger --local --file=db/migrations/0001_init.sql"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "drizzle-orm": "^0.30.10",
+    "hono": "^4.3.0",
+    "nanoid": "^5.0.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.23.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.19",
+    "drizzle-kit": "^0.21.4",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.12",
+    "vitest": "^1.6.0",
+    "@testing-library/react": "^15.0.7",
+    "@testing-library/jest-dom": "^6.4.5",
+    "jsdom": "^24.1.0"
+  }
+}
