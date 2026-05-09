@@ -50,6 +50,8 @@ describe('checkBillingAlerts', () => {
     expect(mockMailer.calls).toHaveLength(1)
     expect(mockMailer.calls[0]!.to).toBe('alert-notifier-test@example.com')
     expect(mockMailer.calls[0]!.subject).toContain('余额')
+    expect(mockMailer.calls[0]!.html).toBeDefined()
+    expect(mockMailer.calls[0]!.html).toContain('<!DOCTYPE html')
 
     await db.delete(alerts).where(eq(alerts.id, a!.id))
   })
@@ -109,6 +111,8 @@ describe('checkRequestAlerts', () => {
 
     expect(mockMailer.calls).toHaveLength(1)
     expect(mockMailer.calls[0]!.subject).toContain('错误率')
+    expect(mockMailer.calls[0]!.html).toBeDefined()
+    expect(mockMailer.calls[0]!.html).toContain('<!DOCTYPE html')
 
     await db.delete(alerts).where(eq(alerts.id, a!.id))
   })

@@ -14,9 +14,9 @@ const KINDS = [
 ];
 
 const CHANNELS = [
-  // { id: "email",   label: "邮件" },    // TODO: 后端 evaluator + 邮件投递尚未实现
+  { id: "email",   label: "邮件" },
   { id: "browser", label: "浏览器推送" },
-  // { id: "webhook", label: "Webhook" }, // TODO: 后端 evaluator + URL 字段尚未实现
+  // { id: "webhook", label: "Webhook" }, // TODO: backend evaluator + URL field not implemented
 ];
 
 export default function Alerts() {
@@ -28,6 +28,11 @@ export default function Alerts() {
   const [toast, setToast] = useState(null);
   const [overrides, setOverrides] = useState({});
   const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const [notifyEmail, setNotifyEmail] = useState(true);
+
+  useEffect(() => {
+    api("/api/console/me").then((u) => setNotifyEmail(!!u.notify_email)).catch(() => {});
+  }, []);
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
   useEffect(() => { setOverrides({}); }, [data]);
@@ -177,6 +182,7 @@ export default function Alerts() {
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
             {KINDS.find((k) => k.id === newAlert.kind)?.desc}
           </div>
+          {newAlert.channel === "email" && !notifyEmail && <EmailBanner />}
         </form>
       )}
 
@@ -191,40 +197,47 @@ export default function Alerts() {
           {alerts.map((a, i) => {
             const k = KINDS.find((x) => x.id === a.kind);
             return (
-              <div key={a.id} style={{
-                display: "grid", gridTemplateColumns: "20px 1fr 140px 140px 90px 32px",
-                gap: 16, padding: "16px 20px", alignItems: "center",
-                borderTop: i > 0 ? "1px solid var(--divider)" : "none",
-              }}>
-                <Bell size={16} color={a.enabled ? "var(--clay)" : "var(--text-4)"}/>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>
-                    {k?.label} <span style={{ fontFamily: "var(--font-mono)", color: "var(--clay-press)" }}>{k?.unit}{a.threshold}</span>
-                  </div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>{k?.desc}</div>
-                </div>
-                <Stepper
-                  value={a.threshold}
-                  unit={k?.unit || ""}
-                  onCommit={(v) => patch(a, { threshold: v })}
-                />
-                <Select
-                  value={a.channel}
-                  options={CHANNELS}
-                  onChange={(v) => patch(a, { channel: v })}
-                />
-                <button onClick={() => toggle(a)} style={{
-                  padding: "6px 10px", borderRadius: 6, cursor: "pointer",
-                  background: a.enabled ? "var(--ok-soft)" : "transparent",
-                  color: a.enabled ? "var(--ok-text)" : "var(--text-3)",
-                  border: a.enabled ? "none" : "1px solid var(--border)",
-                  fontSize: 12, fontFamily: "var(--font-mono)",
+              <div key={a.id}>
+                <div style={{
+                  display: "grid", gridTemplateColumns: "20px 1fr 140px 140px 90px 32px",
+                  gap: 16, padding: "16px 20px", alignItems: "center",
+                  borderTop: i > 0 ? "1px solid var(--divider)" : "none",
                 }}>
-                  {a.enabled ? "已启用" : "已禁用"}
-                </button>
-                <button onClick={() => setDeleteTarget(a)} title="删除" style={iconBtn}>
-                  <Trash2 size={14} color="var(--err)"/>
-                </button>
+                  <Bell size={16} color={a.enabled ? "var(--clay)" : "var(--text-4)"}/>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>
+                      {k?.label} <span style={{ fontFamily: "var(--font-mono)", color: "var(--clay-press)" }}>{k?.unit}{a.threshold}</span>
+                    </div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)" }}>{k?.desc}</div>
+                  </div>
+                  <Stepper
+                    value={a.threshold}
+                    unit={k?.unit || ""}
+                    onCommit={(v) => patch(a, { threshold: v })}
+                  />
+                  <Select
+                    value={a.channel}
+                    options={CHANNELS}
+                    onChange={(v) => patch(a, { channel: v })}
+                  />
+                  <button onClick={() => toggle(a)} style={{
+                    padding: "6px 10px", borderRadius: 6, cursor: "pointer",
+                    background: a.enabled ? "var(--ok-soft)" : "transparent",
+                    color: a.enabled ? "var(--ok-text)" : "var(--text-3)",
+                    border: a.enabled ? "none" : "1px solid var(--border)",
+                    fontSize: 12, fontFamily: "var(--font-mono)",
+                  }}>
+                    {a.enabled ? "已启用" : "已禁用"}
+                  </button>
+                  <button onClick={() => setDeleteTarget(a)} title="删除" style={iconBtn}>
+                    <Trash2 size={14} color="var(--err)"/>
+                  </button>
+                </div>
+                {a.channel === "email" && !notifyEmail && (
+                  <div style={{ padding: "0 20px 12px" }}>
+                    <EmailBanner />
+                  </div>
+                )}
               </div>
             );
           })}
@@ -301,6 +314,18 @@ function PermBanner({ perm, onRequest, onTest }) {
     </div>
   );
 }
+function EmailBanner() {
+  return (
+    <div style={{ ...bannerBase, background: "var(--warn-soft)", borderLeftColor: "var(--warn)", marginTop: 8 }}>
+      <span style={{ fontSize: 13 }}>
+        邮件通知未开启。请前往{" "}
+        <a href="/dashboard/settings" style={{ color: "var(--clay)", textDecoration: "none" }}>账户设置</a>
+        {" "}开启邮件通知后，邮件告警才会生效。
+      </span>
+    </div>
+  );
+}
+
 const bannerBase = {
   display: "flex", alignItems: "center", gap: 10,
   padding: "10px 14px", borderRadius: 8, marginBottom: 16,
