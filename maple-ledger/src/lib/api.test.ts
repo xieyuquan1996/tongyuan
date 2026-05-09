@@ -35,4 +35,10 @@ describe('api()', () => {
       body: JSON.stringify({ amount: 100 }),
     }))
   })
+
+  it('returns undefined for 204 No Content', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }))
+    const result = await api('/api/transactions/1')
+    expect(result).toBeUndefined()
+  })
 })
