@@ -11,6 +11,10 @@ import { db } from '../../db/client.js'
 import { users, billingLedger } from '../../db/schema.js'
 import { eq, and, gte, sql } from 'drizzle-orm'
 import { toCny, getRate } from '../../shared/fx.js'
+import { randomBytes } from 'node:crypto'
+import { redis } from '../../redis/client.js'
+import { getMailer } from '../../services/mailer/index.js'
+import { env } from '../../env.js'
 
 export const authRoutes = new Hono()
 
@@ -96,4 +100,37 @@ authRoutes.post('/password', requireBearer, zValidator('json', passwordBody), as
   return c.json({ ok: true })
 })
 
-authRoutes.post('/forgot', async (c) => c.json({ ok: true, hint: '如果该邮箱已注册，我们已经发送了重置链接。' }))
+authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string() })), async (c) => {
+  const { email } = c.req.valid('json')
+  const hint = '如果该邮箱已注册，我们已经发送了重置链接。'
+
+  const user = await db.query.users.findFirst({ where: eq(users.email, email.trim().toLowerCase()) })
+  if (!user) return c.json({ ok: true, hint })
+
+  const token = randomBytes(32).toString('hex')
+  await redis.set(`pw_reset:${token}`, user.id, 'EX', 3600)
+
+  const baseUrl = env.FRONTEND_URL ?? 'http://localhost:5173'
+  const resetLink = `${baseUrl}/reset-password?token=${token}`
+
+  await getMailer().send({
+    to: user.email,
+    subject: '密码重置链接',
+    text: `请点击以下链接重置您的密码（1小时内有效）：\n\n${resetLink}\n\n如果您未申请重置密码，请忽略此邮件。`,
+  })
+
+  return c.json({ ok: true, hint })
+})
+
+authRoutes.post('/reset', zValidator('json', z.object({ token: z.string(), password: z.string() })), async (c) => {
+  const { token, password } = c.req.valid('json')
+
+  const userId = await redis.get(`pw_reset:${token}`)
+  if (!userId) throw new AppError('invalid_or_expired_token')
+  if (password.length < 6) throw new AppError('weak_password')
+
+  await db.update(users).set({ passwordHash: await hashPassword(password), updatedAt: new Date() }).where(eq(users.id, userId))
+  await redis.del(`pw_reset:${token}`)
+
+  return c.json({ ok: true })
+})

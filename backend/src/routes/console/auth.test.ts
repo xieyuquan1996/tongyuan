@@ -1,5 +1,5 @@
 // backend/src/routes/console/auth.test.ts
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createApp } from '../../app.js'
 import { pool } from '../../db/client.js'
 
@@ -66,5 +66,67 @@ describe('auth routes', () => {
     const rOk = await post('/api/console/login', { email, password: 'correct123' })
     expect(rOk.status).toBe(403)
     expect((await rOk.json()).error).toBe('account_locked')
+  })
+
+  describe('password reset', () => {
+    let resetEmail: string
+    let capturedToken: string
+
+    beforeAll(async () => {
+      resetEmail = `auth-test-reset-${Date.now()}@example.com`
+      await post('/api/console/register', { email: resetEmail, password: 'oldpass1', name: 'R' })
+    })
+
+    it('forgot with unknown email returns 200 (no enumeration)', async () => {
+      const r = await post('/api/console/forgot', { email: 'nobody@example.com' })
+      expect(r.status).toBe(200)
+      expect((await r.json()).ok).toBe(true)
+    })
+
+    it('forgot with known email returns 200 and stores token in Redis', async () => {
+      // Capture what ConsoleMailer would log
+      const logs: string[] = []
+      const orig = console.log
+      console.log = (...args: unknown[]) => { logs.push(args.join(' ')); orig(...args) }
+
+      const r = await post('/api/console/forgot', { email: resetEmail })
+
+      console.log = orig
+      expect(r.status).toBe(200)
+
+      // Extract token from console log line
+      const logLine = logs.find(l => l.includes('reset-password'))
+      expect(logLine).toBeDefined()
+      const match = logLine!.match(/token=([a-f0-9]{64})/)
+      expect(match).toBeTruthy()
+      capturedToken = match![1]!
+    })
+
+    it('reset with invalid token returns 400', async () => {
+      const r = await post('/api/console/reset', { token: 'a'.repeat(64), password: 'newpass1' })
+      expect(r.status).toBe(400)
+      expect((await r.json()).error).toBe('invalid_or_expired_token')
+    })
+
+    it('reset with weak password returns 400', async () => {
+      const r = await post('/api/console/reset', { token: capturedToken, password: '123' })
+      expect(r.status).toBe(400)
+      expect((await r.json()).error).toBe('weak_password')
+    })
+
+    it('reset with valid token updates password and token is deleted', async () => {
+      const r = await post('/api/console/reset', { token: capturedToken, password: 'newpass1' })
+      expect(r.status).toBe(200)
+      expect((await r.json()).ok).toBe(true)
+
+      // Can now login with new password
+      const r2 = await post('/api/console/login', { email: resetEmail, password: 'newpass1' })
+      expect(r2.status).toBe(200)
+
+      // Token is one-time: second reset with same token fails
+      const r3 = await post('/api/console/reset', { token: capturedToken, password: 'anotherpass' })
+      expect(r3.status).toBe(400)
+      expect((await r3.json()).error).toBe('invalid_or_expired_token')
+    })
   })
 })
