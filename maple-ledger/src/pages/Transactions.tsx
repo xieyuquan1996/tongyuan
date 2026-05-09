@@ -5,8 +5,9 @@ import { api } from '../lib/api.js'
 
 interface Transaction {
   id: string; type: string; date: string; amount: number; currency: string
-  usdRmbRate?: number; cadUsdMarketRate?: number; amount_cad: number
+  usd_rmb_rate?: number; cad_usd_market_rate?: number; amount_cad: number
   note?: string; category: string; created_by: string
+  tax?: number; bank_rate?: number; market_rate_at_purchase?: number
 }
 
 interface MonthlyReport {
@@ -24,6 +25,8 @@ export default function Transactions() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Transaction | undefined>()
   const [filterType, setFilterType] = useState('')
+  const [toast, setToast] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ month })
@@ -39,12 +42,16 @@ export default function Transactions() {
   useEffect(() => { load() }, [load])
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确认删除此交易？')) return
     try {
       await api(`/api/transactions/${id}`, { method: 'DELETE' })
+      setConfirmDeleteId(null)
+      setToast('已删除')
+      setTimeout(() => setToast(''), 2500)
       load()
     } catch (err) {
-      alert(`删除失败：${(err as Error).message}`)
+      setConfirmDeleteId(null)
+      setToast(`删除失败：${(err as Error).message}`)
+      setTimeout(() => setToast(''), 3000)
     }
   }
 
@@ -126,7 +133,7 @@ export default function Transactions() {
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setEditing(tx); setShowForm(true) }}
                       className="text-blue-500 hover:text-blue-700 text-xs">编辑</button>
-                    <button onClick={() => handleDelete(tx.id)}
+                    <button onClick={() => setConfirmDeleteId(tx.id)}
                       className="text-red-400 hover:text-red-600 text-xs">删除</button>
                   </div>
                 </td>
@@ -141,11 +148,52 @@ export default function Transactions() {
         </table>
       </div>
 
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50">
+          {toast}
+        </div>
+      )}
+
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-80 mx-4">
+            <p className="text-gray-900 font-medium mb-1">确认删除？</p>
+            <p className="text-sm text-gray-500 mb-5">此操作无法撤销。</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDeleteId(null)}
+                className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                取消
+              </button>
+              <button onClick={() => handleDelete(confirmDeleteId)}
+                className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600">
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <TransactionForm
-          initial={editing}
+          initial={editing ? {
+            ...editing,
+            usdRmbRate: editing.usd_rmb_rate,
+            cadUsdMarketRate: editing.cad_usd_market_rate,
+            bankRate: editing.bank_rate,
+            marketRateAtPurchase: editing.market_rate_at_purchase,
+          } : undefined}
           onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); load() }}
+          onSaved={(date) => {
+            setShowForm(false)
+            const savedMonth = date.slice(0, 7)
+            if (savedMonth === month) {
+              load()
+            } else {
+              setMonth(savedMonth)
+            }
+            setToast(editing ? '已更新' : '已保存')
+            setTimeout(() => setToast(''), 2500)
+          }}
         />
       )}
     </div>

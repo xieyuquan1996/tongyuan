@@ -10,12 +10,16 @@ interface Transaction {
 interface Props {
   initial?: Partial<Transaction>
   onClose: () => void
-  onSaved: () => void
+  onSaved: (date: string) => void
 }
 
-const CATEGORIES = [
-  { value: 'api_topup', label: 'API 充值' },
+const INCOME_CATEGORIES = [
   { value: 'user_payment', label: '用户付款' },
+  { value: 'other', label: '其他' },
+]
+
+const EXPENSE_CATEGORIES = [
+  { value: 'api_topup', label: 'API 充值' },
   { value: 'server', label: '服务器' },
   { value: 'other', label: '其他' },
 ]
@@ -27,20 +31,21 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
   const [usdRmbRate, setUsdRmbRate] = useState(String(initial?.usdRmbRate ?? ''))
   const [cadUsdRate, setCadUsdRate] = useState(String(initial?.cadUsdMarketRate ?? ''))
   const [note, setNote] = useState(initial?.note ?? '')
-  const [category, setCategory] = useState(initial?.category ?? 'other')
+  const [category, setCategory] = useState(initial?.category ?? 'user_payment')
   const [tax, setTax] = useState(String(initial?.tax ?? ''))
-  const [bankRate, setBankRate] = useState(String(initial?.bankRate ?? ''))
-  const [marketRate, setMarketRate] = useState(String(initial?.marketRateAtPurchase ?? ''))
+  const [usdAmount, setUsdAmount] = useState(
+    initial?.bankRate && initial?.amount ? String(Math.round(initial.bankRate * initial.amount * 10000) / 10000) : ''
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (type === 'income' && !cadUsdRate) {
+    if (!cadUsdRate) {
       api<{ rate: number }>('/api/exchange-rate')
         .then(d => setCadUsdRate(String(d.rate)))
         .catch(() => {})
     }
-  }, [type, cadUsdRate])
+  }, [cadUsdRate])
 
   const amountCadPreview = () => {
     if (type === 'expense') return Number(amount) || 0
@@ -48,6 +53,14 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
     const c = Number(cadUsdRate)
     if (!r || !c || !amount) return null
     return Number(amount) / r * c
+  }
+
+  const exchangeLossPreview = () => {
+    const cad = Number(amount)
+    const usd = Number(usdAmount)
+    const rate = Number(cadUsdRate)
+    if (!cad || !usd || !rate) return null
+    return cad - usd / rate
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,9 +75,14 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
       body.usdRmbRate = Number(usdRmbRate)
       body.cadUsdMarketRate = Number(cadUsdRate)
     } else {
-      if (tax) body.tax = Number(tax)
-      if (bankRate) body.bankRate = Number(bankRate)
-      if (marketRate) body.marketRateAtPurchase = Number(marketRate)
+      body.tax = tax ? Number(tax) : null
+      if (usdAmount && amount) {
+        body.bankRate = Number(usdAmount) / Number(amount)
+        body.marketRateAtPurchase = cadUsdRate ? Number(cadUsdRate) : null
+      } else {
+        body.bankRate = null
+        body.marketRateAtPurchase = null
+      }
     }
     try {
       if (initial?.id) {
@@ -72,7 +90,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
       } else {
         await api('/api/transactions', { method: 'POST', body })
       }
-      onSaved()
+      onSaved(date)
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -88,11 +106,11 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
         <h2 className="text-lg font-semibold mb-4">{initial?.id ? '编辑交易' : '新增交易'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-2">
-            <button type="button" onClick={() => setType('income')}
+            <button type="button" onClick={() => { setType('income'); setCategory('user_payment') }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium border ${type === 'income' ? 'bg-green-50 border-green-500 text-green-700' : 'border-gray-200 text-gray-600'}`}>
               收入
             </button>
-            <button type="button" onClick={() => setType('expense')}
+            <button type="button" onClick={() => { setType('expense'); setCategory('api_topup') }}
               className={`flex-1 py-2 rounded-lg text-sm font-medium border ${type === 'expense' ? 'bg-red-50 border-red-500 text-red-600' : 'border-gray-200 text-gray-600'}`}>
               支出
             </button>
@@ -126,28 +144,48 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
             </>
           ) : (
             <>
-              <div>
-                <label className="block text-sm text-gray-700 mb-1" htmlFor="amount-cad">CAD 金额</label>
-                <input id="amount-cad" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">税（选填）</label>
+                  <label className="block text-sm text-gray-700 mb-1" htmlFor="amount-cad">支出加币 (CAD)</label>
+                  <input id="amount-cad" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required
+                    placeholder="如：100.00"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                  <p className="text-xs text-gray-400 mt-1">银行实际扣款总额</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">消费税 CAD <span className="text-gray-400">（选填）</span></label>
                   <input type="number" step="0.01" value={tax} onChange={e => setTax(e.target.value)}
+                    placeholder="如：5.20"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1">银行汇率</label>
-                  <input type="number" step="0.0001" value={bankRate} onChange={e => setBankRate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-700 mb-1">市场汇率</label>
-                  <input type="number" step="0.0001" value={marketRate} onChange={e => setMarketRate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                  <p className="text-xs text-gray-400 mt-1">银行账单中的 GST/消费税</p>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">购入美元 <span className="text-gray-400">（选填，涉及换汇时填）</span></label>
+                  <input type="number" step="0.01" value={usdAmount} onChange={e => setUsdAmount(e.target.value)}
+                    placeholder="如：72.00"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                  <p className="text-xs text-gray-400 mt-1">充入 Anthropic 的美元金额</p>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1">
+                    市场汇率 CAD/USD
+                    {cadUsdRate && <span className="text-gray-400 font-normal"> （自动获取）</span>}
+                  </label>
+                  <input type="number" step="0.0001" value={cadUsdRate} onChange={e => setCadUsdRate(e.target.value)}
+                    placeholder="如：0.7410"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                  <p className="text-xs text-gray-400 mt-1">用于计算汇率损耗，可手动修正</p>
+                </div>
+              </div>
+              {exchangeLossPreview() !== null && exchangeLossPreview()! > 0 && (
+                <div className="text-sm bg-amber-50 rounded-lg px-3 py-2 text-amber-700">
+                  预估汇率损耗：<span className="font-medium">CA${exchangeLossPreview()!.toFixed(2)}</span>
+                  <span className="text-xs text-amber-500 ml-2">（{((exchangeLossPreview()! / Number(amount)) * 100).toFixed(2)}%）</span>
+                  <p className="text-xs text-amber-500 mt-1">= 支出 {Number(amount).toFixed(2)} − 购入 {Number(usdAmount).toFixed(2)} USD ÷ 市场汇率 {Number(cadUsdRate).toFixed(4)}</p>
+                </div>
+              )}
             </>
           )}
 
@@ -156,7 +194,7 @@ export default function TransactionForm({ initial, onClose, onSaved }: Props) {
               <label className="block text-sm text-gray-700 mb-1">分类</label>
               <select value={category} onChange={e => setCategory(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {(type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
             <div>

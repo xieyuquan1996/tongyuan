@@ -27,7 +27,7 @@ describe('TransactionForm', () => {
   it('shows CAD amount field when type is expense', () => {
     render(<TransactionForm onClose={() => {}} onSaved={() => {}} />)
     fireEvent.click(screen.getByText('支出'))
-    expect(screen.getByLabelText(/CAD 金额/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/支出加币/)).toBeInTheDocument()
   })
 
   it('calls onClose when cancel button clicked', () => {
