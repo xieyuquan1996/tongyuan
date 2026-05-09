@@ -3,6 +3,7 @@ import { db } from '../db/client.js'
 import { users, alerts, billingLedger } from '../db/schema.js'
 import { redis } from '../redis/client.js'
 import { getMailer } from './mailer/index.js'
+import { renderAlertEmail } from './email-templates/index.js'
 
 export function checkBillingAlerts(userId: string): void {
   _checkBilling(userId).catch((err) =>
@@ -33,16 +34,12 @@ async function _checkBilling(userId: string): Promise<void> {
     if (await redis.get(cooldownKey)) continue
 
     let shouldFire = false
-    let subject = ''
-    let text = ''
     const threshold = Number(alert.threshold)
 
     if (alert.kind === 'balance_low') {
       const balance = Number(user.balanceUsd)
       if (balance < threshold) {
         shouldFire = true
-        subject = '余额不足提醒'
-        text = `您的账户余额（$${balance.toFixed(4)}）已低于设定阈值 $${threshold.toFixed(4)}，请及时充值。`
       }
     } else if (alert.kind === 'spend_daily') {
       if (dailySpendUsd === null) {
@@ -61,13 +58,18 @@ async function _checkBilling(userId: string): Promise<void> {
       }
       if (dailySpendUsd >= threshold) {
         shouldFire = true
-        subject = '日消费超限提醒'
-        text = `您今日消费（$${dailySpendUsd.toFixed(4)}）已达到设定阈值 $${threshold.toFixed(4)}。`
       }
     }
 
     if (shouldFire) {
-      await getMailer().send({ to: user.email, subject, text })
+      let emailData: Record<string, unknown>
+      if (alert.kind === 'balance_low') {
+        emailData = { balance: Number(user.balanceUsd), threshold, triggeredAt: new Date() }
+      } else {
+        emailData = { dailySpend: dailySpendUsd!, threshold, triggeredAt: new Date() }
+      }
+      const { subject, html, text } = renderAlertEmail(alert.kind, emailData)
+      await getMailer().send({ to: user.email, subject, text, html })
       await redis.set(cooldownKey, '1', 'EX', 3600)
     }
   }
@@ -88,26 +90,27 @@ async function _checkRequest(userId: string, metrics: { errorRate: number; p99Ms
     if (await redis.get(cooldownKey)) continue
 
     let shouldFire = false
-    let subject = ''
-    let text = ''
     const threshold = Number(alert.threshold)
 
     if (alert.kind === 'error_rate') {
       if (metrics.errorRate >= threshold) {
         shouldFire = true
-        subject = '请求错误率告警'
-        text = `本次请求错误率（${(metrics.errorRate * 100).toFixed(1)}%）已超过设定阈值 ${(threshold * 100).toFixed(1)}%。`
       }
     } else if (alert.kind === 'p99_latency') {
       if (metrics.p99Ms >= threshold) {
         shouldFire = true
-        subject = 'P99 延迟告警'
-        text = `本次请求延迟（${metrics.p99Ms}ms）已超过设定阈值 ${threshold}ms。`
       }
     }
 
     if (shouldFire) {
-      await getMailer().send({ to: user.email, subject, text })
+      let emailData: Record<string, unknown>
+      if (alert.kind === 'error_rate') {
+        emailData = { errorRate: metrics.errorRate, threshold, triggeredAt: new Date() }
+      } else {
+        emailData = { p99Ms: metrics.p99Ms, threshold, triggeredAt: new Date() }
+      }
+      const { subject, html, text } = renderAlertEmail(alert.kind, emailData)
+      await getMailer().send({ to: user.email, subject, text, html })
       await redis.set(cooldownKey, '1', 'EX', 3600)
     }
   }
