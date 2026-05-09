@@ -5,4 +5,4 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "maple-ledger"
-database_id = "REPLACE_WITH_ACTUAL_D1_ID"
+database_id = "b81b1df3-7f03-432f-b09b-4ad377fc5b0e"
