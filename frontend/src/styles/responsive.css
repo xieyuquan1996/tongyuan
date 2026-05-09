@@ -131,6 +131,17 @@
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+  .metrics-grid > div {
+    padding: 16px !important;
+  }
+  /* Admin stats 4-col → 2-col */
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Admin bottom row stack vertically */
+  .admin-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* Keys row card layout */

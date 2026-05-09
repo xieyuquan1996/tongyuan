@@ -17,7 +17,7 @@ export default function AdminOverview() {
     <div>
       <PageHeader title="平台概览" sub="所有租户的实时聚合视图"/>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 16 }}>
+      <div className="admin-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 16 }}>
         <Metric icon={Users}      label="用户总数"    value={m.users_total}   sub={`活跃 ${m.users_active} · 7 日新增 ${m.users_new_7d}`}/>
         <Metric icon={Activity}   label="24H 请求"    value={m.requests_24h.toLocaleString()} sub={`错误 ${m.errors_24h} · 错误率 ${m.error_rate}`}/>
         <Metric icon={DollarSign} label="本月营收"    value={"¥" + Number(m.spent_30d).toLocaleString()} sub="全部租户合计"/>
@@ -36,7 +36,7 @@ export default function AdminOverview() {
         <Bars data={data.daily} max={max}/>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+      <div className="admin-bottom-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
         <div style={card}>
           <div style={{ display: "flex", alignItems: "baseline", marginBottom: 16 }}>
             <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>最近审计</h3>

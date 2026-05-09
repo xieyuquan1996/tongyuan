@@ -77,8 +77,8 @@ function LogsTable({ rows, onRowClick }) {
             <th style={th}>时间</th>
             <th className="log-col-hide" style={th}>请求 ID</th>
             <th style={th}>模型</th>
-            <th style={{ ...th, textAlign: "right" }}>输入<br />Tokens</th>
-            <th style={{ ...th, textAlign: "right" }}>输出<br />Tokens</th>
+            <th className="log-col-hide" style={{ ...th, textAlign: "right" }}>输入<br />Tokens</th>
+            <th className="log-col-hide" style={{ ...th, textAlign: "right" }}>输出<br />Tokens</th>
             <th className="log-col-hide" style={th}>类型</th>
             <th className="log-col-hide" style={th}>服务层</th>
             <th className="log-col-hide" style={th}>请求路径</th>
@@ -105,10 +105,10 @@ function LogsTable({ rows, onRowClick }) {
                 {r.id}
               </td>
               <td style={{ ...td, fontFamily: "var(--font-mono)" }}>{r.model}</td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+              <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                 <TokenCell row={r} />
               </td>
-              <td style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+              <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                 {(r.output_tokens || 0).toLocaleString()}
               </td>
               <td className="log-col-hide" style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-2)" }}>{r.type || "HTTP"}</td>
