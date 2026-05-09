@@ -22,5 +22,8 @@ describe('ConsoleMailer', () => {
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining('a@b.com'),
     )
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('Test subject'),
+    )
   })
 })
