@@ -6,7 +6,7 @@ export const transactions = sqliteTable('transactions', {
   type: text('type', { enum: ['income', 'expense'] }).notNull(),
   date: text('date').notNull(),
   amount: real('amount').notNull(),
-  currency: text('currency').notNull(),
+  currency: text('currency', { enum: ['CAD', 'RMB'] }).notNull(),
   usdRmbRate: real('usd_rmb_rate'),
   cadUsdMarketRate: real('cad_usd_market_rate'),
   amountCad: real('amount_cad').notNull(),
