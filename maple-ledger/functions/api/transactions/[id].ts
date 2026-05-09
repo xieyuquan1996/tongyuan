@@ -3,7 +3,12 @@ import type { Env, AppLocals } from '../_middleware.js'
 
 export const onRequestPut = async (ctx: EventContext<Env, string, AppLocals>) => {
   const id = ctx.params['id'] as string
-  const body = await ctx.request.json() as Record<string, unknown>
+  let body: Record<string, unknown>
+  try {
+    body = await ctx.request.json() as Record<string, unknown>
+  } catch {
+    return Response.json({ error: 'invalid JSON' }, { status: 400 })
+  }
 
   const existing = await ctx.env.DB.prepare('SELECT * FROM transactions WHERE id = ?').bind(id).first()
   if (!existing) return Response.json({ error: 'not_found' }, { status: 404 })
