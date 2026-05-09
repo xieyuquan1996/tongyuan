@@ -113,11 +113,15 @@ authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string() })), 
   const baseUrl = env.FRONTEND_URL ?? 'http://localhost:5173'
   const resetLink = `${baseUrl}/reset-password?token=${token}`
 
-  await getMailer().send({
-    to: user.email,
-    subject: '密码重置链接',
-    text: `请点击以下链接重置您的密码（1小时内有效）：\n\n${resetLink}\n\n如果您未申请重置密码，请忽略此邮件。`,
-  })
+  try {
+    await getMailer().send({
+      to: user.email,
+      subject: '密码重置链接',
+      text: `请点击以下链接重置您的密码（1小时内有效）：\n\n${resetLink}\n\n如果您未申请重置密码，请忽略此邮件。`,
+    })
+  } catch (err) {
+    console.warn('[auth] failed to send reset email', err)
+  }
 
   return c.json({ ok: true, hint })
 })

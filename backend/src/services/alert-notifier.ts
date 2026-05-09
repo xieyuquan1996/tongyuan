@@ -21,7 +21,7 @@ async function _checkBilling(userId: string): Promise<void> {
   if (!user?.notifyEmail) return
 
   const userAlerts = await db.select().from(alerts).where(
-    and(eq(alerts.userId, userId), eq(alerts.enabled, true)),
+    and(eq(alerts.userId, userId), eq(alerts.enabled, true), eq(alerts.channel, 'email')),
   )
   const relevant = userAlerts.filter(a => a.kind === 'balance_low' || a.kind === 'spend_daily')
   if (!relevant.length) return
@@ -78,7 +78,7 @@ async function _checkRequest(userId: string, metrics: { errorRate: number; p99Ms
   if (!user?.notifyEmail) return
 
   const userAlerts = await db.select().from(alerts).where(
-    and(eq(alerts.userId, userId), eq(alerts.enabled, true)),
+    and(eq(alerts.userId, userId), eq(alerts.enabled, true), eq(alerts.channel, 'email')),
   )
   const relevant = userAlerts.filter(a => a.kind === 'error_rate' || a.kind === 'p99_latency')
   if (!relevant.length) return
