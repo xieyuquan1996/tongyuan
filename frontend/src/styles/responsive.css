@@ -145,6 +145,11 @@
 }
 
 /* Keys row card layout */
+.key-row-meta {
+  display: flex;
+  align-items: center;
+}
+
 @media (max-width: 768px) {
   .key-row {
     flex-wrap: wrap;

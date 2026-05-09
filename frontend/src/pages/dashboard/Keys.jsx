@@ -147,58 +147,72 @@ export default function Keys() {
 
       {loading ? <Loading /> : (
         <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-          {keys.length === 0 && (
+          {keys.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center", color: "var(--text-3)", fontSize: 14 }}>
               还没有密钥。用上面的输入框创建一个。
             </div>
-          )}
-          {keys.map((k, i) => (
-            <div
-              key={k.id}
-              className="key-row"
-              style={{
+          ) : (
+            <>
+              <div style={{
                 display: "flex", alignItems: "center", gap: 24,
-                padding: "20px 24px",
-                borderTop: i ? "1px solid var(--divider)" : "none",
-              }}
-            >
-              <KeyRound size={18} color={k.state === "active" ? "var(--clay)" : "var(--text-4)"} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{k.name}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>{k.prefix}…••••</div>
+                padding: "10px 24px",
+                background: "var(--surface-3)",
+                borderBottom: "1px solid var(--border)",
+              }}>
+                <div style={{ width: 18 }} />
+                <div style={{ flex: 1 }}>
+                  <span style={colHeader}>密钥</span>
+                </div>
+                <div className="key-row-meta">
+                  <div style={{ width: 120 }}><span style={colHeader}>创建于</span></div>
+                  <div style={{ width: 120 }}><span style={colHeader}>最近使用</span></div>
+                  <div style={{ width: 110 }}><span style={colHeader}>限额</span></div>
+                </div>
+                <div className="key-row-actions" style={{ justifyContent: "flex-end" }}>
+                  <span style={{ ...colHeader, marginRight: 4 }}>状态</span>
+                  <span style={{ width: 56 }} />
+                </div>
               </div>
-              <div className="key-row-meta">
-                <div style={{ width: 120 }}>
-                  <div style={cellLabel}>创建于</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{k.created_at?.slice(0, 10)}</div>
-                </div>
-                <div style={{ width: 120 }}>
-                  <div style={cellLabel}>最近使用</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{fmtRelative(k.last_used_at)}</div>
-                </div>
-                <div style={{ width: 110 }}>
-                  <div style={cellLabel}>限额</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-2)" }}>
-                    {k.rpm_limit ? `${k.rpm_limit}/m` : "—"}
-                    {k.tpm_limit ? ` · ${formatTpm(k.tpm_limit)}t/m` : ""}
+              {keys.map((k, i) => (
+                <div
+                  key={k.id}
+                  className="key-row"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 24,
+                    padding: "16px 24px",
+                    borderTop: i ? "1px solid var(--divider)" : "none",
+                  }}
+                >
+                  <KeyRound size={18} color={k.state === "active" ? "var(--clay)" : "var(--text-4)"} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3 }}>{k.name}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>{k.prefix}…••••</div>
+                  </div>
+                  <div className="key-row-meta">
+                    <div style={{ width: 120, fontFamily: "var(--font-mono)", fontSize: 12 }}>{k.created_at?.slice(0, 10)}</div>
+                    <div style={{ width: 120, fontFamily: "var(--font-mono)", fontSize: 12 }}>{fmtRelative(k.last_used_at)}</div>
+                    <div style={{ width: 110, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-2)" }}>
+                      {k.rpm_limit ? `${k.rpm_limit}/m` : "—"}
+                      {k.tpm_limit ? ` · ${formatTpm(k.tpm_limit)}t/m` : ""}
+                    </div>
+                  </div>
+                  <div className="key-row-actions">
+                    {k.state === "active" ? <Pill tone="ok" dot>活跃</Pill> : <Pill dot>已撤销</Pill>}
+                    {k.state === "active" ? (
+                      <>
+                        <button onClick={() => setEditKey(k)} style={{ ...iconBtn }} title="编辑限额">
+                          <Sliders size={16} />
+                        </button>
+                        <button onClick={() => setRevokeId(k.id)} style={{ ...iconBtn, color: "var(--err)" }} title="撤销">
+                          <Ban size={16} />
+                        </button>
+                      </>
+                    ) : <span style={{ width: 56 }} />}
                   </div>
                 </div>
-              </div>
-              <div className="key-row-actions">
-                {k.state === "active" ? <Pill tone="ok" dot>活跃</Pill> : <Pill dot>已撤销</Pill>}
-                {k.state === "active" ? (
-                  <>
-                    <button onClick={() => setEditKey(k)} style={{ ...iconBtn }} title="编辑限额">
-                      <Sliders size={16} />
-                    </button>
-                    <button onClick={() => setRevokeId(k.id)} style={{ ...iconBtn, color: "var(--err)" }} title="撤销">
-                      <Ban size={16} />
-                    </button>
-                  </>
-                ) : <span style={{ width: 56 }} />}
-              </div>
-            </div>
-          ))}
+              ))}
+            </>
+          )}
         </div>
       )}
 
@@ -404,6 +418,10 @@ const iconBtn = {
 const cellLabel = {
   fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-3)",
   letterSpacing: "0.12em", textTransform: "uppercase",
+};
+const colHeader = {
+  fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600,
+  color: "var(--text-3)", letterSpacing: "0.12em", textTransform: "uppercase",
 };
 const fieldLbl = {
   display: "flex", flexDirection: "column", gap: 6,
