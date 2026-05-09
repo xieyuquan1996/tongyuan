@@ -155,6 +155,7 @@ export default function Keys() {
           {keys.map((k, i) => (
             <div
               key={k.id}
+              className="key-row"
               style={{
                 display: "flex", alignItems: "center", gap: 24,
                 padding: "20px 24px",
@@ -166,32 +167,36 @@ export default function Keys() {
                 <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>{k.name}</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>{k.prefix}…••••</div>
               </div>
-              <div style={{ width: 120 }}>
-                <div style={cellLabel}>创建于</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{k.created_at?.slice(0, 10)}</div>
-              </div>
-              <div style={{ width: 120 }}>
-                <div style={cellLabel}>最近使用</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{fmtRelative(k.last_used_at)}</div>
-              </div>
-              <div style={{ width: 110 }}>
-                <div style={cellLabel}>限额</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-2)" }}>
-                  {k.rpm_limit ? `${k.rpm_limit}/m` : "—"}
-                  {k.tpm_limit ? ` · ${formatTpm(k.tpm_limit)}t/m` : ""}
+              <div className="key-row-meta">
+                <div style={{ width: 120 }}>
+                  <div style={cellLabel}>创建于</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{k.created_at?.slice(0, 10)}</div>
+                </div>
+                <div style={{ width: 120 }}>
+                  <div style={cellLabel}>最近使用</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{fmtRelative(k.last_used_at)}</div>
+                </div>
+                <div style={{ width: 110 }}>
+                  <div style={cellLabel}>限额</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-2)" }}>
+                    {k.rpm_limit ? `${k.rpm_limit}/m` : "—"}
+                    {k.tpm_limit ? ` · ${formatTpm(k.tpm_limit)}t/m` : ""}
+                  </div>
                 </div>
               </div>
-              {k.state === "active" ? <Pill tone="ok" dot>活跃</Pill> : <Pill dot>已撤销</Pill>}
-              {k.state === "active" ? (
-                <>
-                  <button onClick={() => setEditKey(k)} style={{ ...iconBtn }} title="编辑限额">
-                    <Sliders size={16} />
-                  </button>
-                  <button onClick={() => setRevokeId(k.id)} style={{ ...iconBtn, color: "var(--err)" }} title="撤销">
-                    <Ban size={16} />
-                  </button>
-                </>
-              ) : <span style={{ width: 56 }} />}
+              <div className="key-row-actions">
+                {k.state === "active" ? <Pill tone="ok" dot>活跃</Pill> : <Pill dot>已撤销</Pill>}
+                {k.state === "active" ? (
+                  <>
+                    <button onClick={() => setEditKey(k)} style={{ ...iconBtn }} title="编辑限额">
+                      <Sliders size={16} />
+                    </button>
+                    <button onClick={() => setRevokeId(k.id)} style={{ ...iconBtn, color: "var(--err)" }} title="撤销">
+                      <Ban size={16} />
+                    </button>
+                  </>
+                ) : <span style={{ width: 56 }} />}
+              </div>
             </div>
           ))}
         </div>
