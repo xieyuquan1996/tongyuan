@@ -3,10 +3,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createApp } from '../app.js'
 import { db, pool } from '../db/client.js'
 import { users, requestLogs, apiKeys } from '../db/schema.js'
-import { eq, and } from 'drizzle-orm'
 import { issueSession } from '../services/sessions.js'
 import { hashPassword } from '../crypto/password.js'
 import { newApiKey } from '../crypto/tokens.js'
+import { ulid } from 'ulid'
 import bcrypt from 'bcryptjs'
 
 const app = createApp()
@@ -14,6 +14,7 @@ const EMAIL = 'logs-display-latency-test@example.com'
 const ADMIN_EMAIL = 'logs-display-latency-admin@example.com'
 let userId = ''
 let adminId = ''
+let apiKeyId = ''
 let token = ''
 let adminToken = ''
 
@@ -29,6 +30,16 @@ beforeAll(async () => {
   userId = u!.id
   const { token: t } = await issueSession(userId)
   token = t
+
+  const { secret, prefix } = newApiKey()
+  const [k] = await db.insert(apiKeys).values({
+    userId,
+    name: 'test-key',
+    prefix,
+    secretHash: await bcrypt.hash(secret, 12),
+    state: 'active',
+  }).returning()
+  apiKeyId = k!.id
 
   const [a] = await db.insert(users).values({
     email: ADMIN_EMAIL,
@@ -53,7 +64,9 @@ async function insertLog(opts: {
   ttfbMs: string | null
 }) {
   const [row] = await db.insert(requestLogs).values({
+    id: 'req_' + ulid(),
     userId: opts.userId,
+    apiKeyId,
     model: 'claude-3-5-haiku-20241022',
     upstreamModel: 'claude-3-5-haiku-20241022',
     endpoint: '/v1/messages',
@@ -80,8 +93,7 @@ describe('GET /api/console/logs — display_latency_ms', () => {
     await insertLog({ userId, stream: true, latencyMs: '5000', ttfbMs: '300' })
 
     const res = await app.fetch(
-      new Request('http://localhost/api/console/logs'),
-      { headers: { Authorization: `Bearer ${token}` } },
+      new Request('http://localhost/api/console/logs', { headers: { Authorization: `Bearer ${token}` } }),
     )
     expect(res.status).toBe(200)
     const body = await res.json() as any
@@ -96,8 +108,7 @@ describe('GET /api/console/logs — display_latency_ms', () => {
     await insertLog({ userId, stream: false, latencyMs: '800', ttfbMs: null })
 
     const res = await app.fetch(
-      new Request('http://localhost/api/console/logs'),
-      { headers: { Authorization: `Bearer ${token}` } },
+      new Request('http://localhost/api/console/logs', { headers: { Authorization: `Bearer ${token}` } }),
     )
     expect(res.status).toBe(200)
     const body = await res.json() as any
@@ -113,8 +124,7 @@ describe('GET /api/console/logs/:id — display_latency_ms', () => {
     const inserted = await insertLog({ userId, stream: true, latencyMs: '9000', ttfbMs: '400' })
 
     const res = await app.fetch(
-      new Request(`http://localhost/api/console/logs/${inserted.id}`),
-      { headers: { Authorization: `Bearer ${token}` } },
+      new Request(`http://localhost/api/console/logs/${inserted.id}`, { headers: { Authorization: `Bearer ${token}` } }),
     )
     expect(res.status).toBe(200)
     const body = await res.json() as any
@@ -129,8 +139,7 @@ describe('GET /api/admin/logs — ttfb_ms + display_latency_ms', () => {
     await insertLog({ userId, stream: true, latencyMs: '5000', ttfbMs: '250' })
 
     const res = await app.fetch(
-      new Request('http://localhost/api/admin/logs'),
-      { headers: { Authorization: `Bearer ${adminToken}` } },
+      new Request('http://localhost/api/admin/logs', { headers: { Authorization: `Bearer ${adminToken}` } }),
     )
     expect(res.status).toBe(200)
     const body = await res.json() as any
@@ -145,8 +154,7 @@ describe('GET /api/admin/logs — ttfb_ms + display_latency_ms', () => {
     await insertLog({ userId, stream: false, latencyMs: '700', ttfbMs: null })
 
     const res = await app.fetch(
-      new Request('http://localhost/api/admin/logs'),
-      { headers: { Authorization: `Bearer ${adminToken}` } },
+      new Request('http://localhost/api/admin/logs', { headers: { Authorization: `Bearer ${adminToken}` } }),
     )
     expect(res.status).toBe(200)
     const body = await res.json() as any
@@ -163,8 +171,7 @@ describe('GET /api/admin/users/:id — recent_logs ttfb_ms + display_latency_ms'
     await insertLog({ userId, stream: true, latencyMs: '6000', ttfbMs: '500' })
 
     const res = await app.fetch(
-      new Request(`http://localhost/api/admin/users/${userId}`),
-      { headers: { Authorization: `Bearer ${adminToken}` } },
+      new Request(`http://localhost/api/admin/users/${userId}`, { headers: { Authorization: `Bearer ${adminToken}` } }),
     )
     expect(res.status).toBe(200)
     const body = await res.json() as any
