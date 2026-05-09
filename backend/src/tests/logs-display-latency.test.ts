@@ -165,6 +165,22 @@ describe('GET /api/admin/logs — ttfb_ms + display_latency_ms', () => {
   })
 })
 
+describe('GET /api/admin/logs/:id — ttfb_ms + display_latency_ms', () => {
+  it('streaming detail: ttfb_ms and display_latency_ms correct', async () => {
+    await pool.query('DELETE FROM request_logs WHERE user_id=$1', [userId])
+    const inserted = await insertLog({ userId, stream: true, latencyMs: '8000', ttfbMs: '350' })
+
+    const res = await app.fetch(
+      new Request(`http://localhost/api/admin/logs/${inserted.id}`, { headers: { Authorization: `Bearer ${adminToken}` } }),
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.log.ttfb_ms).toBe(350)
+    expect(body.log.display_latency_ms).toBe(350)
+    expect(body.log.latency_ms).toBe(8000)
+  })
+})
+
 describe('GET /api/admin/users/:id — recent_logs ttfb_ms + display_latency_ms', () => {
   it('streaming: recent_logs has ttfb_ms and display_latency_ms', async () => {
     await pool.query('DELETE FROM request_logs WHERE user_id=$1', [userId])
@@ -179,5 +195,20 @@ describe('GET /api/admin/users/:id — recent_logs ttfb_ms + display_latency_ms'
     expect(log.ttfb_ms).toBe(500)
     expect(log.display_latency_ms).toBe(500)
     expect(log.latency_ms).toBe(6000)
+  })
+
+  it('non-streaming: ttfb_ms is null, display_latency_ms equals latency_ms', async () => {
+    await pool.query('DELETE FROM request_logs WHERE user_id=$1', [userId])
+    await insertLog({ userId, stream: false, latencyMs: '900', ttfbMs: null })
+
+    const res = await app.fetch(
+      new Request(`http://localhost/api/admin/users/${userId}`, { headers: { Authorization: `Bearer ${adminToken}` } }),
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    const log = body.recent_logs[0]
+    expect(log.ttfb_ms).toBeNull()
+    expect(log.display_latency_ms).toBe(900)
+    expect(log.latency_ms).toBe(900)
   })
 })

@@ -106,7 +106,7 @@ adminUsersRoutes.get('/:id', async (c) => {
       id: l.id, status: Number(l.status), model: l.model,
       latency_ms: Number(l.latencyMs),
       ttfb_ms: l.ttfbMs !== null ? Number(l.ttfbMs) : null,
-      display_latency_ms: l.stream && l.ttfbMs != null ? Number(l.ttfbMs) : Number(l.latencyMs),
+      display_latency_ms: l.stream && l.ttfbMs !== null ? Number(l.ttfbMs) : Number(l.latencyMs),
       created_at: l.createdAt,
     })),
   })

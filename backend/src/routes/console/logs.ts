@@ -40,7 +40,7 @@ logsRoutes.get('/', async (c) => {
       id: r.id,
       status: Number(r.status),
       model: r.model,
-      display_latency_ms: r.stream && r.ttfbMs != null ? Number(r.ttfbMs) : Number(r.latencyMs),
+      display_latency_ms: r.stream && r.ttfbMs !== null ? Number(r.ttfbMs) : Number(r.latencyMs),
       ...serializeTokenFields(r),
       cost: Number(r.costUsd).toFixed(4),
       region: 'cn-east-1',
@@ -64,7 +64,7 @@ logsRoutes.get('/:id', async (c) => {
   return c.json({
     log: {
       id: row.id, status: Number(row.status), model: row.model,
-      display_latency_ms: row.stream && row.ttfbMs != null ? Number(row.ttfbMs) : Number(row.latencyMs), tokens: serializeTokenFields(row).tokens,
+      display_latency_ms: row.stream && row.ttfbMs !== null ? Number(row.ttfbMs) : Number(row.latencyMs), tokens: serializeTokenFields(row).tokens,
       cost: Number(row.costUsd).toFixed(4), region: 'cn-east-1',
       created_at: row.createdAt, audit_match: row.auditMatch,
     },
