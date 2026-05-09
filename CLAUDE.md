@@ -30,14 +30,41 @@ Frontend tests use vitest + jsdom. No real network — mock `fetch` with `vi.spy
 ```bash
 # Backend (requires running DB/Redis)
 cd backend && docker compose up -d
-env $(cat .env | grep -v '^#' | grep '=' | xargs) npx vitest run <path>
-env $(cat .env | grep -v '^#' | grep '=' | xargs) npm test
+
+# Load env (use source to handle values with special chars like angle brackets)
+set -a && source .env && set +a
+
+npm test          # UT + CT + FT（提交前必跑）
+npm run test:ft   # FT only — src/tests/*.test.ts
+npm run test:live # Live SMTP tests (*.live.test.ts) — 需要真实 SMTP 配置
+
+npx vitest run <path>   # 单文件调试
 
 # Frontend
 cd frontend && npm test
 ```
 
 Backend tests run sequentially (`fileParallelism: false`) because integration tests share a single Postgres instance.
+
+Live tests（`*.live.test.ts`）被排除在 `npm test` 之外，需单独用 `npm run test:live` 触发，且要求 `.env` 中有 SMTP 配置。
+
+### 提交前检查清单
+
+**每次提交前必须全部通过：**
+
+```bash
+cd backend
+set -a && source .env && set +a
+
+npm run typecheck   # 类型检查
+npm test            # UT + CT + FT
+```
+
+如果本次改动涉及邮件发送路径，还需运行：
+
+```bash
+npm run test:live   # 验证真实 SMTP 投递
+```
 
 ### Test conventions
 
