@@ -128,6 +128,12 @@ bootstrap_remote() {
         echo 'CERTS_DIR=./certs'
         echo 'LOG_LEVEL=info'
         echo 'DISABLE_USER_QUOTA=true'
+        echo 'SMTP_HOST='
+        echo 'SMTP_PORT=465'
+        echo 'SMTP_USER='
+        echo 'SMTP_PASS='
+        echo 'SMTP_FROM='
+        echo 'FRONTEND_URL='
       } > .env
       chmod 600 .env
     else
