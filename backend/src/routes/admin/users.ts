@@ -104,7 +104,10 @@ adminUsersRoutes.get('/:id', async (c) => {
     })),
     recent_logs: logs.map((l) => ({
       id: l.id, status: Number(l.status), model: l.model,
-      latency_ms: Number(l.latencyMs), created_at: l.createdAt,
+      latency_ms: Number(l.latencyMs),
+      ttfb_ms: l.ttfbMs !== null ? Number(l.ttfbMs) : null,
+      display_latency_ms: l.stream && l.ttfbMs != null ? Number(l.ttfbMs) : Number(l.latencyMs),
+      created_at: l.createdAt,
     })),
   })
 })
