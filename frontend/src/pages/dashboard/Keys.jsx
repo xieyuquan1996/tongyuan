@@ -277,15 +277,20 @@ function EditModal({ keyObj, onSave, onClose }) {
   );
 }
 
-function SecretModal({ keyObj, onClose }) {
+export function SecretModal({ keyObj, onClose }) {
   const [copied, setCopied] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
   useEffect(() => { if (copied) { const t = setTimeout(() => setCopied(false), 1500); return () => clearTimeout(t); } }, [copied]);
   async function copy() {
     try { await navigator.clipboard.writeText(keyObj.secret); setCopied(true); } catch (_) {}
   }
+  function handleClose() {
+    if (!copied) { setConfirmClose(true); return; }
+    onClose();
+  }
   return (
     <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "var(--overlay-bg)", zIndex: 30 }} />
+      <div onClick={handleClose} style={{ position: "fixed", inset: 0, background: "var(--overlay-bg)", zIndex: 30 }} />
       <div style={{
         position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
         width: 520, maxWidth: "calc(100vw - 32px)", zIndex: 31,
@@ -295,7 +300,7 @@ function SecretModal({ keyObj, onClose }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <KeyRound size={18} color="var(--clay)" />
           <h3 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>新密钥已创建</h3>
-          <button onClick={onClose} style={{ ...iconBtn, marginLeft: "auto" }}><X size={18} /></button>
+          <button onClick={handleClose} aria-label="关闭" style={{ ...iconBtn, marginLeft: "auto" }}><X size={18} /></button>
         </div>
         <div style={{
           background: "var(--warn-soft)", color: "var(--warn-text)", padding: "10px 14px",
@@ -310,6 +315,14 @@ function SecretModal({ keyObj, onClose }) {
         }}>
           {keyObj.secret}
         </div>
+        {confirmClose && (
+          <div style={{
+            background: "var(--err-soft)", color: "var(--err-text)", padding: "10px 14px",
+            borderRadius: 6, fontSize: 13, marginBottom: 12, borderLeft: "2px solid var(--err)",
+          }}>
+            你还没有复制密钥，关闭后将无法再查看。确认已保存？
+          </div>
+        )}
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={copy}
@@ -317,9 +330,20 @@ function SecretModal({ keyObj, onClose }) {
           >
             {copied ? <><Check size={14} /> 已复制</> : <><Copy size={14} /> 复制密钥</>}
           </button>
-          <button onClick={onClose} style={{ ...ctaBtn, background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)" }}>
-            完成
-          </button>
+          {confirmClose ? (
+            <>
+              <button onClick={onClose} style={{ ...ctaBtn, background: "var(--err)", color: "#fff" }}>
+                已保存，关闭
+              </button>
+              <button onClick={() => setConfirmClose(false)} style={{ ...ctaBtn, background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)" }}>
+                继续复制
+              </button>
+            </>
+          ) : (
+            <button onClick={handleClose} style={{ ...ctaBtn, background: "transparent", color: "var(--text)", border: "1px solid var(--border-strong)" }}>
+              完成
+            </button>
+          )}
         </div>
       </div>
     </>
