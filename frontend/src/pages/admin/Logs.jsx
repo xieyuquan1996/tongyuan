@@ -53,6 +53,7 @@ export default function AdminLogs() {
 
       {loading ? <Loading/> : (
         <div style={card}>
+          <div className="table-scroll">
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1100 }}>
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>
@@ -96,6 +97,7 @@ export default function AdminLogs() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

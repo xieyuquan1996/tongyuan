@@ -43,10 +43,11 @@ export default function AdminAudit() {
       )}
 
       <div style={card}>
+        <div className="table-scroll">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface-3)" }}>
-              <th style={th}>时间</th>
+              <th className="audit-time" style={th}>时间</th>
               <th style={th}>操作者</th>
               <th style={th}>动作</th>
               <th style={th}>目标</th>
@@ -56,7 +57,7 @@ export default function AdminAudit() {
           <tbody>
             {events.map((e) => (
               <tr key={e.id} style={{ borderTop: "1px solid var(--divider)" }}>
-                <td style={{ ...td, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>
+                <td className="audit-time" style={{ ...td, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-3)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <Clock size={11}/> {fmtRelative(e.at)}
                   </div>
@@ -71,6 +72,7 @@ export default function AdminAudit() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

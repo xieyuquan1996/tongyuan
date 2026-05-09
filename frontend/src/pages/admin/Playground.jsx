@@ -167,7 +167,7 @@ export default function Playground() {
     <div>
       <PageHeader title="Playground" sub="在浏览器里直接发一次 messages.create。每次调用都会写入请求日志。"/>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="playground-layout" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {/* LEFT: input */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Panel title="参数">
@@ -246,7 +246,7 @@ export default function Playground() {
 
         {/* RIGHT: output */}
         <div>
-          <div style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
+          <div className="playground-tabs" style={{ display: "flex", borderBottom: "1px solid var(--border)", marginBottom: 12 }}>
             <Tab active={tab === "response"} onClick={() => setTab("response")}>响应</Tab>
             <Tab active={tab === "request"} onClick={() => setTab("request")}>请求</Tab>
             <Tab active={tab === "curl"} onClick={() => setTab("curl")}>cURL</Tab>

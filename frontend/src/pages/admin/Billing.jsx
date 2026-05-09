@@ -13,7 +13,7 @@ export default function AdminBilling() {
     <div>
       <PageHeader title="账单 · 平台视图" sub="所有租户的收入 / 余额 / 发票"/>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
+      <div className="admin-billing-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }}>
         <Metric label="本月营收" value={"¥" + Number(t.revenue_this_month).toLocaleString()} sub="租户消费合计"/>
         <Metric label="待结余额" value={"¥" + Number(t.balance_outstanding).toLocaleString()} sub="尚未消费的充值"/>
         <Metric label="待处理发票" value={t.pending_invoices} sub="status=pending" accent={t.pending_invoices > 0}/>
@@ -53,6 +53,7 @@ export default function AdminBilling() {
 
       <div style={{ ...card, marginBottom: 16 }}>
         <h3 style={heading}>消费 Top 租户</h3>
+        <div className="table-scroll">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr>
@@ -77,6 +78,7 @@ export default function AdminBilling() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

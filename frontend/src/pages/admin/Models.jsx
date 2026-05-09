@@ -68,7 +68,7 @@ export default function AdminModels() {
       )}
 
       {loading ? <Loading/> : (
-        <div style={{ ...card, padding: 0, overflow: "auto" }}>
+        <div className="table-scroll" style={{ ...card, padding: 0, overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 1100 }}>
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>

@@ -34,7 +34,7 @@ export default function Analytics() {
       />
 
       {/* Totals */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 16 }}>
+      <div className="analytics-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 16 }}>
         <TotalCard label="请求总数" value={(reqTotal / 1_000_000).toFixed(2) + "M"} delta="+12%" up/>
         <TotalCard label="Tokens" value={(tokTotal / 1_000_000_000).toFixed(2) + "B"} delta="+8%" up/>
         <TotalCard label="费用" value={"¥" + costTotal.toFixed(2)} delta="+15%" up/>
@@ -46,7 +46,7 @@ export default function Analytics() {
         <BarChart data={data.daily.map(d => d.requests / 1000)} labels={data.daily.map(d => d.date.slice(5))}/>
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+      <div className="analytics-split" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
         <Card title="按模型拆分">
           <BreakdownTable
             columns={["模型", "请求", "tokens", "费用", "占比"]}
@@ -221,18 +221,20 @@ function fmtShort(v) {
 
 function BreakdownTable({ columns, rows }) {
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-      <thead>
-        <tr>{columns.map((c, i) => <th key={i} style={thStyle}>{c}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map((r, i) => (
-          <tr key={i} style={{ borderTop: "1px solid var(--divider)" }}>
-            {r.map((cell, j) => <td key={j} style={tdStyle}>{cell}</td>)}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="table-scroll">
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr>{columns.map((c, i) => <th key={i} style={thStyle}>{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} style={{ borderTop: "1px solid var(--divider)" }}>
+              {r.map((cell, j) => <td key={j} style={tdStyle}>{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

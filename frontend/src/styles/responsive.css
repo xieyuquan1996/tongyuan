@@ -174,3 +174,38 @@
     min-width: unset !important;
   }
 }
+
+/* Scrollable table wrapper */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  /* Analytics stat cards 3→2 col */
+  .analytics-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Analytics split panels stack */
+  .analytics-split {
+    grid-template-columns: 1fr !important;
+  }
+  /* Admin billing stats 3→2 col */
+  .admin-billing-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Playground stack vertically */
+  .playground-layout {
+    flex-direction: column !important;
+  }
+  /* Playground tabs horizontal scroll */
+  .playground-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  /* Audit time column no-wrap */
+  .audit-time {
+    white-space: nowrap;
+  }
+}
