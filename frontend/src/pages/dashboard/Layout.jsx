@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
+import { NavLink, Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, KeyRound, List, Receipt, BookOpen,
   ChevronDown, LogOut, User, CreditCard, BarChart3,
@@ -23,6 +23,11 @@ export default function DashboardLayout() {
   });
   const { theme, setTheme } = useTheme();
   const mobile = useIsMobile(768);
+  const location = useLocation();
+
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     api("/api/console/me")
