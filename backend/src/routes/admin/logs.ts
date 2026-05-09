@@ -33,6 +33,7 @@ adminLogsRoutes.get('/', async (c) => {
       endpoint: requestLogs.endpoint,
       stream: requestLogs.stream,
       latencyMs: requestLogs.latencyMs,
+      ttfbMs: requestLogs.ttfbMs,
       inputTokens: requestLogs.inputTokens,
       outputTokens: requestLogs.outputTokens,
       cacheReadTokens: requestLogs.cacheReadTokens,
@@ -65,6 +66,8 @@ adminLogsRoutes.get('/', async (c) => {
       stream: r.stream,
       type: r.endpoint?.includes('/batches') ? 'Batch' : r.stream ? 'SSE' : 'HTTP',
       latency_ms: Number(r.latencyMs),
+      ttfb_ms: r.ttfbMs !== null ? Number(r.ttfbMs) : null,
+      display_latency_ms: r.stream && r.ttfbMs != null ? Number(r.ttfbMs) : Number(r.latencyMs),
       ...serializeTokenFields(r),
       cost: Number(r.costUsd).toFixed(4),
       region: 'cn-east-1',
@@ -89,7 +92,10 @@ adminLogsRoutes.get('/:id', async (c) => {
   return c.json({
     log: {
       id: row.id, status: Number(row.status), model: row.model,
-      latency_ms: Number(row.latencyMs), tokens: serializeTokenFields(row).tokens,
+      latency_ms: Number(row.latencyMs),
+      ttfb_ms: row.ttfbMs !== null ? Number(row.ttfbMs) : null,
+      display_latency_ms: row.stream && row.ttfbMs != null ? Number(row.ttfbMs) : Number(row.latencyMs),
+      tokens: serializeTokenFields(row).tokens,
       cost: Number(row.costUsd).toFixed(4),
       region: 'cn-east-1',
       created_at: row.createdAt,
