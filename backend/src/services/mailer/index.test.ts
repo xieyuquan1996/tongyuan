@@ -2,6 +2,12 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { getMailer, setMailer } from './index.js'
 import { ConsoleMailer } from './console.js'
+import { SmtpMailer } from './smtp.js'
+import { env } from '../../env.js'
+
+const hasSmtp = !!(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS)
+// When SMTP is configured, getMailer() returns SmtpMailer; otherwise ConsoleMailer.
+const ExpectedMailer = hasSmtp ? SmtpMailer : ConsoleMailer
 
 describe('getMailer()', () => {
   afterEach(() => {
@@ -9,10 +15,9 @@ describe('getMailer()', () => {
     setMailer(null)
   })
 
-  it('returns ConsoleMailer when SMTP vars are absent from env', () => {
-    // In test environment SMTP vars are not set, so should fall back to ConsoleMailer
+  it('returns the correct mailer based on SMTP env config', () => {
     const mailer = getMailer()
-    expect(mailer).toBeInstanceOf(ConsoleMailer)
+    expect(mailer).toBeInstanceOf(ExpectedMailer)
   })
 
   it('returns the same singleton on repeated calls', () => {
@@ -31,8 +36,7 @@ describe('getMailer()', () => {
     const first = getMailer()
     setMailer(null)
     const second = getMailer()
-    // Both should be ConsoleMailer but different instances
-    expect(second).toBeInstanceOf(ConsoleMailer)
+    expect(second).toBeInstanceOf(ExpectedMailer)
     expect(second).not.toBe(first)
   })
 })
