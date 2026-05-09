@@ -15,7 +15,7 @@ beforeAll(async () => {
   await pool.query(`DELETE FROM users WHERE email LIKE 'logs-test-%'`)
   const r = await app.fetch(new Request('http://x/api/console/register', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'secret123', name: 'T' }),
+    body: JSON.stringify({ email, password: 'secret123456', name: 'T' }),
   }))
   const j = await r.json()
   token = j.session.token
@@ -101,7 +101,7 @@ describe('logs routes', () => {
     const emailB = `logs-test-b-${Date.now()}@example.com`
     const rb = await app.fetch(new Request('http://x/api/console/register', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: emailB, password: 'secret123', name: 'B' }),
+      body: JSON.stringify({ email: emailB, password: 'secret123456', name: 'B' }),
     }))
     const jb = await rb.json()
     const tokenB = jb.session.token

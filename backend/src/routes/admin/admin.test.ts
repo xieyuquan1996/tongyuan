@@ -11,7 +11,7 @@ beforeAll(async () => {
   await pool.query(`DELETE FROM users WHERE email LIKE 'admin-test-%'`)
   const r = await app.fetch(new Request('http://x/api/console/register', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'secret123', name: 'A' }),
+    body: JSON.stringify({ email, password: 'secret123456', name: 'A' }),
   }))
   const j = await r.json()
   token = j.session.token
@@ -66,7 +66,7 @@ describe('admin read endpoints smoke', () => {
   it('rejects non-admin with 403', async () => {
     const r = await app.fetch(new Request('http://x/api/console/register', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: `admin-test-nonadmin-${Date.now()}@example.com`, password: 'secret123', name: 'N' }),
+      body: JSON.stringify({ email: `admin-test-nonadmin-${Date.now()}@example.com`, password: 'secret123456', name: 'N' }),
     }))
     const j = await r.json()
     const r2 = await app.fetch(new Request('http://x/api/admin/overview', {

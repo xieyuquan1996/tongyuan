@@ -5,6 +5,20 @@ import { gatewayRequests } from '../observability/metrics.js'
 describe('metrics route', () => {
   const app = createApp()
 
+  it('sets security headers on all responses', async () => {
+    const r = await app.fetch(new Request('http://x/healthz'))
+    expect(r.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(r.headers.get('x-frame-options')).toBe('DENY')
+    expect(r.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin')
+    expect(r.headers.get('x-permitted-cross-domain-policies')).toBe('none')
+  })
+
+  it('sets security headers on error responses', async () => {
+    const r = await app.fetch(new Request('http://x/api/console/nonexistent-route'))
+    expect(r.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(r.headers.get('x-frame-options')).toBe('DENY')
+  })
+
   it('exposes prometheus text exposition on GET /metrics', async () => {
     // Seed a counter so its HELP/TYPE lines appear in output.
     gatewayRequests.inc({ model: 'claude-opus-4-7', status: '200' })

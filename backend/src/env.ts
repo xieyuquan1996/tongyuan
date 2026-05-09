@@ -27,6 +27,14 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
   FRONTEND_URL: z.string().url().optional(),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV === 'production' && !data.METRICS_TOKEN) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'METRICS_TOKEN must be set in production — /metrics would be publicly accessible without it',
+      path: ['METRICS_TOKEN'],
+    })
+  }
 })
 
 export type Env = z.infer<typeof schema>
@@ -39,10 +47,6 @@ let _env: Env | null = null
 export function getEnv(): Env {
   if (_env) return _env
   _env = parseEnv(process.env)
-  if (_env.NODE_ENV === 'production' && !_env.METRICS_TOKEN) {
-    // eslint-disable-next-line no-console
-    console.warn('[env] WARN: NODE_ENV=production but METRICS_TOKEN is empty — /metrics is publicly accessible')
-  }
   if (_env.DISABLE_USER_QUOTA) {
     // eslint-disable-next-line no-console
     console.warn('[env] WARN: DISABLE_USER_QUOTA is enabled — all per-user RPM/TPM limits are bypassed')

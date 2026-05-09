@@ -61,4 +61,25 @@ describe('parseEnv', () => {
     expect(e.SMTP_HOST).toBeUndefined()
     expect(e.FRONTEND_URL).toBeUndefined()
   })
+
+  it('rejects missing METRICS_TOKEN in production', () => {
+    expect(() => parseEnv({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgres://u:p@h:5432/d',
+      REDIS_URL: 'redis://h:6379',
+      SESSION_SECRET: 'a'.repeat(32),
+      UPSTREAM_KEY_KMS: 'b'.repeat(64),
+    })).toThrow(/METRICS_TOKEN/)
+  })
+
+  it('accepts production env when METRICS_TOKEN is set', () => {
+    expect(() => parseEnv({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgres://u:p@h:5432/d',
+      REDIS_URL: 'redis://h:6379',
+      SESSION_SECRET: 'a'.repeat(32),
+      UPSTREAM_KEY_KMS: 'b'.repeat(64),
+      METRICS_TOKEN: 'prod-secret-token',
+    })).not.toThrow()
+  })
 })
