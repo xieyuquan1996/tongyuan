@@ -10,7 +10,7 @@ export function renderBalanceLow(data: {
 }): { subject: string; html: string; text: string } {
   const balanceStr = data.balance.toFixed(4)
   const thresholdStr = data.threshold.toFixed(4)
-  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) + '（北京时间）'
 
   const subject = '余额不足提醒'
 

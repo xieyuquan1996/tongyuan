@@ -10,7 +10,7 @@ export function renderP99Latency(data: {
 }): { subject: string; html: string; text: string } {
   const p99Str = `${data.p99Ms}ms`
   const thresholdStr = `${data.threshold}ms`
-  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) + '（北京时间）'
 
   const subject = 'P99 延迟告警'
 

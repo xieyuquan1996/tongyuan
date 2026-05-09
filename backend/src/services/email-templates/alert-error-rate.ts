@@ -10,7 +10,7 @@ export function renderErrorRate(data: {
 }): { subject: string; html: string; text: string } {
   const rateStr = (data.errorRate * 100).toFixed(1) + '%'
   const thresholdStr = (data.threshold * 100).toFixed(1) + '%'
-  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) + '（北京时间）'
 
   const subject = '请求错误率告警'
 

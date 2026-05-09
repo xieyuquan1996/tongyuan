@@ -10,7 +10,7 @@ export function renderSpendDaily(data: {
 }): { subject: string; html: string; text: string } {
   const spendStr = data.dailySpend.toFixed(4)
   const thresholdStr = data.threshold.toFixed(4)
-  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+  const triggeredStr = data.triggeredAt.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) + '（北京时间）'
 
   const subject = '日消费超限提醒'
 
