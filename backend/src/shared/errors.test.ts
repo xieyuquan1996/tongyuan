@@ -21,6 +21,18 @@ describe('AppError', () => {
     expect(body.error).toBe('internal_error')
   })
 
+  it('hides raw error message for internal errors in production', () => {
+    const prev = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    try {
+      const body = toErrorBody(new Error('SELECT * FROM users WHERE id=1'))
+      expect(body.error).toBe('internal_error')
+      expect(body.message).toBeUndefined()
+    } finally {
+      process.env.NODE_ENV = prev
+    }
+  })
+
   it('omits message when it equals the code (no custom message)', () => {
     const body = toErrorBody(new AppError('unauthorized'))
     expect(body.message).toBeUndefined()

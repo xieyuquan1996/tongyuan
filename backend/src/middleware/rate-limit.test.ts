@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from 'vitest'
+import { describe, it, expect, beforeEach, afterAll, vi, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import { rateLimit } from './rate-limit.js'
 import { AppError, RateLimitError, toErrorBody } from '../shared/errors.js'
@@ -66,6 +66,16 @@ describe('rateLimit (token bucket)', () => {
     k = `${prefix}:b`
     const r3 = await app.fetch(new Request('http://x/'))
     expect(r3.status).toBe(200)
+  })
+
+  it('logs a warning when a request is rate limited', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    afterEach(() => vi.restoreAllMocks())
+    const app = mkApp(1)
+    await app.fetch(new Request('http://x/'))  // consume the token
+    await app.fetch(new Request('http://x/'))  // should be rejected
+    expect(warnSpy).toHaveBeenCalledOnce()
+    expect(warnSpy.mock.calls[0]![0]).toMatch(/rate.?limit/i)
   })
 
   it('refills tokens over time at the configured rate', { timeout: 5000 }, async () => {

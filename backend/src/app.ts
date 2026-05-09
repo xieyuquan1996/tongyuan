@@ -38,6 +38,18 @@ import { installRoutes } from './routes/install.js'
 export function createApp() {
   const app = new Hono()
 
+  // Security headers on every response including errors and 404s.
+  app.use('*', (c, next) => {
+    c.header('X-Content-Type-Options', 'nosniff')
+    c.header('X-Frame-Options', 'DENY')
+    c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+    c.header('X-Permitted-Cross-Domain-Policies', 'none')
+    if (process.env.NODE_ENV === 'production') {
+      c.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
+    }
+    return next()
+  })
+
   // Top-level: stamp every response with x-request-id so support requests
   // and log lines line up. Runs before onError so error responses also
   // carry the id.

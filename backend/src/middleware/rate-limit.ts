@@ -67,6 +67,8 @@ export function rateLimit(getBucket: (c: Context) => BucketSpec): MiddlewareHand
     const [allowed, retryAfterMs, remaining] = result
     if (allowed !== 1) {
       const retryAfterSec = Math.max(1, Math.ceil(retryAfterMs / 1000))
+      // eslint-disable-next-line no-console
+      console.warn(`[rate-limit] key=${key} exceeded ${limit} RPM, retry_after=${retryAfterSec}s`)
       throw new RateLimitError(
         `Rate limit exceeded: ${limit} RPM. Retry after ${retryAfterSec}s.`,
         { retryAfterSec, limitRequests: limit, remainingRequests: remaining },

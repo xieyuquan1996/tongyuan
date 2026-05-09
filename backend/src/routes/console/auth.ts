@@ -19,9 +19,9 @@ import { env } from '../../env.js'
 export const authRoutes = new Hono()
 
 const registerBody = z.object({
-  email: z.string(),
-  password: z.string(),
-  name: z.string().optional().default(''),
+  email: z.string().email().max(254),
+  password: z.string().max(128),
+  name: z.string().max(255).optional().default(''),
 })
 
 authRoutes.post('/register', zValidator('json', registerBody), async (c) => {
@@ -34,7 +34,7 @@ authRoutes.post('/register', zValidator('json', registerBody), async (c) => {
   }, 201)
 })
 
-const loginBody = z.object({ email: z.string(), password: z.string() })
+const loginBody = z.object({ email: z.string().max(254), password: z.string().max(128) })
 
 authRoutes.post('/login', zValidator('json', loginBody), async (c) => {
   const b = c.req.valid('json')
@@ -69,9 +69,9 @@ authRoutes.get('/me', requireBearer, async (c) => {
 })
 
 const profileBody = z.object({
-  name: z.string().optional(),
-  company: z.string().optional(),
-  phone: z.string().optional(),
+  name: z.string().max(255).optional(),
+  company: z.string().max(255).optional(),
+  phone: z.string().max(50).optional(),
   theme: z.enum(['light', 'dark']).optional(),
   notify_email: z.boolean().optional(),
   notify_browser: z.boolean().optional(),
@@ -90,17 +90,17 @@ authRoutes.patch('/profile', requireBearer, zValidator('json', profileBody), asy
   return c.json(toPublicUser(row!))
 })
 
-const passwordBody = z.object({ current: z.string(), next: z.string() })
+const passwordBody = z.object({ current: z.string().max(128), next: z.string().max(128) })
 authRoutes.post('/password', requireBearer, zValidator('json', passwordBody), async (c) => {
   const u = c.get('user')
   const b = c.req.valid('json')
   if (!(await verifyPassword(b.current, u.passwordHash))) throw new AppError('wrong_password')
-  if (b.next.length < 6) throw new AppError('weak_password')
+  if (b.next.length < 12) throw new AppError('weak_password')
   await db.update(users).set({ passwordHash: await hashPassword(b.next), updatedAt: new Date() }).where(eq(users.id, u.id))
   return c.json({ ok: true })
 })
 
-authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string() })), async (c) => {
+authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string().max(254) })), async (c) => {
   const { email } = c.req.valid('json')
   const hint = '如果该邮箱已注册，我们已经发送了重置链接。'
 
@@ -126,10 +126,10 @@ authRoutes.post('/forgot', zValidator('json', z.object({ email: z.string() })), 
   return c.json({ ok: true, hint })
 })
 
-authRoutes.post('/reset', zValidator('json', z.object({ token: z.string(), password: z.string() })), async (c) => {
+authRoutes.post('/reset', zValidator('json', z.object({ token: z.string().max(128), password: z.string().max(128) })), async (c) => {
   const { token, password } = c.req.valid('json')
 
-  if (password.length < 6) throw new AppError('weak_password')
+  if (password.length < 12) throw new AppError('weak_password')
 
   // Atomically claim and delete the token so concurrent requests cannot reuse it.
   const userId = await redis.getdel(`pw_reset:${token}`)

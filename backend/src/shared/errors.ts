@@ -80,5 +80,10 @@ export function toErrorBody(e: unknown): { error: ErrorCode; message?: string } 
   if (a && typeof a.code === 'string' && typeof a.status === 'number' && a.code in STATUS) {
     return { error: a.code as ErrorCode, message: a.message !== a.code ? a.message : undefined }
   }
+  // In production, hide raw exception details to prevent leaking DB schema,
+  // query fragments, or stack traces to clients.
+  if (process.env.NODE_ENV === 'production') {
+    return { error: 'internal_error' }
+  }
   return { error: 'internal_error', message: e instanceof Error ? e.message : String(e) }
 }

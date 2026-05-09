@@ -22,7 +22,7 @@ beforeAll(async () => {
   const r = await app.fetch(new Request('http://x/api/console/register', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'secret123' }),
+    body: JSON.stringify({ email, password: 'secret123456' }),
   }))
   const j = await r.json()
   token = j.session.token

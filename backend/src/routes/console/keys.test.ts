@@ -10,7 +10,7 @@ beforeAll(async () => {
   await pool.query("DELETE FROM users WHERE email='keys-test@example.com'")
   const r = await app.fetch(new Request('http://x/api/console/register', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: 'keys-test@example.com', password: 'secret123' }),
+    body: JSON.stringify({ email: 'keys-test@example.com', password: 'secret123456' }),
   }))
   token = (await r.json()).session.token
 })

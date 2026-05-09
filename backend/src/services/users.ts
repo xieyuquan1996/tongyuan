@@ -20,7 +20,7 @@ async function getSignupCreditUsd(): Promise<number> {
 export async function createUser(input: { email: string; password: string; name: string }): Promise<UserRow> {
   const email = input.email.trim().toLowerCase()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new AppError('invalid_email')
-  if (input.password.length < 6) throw new AppError('weak_password')
+  if (input.password.length < 12) throw new AppError('weak_password')
 
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) })
   if (existing) throw new AppError('email_exists')
@@ -53,8 +53,7 @@ export async function authenticate(email: string, password: string): Promise<Use
 
   // Check lockout
   if (row.lockedUntil && row.lockedUntil > new Date()) {
-    const mins = Math.ceil((row.lockedUntil.getTime() - Date.now()) / 60_000)
-    throw new AppError('account_locked', `账户已锁定，请 ${mins} 分钟后再试`)
+    throw new AppError('account_locked', '账户已锁定，请稍后再试')
   }
 
   const ok = await verifyPassword(password, row.passwordHash)
@@ -66,7 +65,7 @@ export async function authenticate(email: string, password: string): Promise<Use
         : { failedLoginAttempts: attempts }
     await db.update(users).set(patch).where(eq(users.id, row.id))
     if (attempts >= MAX_ATTEMPTS) {
-      throw new AppError('account_locked', `密码错误次数过多，账户已锁定 ${LOCKOUT_MINUTES} 分钟`)
+      throw new AppError('account_locked', '账户已锁定，请稍后再试')
     }
     throw new AppError('invalid_credentials')
   }
