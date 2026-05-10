@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, Link, useLocation } from "react-router-do
 import {
   LayoutDashboard, Users, KeyRound, List, CreditCard, Cpu,
   Megaphone, History, ShieldCheck, ChevronDown, LogOut, User, Sun, Moon,
-  Command, Key, Settings, FlaskConical, Menu, X,
+  Command, Key, Settings, FlaskConical, Menu, X, GitCompareArrows,
 } from "lucide-react";
 import { LogoMark } from "../../components/primitives.jsx";
 import { api, session, logout } from "../../lib/api.js";
@@ -152,6 +152,7 @@ function AdminSidebarContent({ onNavClick }) {
       <SideItem to="/admin/billing" icon={CreditCard} onClick={onNavClick}>账单 / 收入</SideItem>
       <Group style={{ marginTop: 16 }}>平台配置</Group>
       <SideItem to="/admin/upstream-keys" icon={Key} onClick={onNavClick}>上游密钥</SideItem>
+      <SideItem to="/admin/reconciliation" icon={GitCompareArrows} onClick={onNavClick}>对账</SideItem>
       <SideItem to="/admin/models" icon={Cpu} onClick={onNavClick}>模型</SideItem>
       <SideItem to="/admin/playground" icon={FlaskConical} onClick={onNavClick}>Playground</SideItem>
       <SideItem to="/admin/announcements" icon={Megaphone} onClick={onNavClick}>公告</SideItem>
