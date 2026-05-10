@@ -403,6 +403,8 @@ function AddKeyForm({ onDone, onCancel }) {
   const [secret, setSecret] = useState("");
   const [weight, setWeight] = useState("100");
   const [baseUrl, setBaseUrl] = useState("https://api.anthropic.com");
+  const [adminKey, setAdminKey] = useState("");
+  const [anthropicKeyId, setAnthropicKeyId] = useState("");
   const [err, setErr] = useState({});
   const [busy, setBusy] = useState(false);
 
@@ -425,7 +427,14 @@ function AddKeyForm({ onDone, onCancel }) {
     try {
       await api("/api/admin/upstream-keys", {
         method: "POST",
-        body: { alias: alias.trim(), secret: secret.trim(), weight: parseInt(weight, 10) || 0, ...(baseUrl.trim() ? { base_url: baseUrl.trim() } : {}) },
+        body: {
+          alias: alias.trim(),
+          secret: secret.trim(),
+          weight: parseInt(weight, 10) || 0,
+          ...(baseUrl.trim() ? { base_url: baseUrl.trim() } : {}),
+          ...(adminKey.trim() ? { admin_key: adminKey.trim() } : {}),
+          ...(anthropicKeyId.trim() ? { anthropic_key_id: anthropicKeyId.trim() } : {}),
+        },
       });
       onDone();
     } catch (ex) {
@@ -449,6 +458,15 @@ function AddKeyForm({ onDone, onCancel }) {
         {field("alias", "别名", <input value={alias} onChange={e => { setAlias(e.target.value); setErr(p => ({...p, alias: ""})); }} placeholder="如 key-1" style={inputStyle}/>)}
         {field("secret", "Anthropic API Key", <input value={secret} onChange={e => { setSecret(e.target.value); setErr(p => ({...p, secret: ""})); }} placeholder="sk-ant-..." type="password" style={inputStyle}/>)}
         {field("weight", "权重", <input value={weight} onChange={e => { setWeight(e.target.value); setErr(p => ({...p, weight: ""})); }} type="number" min="0" style={inputStyle} title="数值越大流量占比越高"/>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+        {field("adminKey", "Admin API Key（可选，用于对账）", <input value={adminKey} onChange={e => setAdminKey(e.target.value)} placeholder="sk-ant-admin01-..." type="password" style={inputStyle}/>)}
+        {field("anthropicKeyId", "Anthropic Key ID（可选，用于对账）",
+          <div>
+            <input value={anthropicKeyId} onChange={e => setAnthropicKeyId(e.target.value)} placeholder="apikey_01..." style={inputStyle}/>
+            <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>从 Anthropic Console → Settings → API Keys 复制</div>
+          </div>
+        )}
       </div>
       {field("baseUrl", "上游 Base URL（留空则用 https://api.anthropic.com）", <input value={baseUrl} onChange={e => { setBaseUrl(e.target.value); setErr(p => ({...p, baseUrl: ""})); }} placeholder="https://api.anthropic.com" style={{ ...inputStyle, width: "100%" }}/>)}
       {err.form && <div style={{ color: "var(--err)", fontSize: 12, marginTop: 8 }}>{err.form}</div>}
