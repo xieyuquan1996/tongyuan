@@ -18,6 +18,8 @@ export const users = pgTable('users', {
   notifyBrowser: boolean('notify_browser').notNull().default(false),
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: timestamp('locked_until', { withTimezone: true }),
+  webhookUrl: text('webhook_url'),
+  webhookToken: text('webhook_token'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -109,6 +111,7 @@ export const alerts = pgTable('alerts', {
   threshold: text('threshold').notNull(),
   channel: text('channel').notNull(),  // 'email' | 'browser'
   enabled: boolean('enabled').notNull().default(true),
+  webhookUrl: text('webhook_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
