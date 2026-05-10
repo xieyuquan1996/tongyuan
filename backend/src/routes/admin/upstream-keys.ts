@@ -129,15 +129,24 @@ upstreamKeysRoutes.patch('/:id', zValidator('json', z.object({
   state: z.enum(['active', 'cooldown', 'disabled']).optional(),
   priority: z.number().int().optional(),
   weight: z.number().int().nonnegative().optional(),
+  admin_key: z.string().optional(),
+  anthropic_key_id: z.string().optional(),
 })), async (c) => {
   const id = c.req.param('id')
-  const patch = c.req.valid('json')
-  const row = await svc.patch(id, patch)
+  const b = c.req.valid('json')
+  const row = await svc.patch(id, {
+    alias: b.alias,
+    state: b.state,
+    priority: b.priority,
+    weight: b.weight,
+    adminKey: b.admin_key,
+    anthropicKeyId: b.anthropic_key_id,
+  })
   await audit.record({
     actor: c.get('user'),
     action: 'admin.upstream_key.update',
     target: row.alias,
-    metadata: { id, patch },
+    metadata: { id, patch: { ...b, admin_key: b.admin_key ? '[redacted]' : undefined } },
   })
   return c.json(svc.toPublic(row))
 })
