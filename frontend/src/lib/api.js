@@ -68,7 +68,7 @@ export async function api(path, opts = {}) {
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!r.ok) {
-    if (r.status === 401) {
+    if (r.status === 401 && !path.includes("/login")) {
       session.clear();
       window.location.href = "/login";
     }

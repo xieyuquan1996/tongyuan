@@ -1,23 +1,31 @@
-// frontend/src/pages/admin/Reconciliation.jsx
 import { useState, useEffect, useCallback } from 'react'
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar,
-} from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { api } from '../../lib/api.js'
-
-const STATUS_COLOR = { match: 'text-green-600', warn: 'text-yellow-600', mismatch: 'text-red-600' }
-const STATUS_BG = { match: 'bg-green-50', warn: 'bg-yellow-50', mismatch: 'bg-red-50' }
+import { Loading, ErrorBox, Pill } from '../../components/primitives.jsx'
+import { PageHeader } from '../../components/dashboard-widgets.jsx'
 
 function fmt(n) {
   if (n === null || n === undefined) return '—'
   const num = Number(n)
-  return isNaN(num) ? '—' : num.toFixed(2) + '%'
+  return isNaN(num) ? '—' : (num >= 0 ? '+' : '') + num.toFixed(2) + '%'
 }
 
 function fmtTokens(n) {
   if (n === null || n === undefined) return '—'
   return Number(n).toLocaleString()
+}
+
+function StatusPill({ status }) {
+  const tone = status === 'match' ? 'ok' : status === 'warn' ? 'warn' : 'err'
+  return <Pill tone={tone} dot>{status}</Pill>
+}
+
+function diffColor(val) {
+  if (val === null || val === undefined) return 'var(--text-3)'
+  const n = Math.abs(Number(val))
+  if (n >= 1) return 'var(--err)'
+  if (n >= 0.1) return 'var(--warn-text)'
+  return 'var(--ok-text)'
 }
 
 export default function Reconciliation() {
@@ -33,6 +41,7 @@ export default function Reconciliation() {
   const [reports, setReports] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -40,7 +49,7 @@ export default function Reconciliation() {
       const withAdmin = (data.upstream_keys ?? []).filter((k) => k.hasAdminKey)
       setUpstreamKeys(withAdmin)
       setSelectedKeys(withAdmin.map((k) => k.id))
-    })
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -56,16 +65,23 @@ export default function Reconciliation() {
   }, [bucketWidth])
 
   const fetchReports = useCallback(async (p = 1) => {
-    const params = new URLSearchParams({ page: p, pageSize: 50 })
-    if (selectedKeys.length === 1) params.set('upstreamKeyId', selectedKeys[0])
-    if (bucketWidth) params.set('bucketWidth', bucketWidth)
-    if (statusFilter) params.set('status', statusFilter)
-    params.set('startAt', new Date(startAt).toISOString())
-    params.set('endAt', new Date(endAt + 'T23:59:59Z').toISOString())
-    const data = await api(`/api/admin/reconciliation/reports?${params}`)
-    setReports(data.reports ?? [])
-    setTotal(data.total ?? 0)
-    setPage(p)
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ page: p, pageSize: 50 })
+      if (selectedKeys.length === 1) params.set('upstreamKeyId', selectedKeys[0])
+      if (bucketWidth) params.set('bucketWidth', bucketWidth)
+      if (statusFilter) params.set('status', statusFilter)
+      params.set('startAt', new Date(startAt).toISOString())
+      params.set('endAt', new Date(endAt + 'T23:59:59Z').toISOString())
+      const data = await api(`/api/admin/reconciliation/reports?${params}`)
+      setReports(data.reports ?? [])
+      setTotal(data.total ?? 0)
+      setPage(p)
+    } catch (e) {
+      setError(e.message ?? '加载失败')
+    } finally {
+      setLoading(false)
+    }
   }, [selectedKeys, bucketWidth, statusFilter, startAt, endAt])
 
   const handleRun = async () => {
@@ -92,12 +108,9 @@ export default function Reconciliation() {
   useEffect(() => { fetchReports(1) }, [fetchReports])
 
   const trendData = reports.map((r) => ({
-    bucket: bucketWidth === '1d'
-      ? r.bucketAt.slice(0, 10)
-      : r.bucketAt.slice(0, 16).replace('T', ' '),
+    bucket: bucketWidth === '1d' ? r.bucketAt.slice(0, 10) : r.bucketAt.slice(0, 16).replace('T', ' '),
     input: Number(r.inputDiffPct ?? 0),
     output: Number(r.outputDiffPct ?? 0),
-    alias: r.upstreamKeyAlias,
   }))
 
   const statusByKey = {}
@@ -109,38 +122,33 @@ export default function Reconciliation() {
   const keyStatusData = Object.values(statusByKey)
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold">对账</h1>
+    <div>
+      <PageHeader title="对账" sub={loading ? '加载中…' : `共 ${total} 条记录`} />
 
-      <div className="flex flex-wrap gap-3 items-end bg-white border rounded-lg p-4">
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">粒度</label>
-          <select
-            value={bucketWidth}
-            onChange={(e) => setBucketWidth(e.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            <option value="1d">按天（最多31天）</option>
-            <option value="1h">按小时（最多7天）</option>
+      {/* Controls */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16, alignItems: 'flex-end' }}>
+        <div style={filterGroup}>
+          <span style={label}>粒度</span>
+          <select value={bucketWidth} onChange={(e) => setBucketWidth(e.target.value)} style={filterSel}>
+            <option value="1d">按天（最多 31 天）</option>
+            <option value="1h">按小时（最多 7 天）</option>
           </select>
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">开始日期</label>
-          <input type="date" value={startAt} onChange={(e) => setStartAt(e.target.value)}
-            className="border rounded px-2 py-1 text-sm" />
+        <div style={filterGroup}>
+          <span style={label}>开始日期</span>
+          <input type="date" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={filterSel} />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">结束日期</label>
-          <input type="date" value={endAt} onChange={(e) => setEndAt(e.target.value)}
-            className="border rounded px-2 py-1 text-sm" />
+        <div style={filterGroup}>
+          <span style={label}>结束日期</span>
+          <input type="date" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={filterSel} />
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">上游 Key</label>
+        <div style={filterGroup}>
+          <span style={label}>上游 Key</span>
           <select
             multiple
             value={selectedKeys}
             onChange={(e) => setSelectedKeys([...e.target.selectedOptions].map((o) => o.value))}
-            className="border rounded px-2 py-1 text-sm min-w-[160px]"
+            style={{ ...filterSel, minWidth: 160 }}
             size={Math.min(upstreamKeys.length + 1, 4)}
           >
             {upstreamKeys.map((k) => (
@@ -148,10 +156,9 @@ export default function Reconciliation() {
             ))}
           </select>
         </div>
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">状态筛选</label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded px-2 py-1 text-sm">
+        <div style={filterGroup}>
+          <span style={label}>状态</span>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={filterSel}>
             <option value="">全部</option>
             <option value="match">match</option>
             <option value="warn">warn</option>
@@ -161,103 +168,122 @@ export default function Reconciliation() {
         <button
           onClick={handleRun}
           disabled={running || selectedKeys.length === 0}
-          className="px-4 py-1.5 bg-black text-white rounded text-sm disabled:opacity-50"
+          style={{ ...cta, opacity: (running || selectedKeys.length === 0) ? 0.5 : 1, cursor: (running || selectedKeys.length === 0) ? 'default' : 'pointer' }}
         >
           {running ? '执行中…' : '执行对账'}
         </button>
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <ErrorBox error={error} />}
 
+      {/* Charts */}
       {trendData.length > 0 && (
-        <div className="bg-white border rounded-lg p-4">
-          <h2 className="text-sm font-medium mb-3">Token 差异趋势（%）</h2>
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => v + '%'} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => v.toFixed(3) + '%'} />
-              <Legend />
-              <Line type="monotone" dataKey="input" name="Input 差异%" stroke="#6366f1" dot={false} />
-              <Line type="monotone" dataKey="output" name="Output 差异%" stroke="#f59e0b" dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {keyStatusData.length > 0 && (
-        <div className="bg-white border rounded-lg p-4">
-          <h2 className="text-sm font-medium mb-3">各上游 Key 对账状态分布</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={keyStatusData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="alias" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="match" name="match" stackId="a" fill="#22c55e" />
-              <Bar dataKey="warn" name="warn" stackId="a" fill="#eab308" />
-              <Bar dataKey="mismatch" name="mismatch" stackId="a" fill="#ef4444" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      <div className="bg-white border rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b text-sm text-gray-500">
-          共 {total} 条记录，当前显示第 {page} 页
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-xs text-gray-500">
-              <tr>
-                <th className="px-3 py-2 text-left">时间 bucket</th>
-                <th className="px-3 py-2 text-left">上游 Key</th>
-                <th className="px-3 py-2 text-right">Input 差异%</th>
-                <th className="px-3 py-2 text-right">Output 差异%</th>
-                <th className="px-3 py-2 text-right">本地 Input</th>
-                <th className="px-3 py-2 text-right">Anthropic Input</th>
-                <th className="px-3 py-2 text-right">本地 Output</th>
-                <th className="px-3 py-2 text-right">Anthropic Output</th>
-                <th className="px-3 py-2 text-center">状态</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.map((r) => (
-                <tr key={r.id} className={`border-t ${STATUS_BG[r.status] ?? ''}`}>
-                  <td className="px-3 py-2 font-mono text-xs">
-                    {bucketWidth === '1d' ? r.bucketAt.slice(0, 10) : r.bucketAt.slice(0, 16).replace('T', ' ')}
-                  </td>
-                  <td className="px-3 py-2">{r.upstreamKeyAlias ?? r.upstreamKeyId.slice(0, 8)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmt(r.inputDiffPct)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmt(r.outputDiffPct)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtTokens(r.localInputTokens)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtTokens(r.anthropicInputTokens)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtTokens(r.localOutputTokens)}</td>
-                  <td className="px-3 py-2 text-right font-mono">{fmtTokens(r.anthropicOutputTokens)}</td>
-                  <td className="px-3 py-2 text-center">
-                    <span className={`text-xs font-medium ${STATUS_COLOR[r.status] ?? ''}`}>
-                      {r.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {reports.length === 0 && (
-                <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">暂无对账记录</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {total > 50 && (
-          <div className="px-4 py-3 border-t flex gap-2">
-            <button onClick={() => fetchReports(page - 1)} disabled={page === 1}
-              className="px-3 py-1 border rounded text-sm disabled:opacity-40">上一页</button>
-            <button onClick={() => fetchReports(page + 1)} disabled={page * 50 >= total}
-              className="px-3 py-1 border rounded text-sm disabled:opacity-40">下一页</button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={card}>
+            <div style={chartTitle}>Token 差异趋势（%）</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={trendData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
+                <YAxis tickFormatter={(v) => v + '%'} tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)' }}
+                  formatter={(v) => v.toFixed(3) + '%'}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+                <Line type="monotone" dataKey="input" name="Input 差异%" stroke="var(--clay)" dot={false} strokeWidth={1.5} />
+                <Line type="monotone" dataKey="output" name="Output 差异%" stroke="var(--ok-text)" dot={false} strokeWidth={1.5} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        )}
-      </div>
+          <div style={card}>
+            <div style={chartTitle}>各上游 Key 状态分布</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={keyStatusData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="alias" tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
+                <Tooltip contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)' }} />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+                <Bar dataKey="match" name="match" stackId="a" fill="var(--ok-text)" />
+                <Bar dataKey="warn" name="warn" stackId="a" fill="var(--warn-text)" />
+                <Bar dataKey="mismatch" name="mismatch" stackId="a" fill="var(--err)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
+      {loading ? <Loading /> : (
+        <div style={card}>
+          <div className="table-scroll">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 900 }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-3)' }}>
+                  <th style={th}>时间 bucket</th>
+                  <th style={th}>上游 Key</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Input 差异%</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Output 差异%</th>
+                  <th style={{ ...th, textAlign: 'right' }}>本地 Input</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Anthropic Input</th>
+                  <th style={{ ...th, textAlign: 'right' }}>本地 Output</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Anthropic Output</th>
+                  <th style={th}>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.length === 0 && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                      暂无对账记录
+                    </td>
+                  </tr>
+                )}
+                {reports.map((r) => (
+                  <tr key={r.id} style={{ borderTop: '1px solid var(--divider)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-3)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-2)' }}>
+                      {bucketWidth === '1d' ? r.bucketAt.slice(0, 10) : r.bucketAt.slice(0, 16).replace('T', ' ')}
+                    </td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                      {r.upstreamKeyAlias ?? r.upstreamKeyId.slice(0, 8)}
+                    </td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', color: diffColor(r.inputDiffPct) }}>
+                      {fmt(r.inputDiffPct)}
+                    </td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', color: diffColor(r.outputDiffPct) }}>
+                      {fmt(r.outputDiffPct)}
+                    </td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12 }}>{fmtTokens(r.localInputTokens)}</td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12 }}>{fmtTokens(r.anthropicInputTokens)}</td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12 }}>{fmtTokens(r.localOutputTokens)}</td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12 }}>{fmtTokens(r.anthropicOutputTokens)}</td>
+                    <td style={td}><StatusPill status={r.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {total > 50 && (
+            <div style={{ padding: '10px 16px', borderTop: '1px solid var(--divider)', display: 'flex', gap: 6 }}>
+              <button onClick={() => fetchReports(page - 1)} disabled={page === 1} style={pageBtn(page === 1)}>上一页</button>
+              <button onClick={() => fetchReports(page + 1)} disabled={page * 50 >= total} style={pageBtn(page * 50 >= total)}>下一页</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
+
+const card = { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }
+const th = { fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-3)', textAlign: 'left', padding: '10px 16px', fontWeight: 400 }
+const td = { padding: '12px 16px', color: 'var(--text)' }
+const filterSel = { padding: '8px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', cursor: 'pointer' }
+const filterGroup = { display: 'flex', flexDirection: 'column', gap: 4 }
+const label = { fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }
+const cta = { padding: '8px 14px', background: 'var(--clay)', color: 'var(--on-clay)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }
+const chartTitle = { padding: '12px 16px 4px', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)' }
+const pageBtn = (disabled) => ({ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12, cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-3)' : 'var(--text-2)', fontFamily: 'var(--font-mono)' })
