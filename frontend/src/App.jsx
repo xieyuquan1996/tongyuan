@@ -48,11 +48,13 @@ import RequireAuth from "./components/RequireAuth.jsx";
 import RequireAdmin from "./components/RequireAdmin.jsx";
 import { ThemeProvider } from "./lib/theme.jsx";
 import CommandPalette from "./components/CommandPalette.jsx";
+import { ToastProvider } from "./components/Toast.jsx";
 
 export default function App() {
   return (
     <ThemeProvider>
-      <CommandPalette />
+      <ToastProvider>
+        <CommandPalette />
       <Routes>
         <Route path="/" element={<MarketingLanding />} />
         <Route path="/marketing" element={<Navigate to="/" replace />} />
@@ -130,6 +132,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ToastProvider>
     </ThemeProvider>
   );
 }
