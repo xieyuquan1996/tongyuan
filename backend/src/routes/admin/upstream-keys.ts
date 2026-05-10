@@ -111,15 +111,17 @@ upstreamKeysRoutes.post('/', zValidator('json', z.object({
   weight: z.number().int().nonnegative().optional(),
   quota_hint_usd: z.string().optional(),
   base_url: z.string().url().optional(),
+  admin_key: z.string().optional(),
+  anthropic_key_id: z.string().optional(),
 })), async (c) => {
   const b = c.req.valid('json')
-  const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, weight: b.weight, quotaHintUsd: b.quota_hint_usd, baseUrl: b.base_url })
+  const row = await svc.create({ alias: b.alias, secret: b.secret, priority: b.priority, weight: b.weight, quotaHintUsd: b.quota_hint_usd, baseUrl: b.base_url, adminKey: b.admin_key, anthropicKeyId: b.anthropic_key_id })
   // Never log the secret itself — only the prefix svc.create stored.
   await audit.record({
     actor: c.get('user'),
     action: 'admin.upstream_key.create',
     target: row.alias,
-    metadata: { id: row.id, key_prefix: row.keyPrefix, weight: row.weight, base_url: row.baseUrl },
+    metadata: { id: row.id, key_prefix: row.keyPrefix, weight: row.weight, base_url: row.baseUrl, has_admin_key: !!b.admin_key },
   })
   return c.json(svc.toPublic(row), 201)
 })

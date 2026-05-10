@@ -14,13 +14,16 @@ export function toPublic(row: UpstreamRow): UpstreamPublic {
   return { ...rest, hasAdminKey: !!row.adminKeyCiphertext }
 }
 
-export async function create(input: { alias: string; secret: string; priority?: number; weight?: number; quotaHintUsd?: string; baseUrl?: string }) {
+export async function create(input: { alias: string; secret: string; priority?: number; weight?: number; quotaHintUsd?: string; baseUrl?: string; adminKey?: string; anthropicKeyId?: string }) {
   // Strip accidental whitespace / BOM from pasted keys — Anthropic returns 401
   // if x-api-key has any stray chars, and we've been bitten by this repeatedly.
   const secret = input.secret.trim().replace(/​|﻿/g, '')
   if (!secret) throw new AppError('missing_fields')
   const ct = encryptSecret(secret, env.UPSTREAM_KEY_KMS)
   const prefix = secret.slice(0, 20)
+  const adminKeyCiphertext = input.adminKey?.trim()
+    ? encryptSecret(input.adminKey.trim(), env.UPSTREAM_KEY_KMS)
+    : undefined
   const [row] = await db.insert(upstreamKeys).values({
     alias: input.alias,
     keyCiphertext: ct,
@@ -29,6 +32,8 @@ export async function create(input: { alias: string; secret: string; priority?: 
     weight: input.weight ?? 100,
     quotaHintUsd: input.quotaHintUsd,
     baseUrl: input.baseUrl || null,
+    ...(adminKeyCiphertext ? { adminKeyCiphertext } : {}),
+    ...(input.anthropicKeyId?.trim() ? { anthropicKeyId: input.anthropicKeyId.trim() } : {}),
   }).returning()
   return row!
 }
