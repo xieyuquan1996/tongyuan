@@ -148,3 +148,110 @@ describe('checkRequestAlerts', () => {
     await db.delete(alerts).where(eq(alerts.id, a2!.id))
   })
 })
+
+describe('checkBillingAlerts — webhook channel', () => {
+  it('POST 到 user.webhookUrl 当 per-alert URL 为空', async () => {
+    await db.update(users).set({ webhookUrl: 'https://hook.example.com/billing' }).where(eq(users.id, userId))
+
+    const [a] = await db.insert(alerts).values({
+      userId, kind: 'balance_low', threshold: '5.00', channel: 'webhook', enabled: true,
+    }).returning()
+
+    const mockFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('ok', { status: 200 }) as any,
+    )
+
+    checkBillingAlerts(userId)
+    await tick()
+
+    expect(mockFetch).toHaveBeenCalledOnce()
+    const [url, init] = mockFetch.mock.calls[0]!
+    expect(url).toBe('https://hook.example.com/billing')
+    const body = JSON.parse((init as RequestInit).body as string)
+    expect(body.kind).toBe('balance_low')
+    expect(body.threshold).toBe(5)
+    expect(body.current_balance).toBeCloseTo(3, 1)
+    expect(body.triggered_at).toBeTruthy()
+
+    await db.update(users).set({ webhookUrl: null }).where(eq(users.id, userId))
+    await db.delete(alerts).where(eq(alerts.id, a!.id))
+  })
+
+  it('per-alert URL 覆盖 user 全局 URL', async () => {
+    await db.update(users).set({ webhookUrl: 'https://global.example.com', webhookToken: 'tok123' }).where(eq(users.id, userId))
+
+    const [a] = await db.insert(alerts).values({
+      userId, kind: 'balance_low', threshold: '5.00', channel: 'webhook', enabled: true,
+      webhookUrl: 'https://per-alert.example.com',
+    }).returning()
+
+    const mockFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('ok', { status: 200 }) as any,
+    )
+
+    checkBillingAlerts(userId)
+    await tick()
+
+    const [url, init] = mockFetch.mock.calls[0]!
+    expect(url).toBe('https://per-alert.example.com')
+    expect(((init as RequestInit).headers as Record<string, string>)['Authorization']).toBe('Bearer tok123')
+
+    await db.update(users).set({ webhookUrl: null, webhookToken: null }).where(eq(users.id, userId))
+    await db.delete(alerts).where(eq(alerts.id, a!.id))
+  })
+
+  it('URL 为空时跳过，不调用 fetch', async () => {
+    await db.update(users).set({ webhookUrl: null }).where(eq(users.id, userId))
+    const [a] = await db.insert(alerts).values({
+      userId, kind: 'balance_low', threshold: '5.00', channel: 'webhook', enabled: true,
+    }).returning()
+
+    const mockFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }) as any)
+
+    checkBillingAlerts(userId)
+    await tick()
+
+    expect(mockFetch).not.toHaveBeenCalled()
+    await db.delete(alerts).where(eq(alerts.id, a!.id))
+  })
+
+  it('非 2xx 响应时仍写入 cooldown key', async () => {
+    await db.update(users).set({ webhookUrl: 'https://bad.example.com' }).where(eq(users.id, userId))
+    const [a] = await db.insert(alerts).values({
+      userId, kind: 'balance_low', threshold: '5.00', channel: 'webhook', enabled: true,
+    }).returning()
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('error', { status: 500 }) as any)
+
+    checkBillingAlerts(userId)
+    await tick()
+
+    const cooldown = await redis.get(`alert_sent:${a!.id}`)
+    expect(cooldown).toBe('1')
+
+    await db.update(users).set({ webhookUrl: null }).where(eq(users.id, userId))
+    await db.delete(alerts).where(eq(alerts.id, a!.id))
+  })
+})
+
+describe('checkRequestAlerts — webhook channel', () => {
+  it('POST 到 webhookUrl 当错误率触发', async () => {
+    await db.update(users).set({ webhookUrl: 'https://hook.example.com/req' }).where(eq(users.id, userId))
+    const [a] = await db.insert(alerts).values({
+      userId, kind: 'error_rate', threshold: '0.5', channel: 'webhook', enabled: true,
+    }).returning()
+
+    const mockFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok', { status: 200 }) as any)
+
+    checkRequestAlerts(userId, { errorRate: 1, p99Ms: 100 })
+    await tick()
+
+    expect(mockFetch).toHaveBeenCalledOnce()
+    const body = JSON.parse((mockFetch.mock.calls[0]![1] as RequestInit).body as string)
+    expect(body.kind).toBe('error_rate')
+    expect(body.error_rate).toBe(1)
+
+    await db.update(users).set({ webhookUrl: null }).where(eq(users.id, userId))
+    await db.delete(alerts).where(eq(alerts.id, a!.id))
+  })
+})
