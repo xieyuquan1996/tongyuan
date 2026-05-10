@@ -76,6 +76,10 @@ const profileBody = z.object({
   theme: z.enum(['light', 'dark']).optional(),
   notify_email: z.boolean().optional(),
   notify_browser: z.boolean().optional(),
+  webhook_url: z.union([z.string().url(), z.literal(''), z.null()])
+    .optional()
+    .transform((v) => v === undefined ? undefined : (v && v !== '' ? v : null)),
+  webhook_token: z.string().max(512).optional().nullable(),
 })
 authRoutes.patch('/profile', requireBearer, zValidator('json', profileBody), async (c) => {
   const u = c.get('user')
@@ -87,6 +91,8 @@ authRoutes.patch('/profile', requireBearer, zValidator('json', profileBody), asy
   if (b.theme !== undefined) patch.theme = b.theme
   if (b.notify_email !== undefined) patch.notifyEmail = b.notify_email
   if (b.notify_browser !== undefined) patch.notifyBrowser = b.notify_browser
+  if (b.webhook_url !== undefined) patch.webhookUrl = b.webhook_url
+  if (b.webhook_token !== undefined) patch.webhookToken = b.webhook_token || null
   const [row] = await db.update(users).set(patch).where(eq(users.id, u.id)).returning()
   return c.json(toPublicUser(row!))
 })

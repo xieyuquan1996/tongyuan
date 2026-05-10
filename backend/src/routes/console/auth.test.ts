@@ -156,3 +156,60 @@ describe('auth routes', () => {
     })
   })
 })
+
+describe('webhook profile settings', () => {
+  let webhookToken = ''
+
+  beforeAll(async () => {
+    const email = `webhook-profile-${Date.now()}@example.com`
+    const r = await app.fetch(new Request('http://x/api/console/register', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password: 'secret123456', name: 'W' }),
+    }))
+    webhookToken = (await r.json()).session.token
+  })
+
+  async function webhookReq(path: string, init: RequestInit = {}) {
+    return app.fetch(new Request('http://x' + path, {
+      ...init,
+      headers: { authorization: `Bearer ${webhookToken}`, 'content-type': 'application/json', ...(init.headers as any) },
+    }))
+  }
+
+  it('GET /me 返回 webhook_url=null 和 webhook_token=null（初始状态）', async () => {
+    const r = await webhookReq('/api/console/me')
+    const j = await r.json()
+    expect(j.webhook_url).toBeNull()
+    expect(j.webhook_token).toBeNull()
+  })
+
+  it('PATCH /profile 保存 webhook_url 和 webhook_token，GET /me 返回脱敏 token', async () => {
+    await webhookReq('/api/console/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ webhook_url: 'https://example.com/hook', webhook_token: 'my-secret' }),
+    })
+
+    const r = await webhookReq('/api/console/me')
+    const j = await r.json()
+    expect(j.webhook_url).toBe('https://example.com/hook')
+    expect(j.webhook_token).toBe('••••••••')
+  })
+
+  it('PATCH /profile 清除 webhook_url（传空字符串）', async () => {
+    await webhookReq('/api/console/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ webhook_url: '' }),
+    })
+
+    const r = await webhookReq('/api/console/me')
+    expect((await r.json()).webhook_url).toBeNull()
+  })
+
+  it('rejects non-URL webhook_url with 400', async () => {
+    const r = await webhookReq('/api/console/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ webhook_url: 'not-a-url' }),
+    })
+    expect(r.status).toBe(400)
+  })
+})

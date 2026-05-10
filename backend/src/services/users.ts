@@ -92,6 +92,8 @@ export function toPublicUser(row: UserRow) {
     phone: row.phone,
     notify_email: row.notifyEmail,
     notify_browser: row.notifyBrowser,
+    webhook_url: row.webhookUrl ?? null,
+    webhook_token: row.webhookToken ? '••••••••' : null,
     created_at: row.createdAt,
     updated_at: row.updatedAt,
   }
