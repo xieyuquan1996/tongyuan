@@ -96,6 +96,7 @@ reconciliationRoutes.get('/reports', zValidator('query', reportsQuery), async (c
       localCacheWriteTokens: reconciliationReports.localCacheWriteTokens,
       anthropicCacheWriteTokens: reconciliationReports.anthropicCacheWriteTokens,
       localCostUsd: reconciliationReports.localCostUsd,
+      anthropicCostUsd: reconciliationReports.anthropicCostUsd,
       inputDiffPct: reconciliationReports.inputDiffPct,
       outputDiffPct: reconciliationReports.outputDiffPct,
       status: reconciliationReports.status,
