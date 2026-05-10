@@ -24,6 +24,7 @@ import { overviewRoutes } from './routes/console/overview.js'
 import { logsRoutes } from './routes/console/logs.js'
 import { billingRoutes, invoicesRoutes, rechargesRoutes, rechargeRoutes } from './routes/console/billing.js'
 import { alertsRoutes } from './routes/console/alerts.js'
+import { webhooksRoutes } from './routes/console/webhooks.js'
 import { playgroundRoutes } from './routes/console/playground.js'
 import { metricsRoutes } from './routes/metrics.js'
 import { publicStats } from './routes/public/stats.js'
@@ -86,6 +87,7 @@ export function createApp() {
   app.route('/api/console/recharges', rechargesRoutes)
   app.route('/api/console/recharge', rechargeRoutes)
   app.route('/api/console/alerts', alertsRoutes)
+  app.route('/api/console/webhooks', webhooksRoutes)
   app.route('/api/console/playground', playgroundRoutes)
   app.route('/api/console/analytics', analyticsRoutes)
   app.route('/api/admin/upstream-keys', upstreamKeysRoutes)

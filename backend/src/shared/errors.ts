@@ -9,11 +9,12 @@ export type ErrorCode =
   | 'unknown_model' | 'method_not_allowed'
   | 'all_upstreams_down' | 'upstream_error'
   | 'not_implemented' | 'internal_error' | 'invalid_or_expired_token'
+  | 'no_webhook_url'
 
 const STATUS: Record<ErrorCode, number> = {
   unauthorized: 401, invalid_credentials: 401, wrong_password: 401,
   missing_fields: 400, invalid_email: 400, weak_password: 400, invalid_amount: 400,
-  unknown_model: 400,
+  unknown_model: 400, no_webhook_url: 400,
   insufficient_balance: 402,
   account_suspended: 403, account_locked: 403, forbidden: 403,
   not_found: 404, route_not_found: 404,
