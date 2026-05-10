@@ -130,3 +130,75 @@ describe('Alerts page — email channel', () => {
     })
   })
 })
+
+describe('Alerts page — webhook channel', () => {
+  it('Webhook 出现在 channel 下拉', async () => {
+    mockFetch({ alerts: [] }, { notify_email: true, webhook_url: null })
+    render(<MemoryRouter><Alerts /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByText('新增告警'))
+    await waitFor(() => expect(screen.getByText('浏览器推送')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('浏览器推送').closest('button'))
+    await waitFor(() => expect(screen.getByText('Webhook')).toBeTruthy())
+  })
+
+  it('选择 Webhook 后出现 URL 输入框', async () => {
+    mockFetch({ alerts: [] }, { notify_email: true, webhook_url: null })
+    render(<MemoryRouter><Alerts /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByText('新增告警'))
+    await waitFor(() => expect(screen.getByText('浏览器推送')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('浏览器推送').closest('button'))
+    await waitFor(() => expect(screen.getByText('Webhook')).toBeTruthy())
+    fireEvent.click(screen.getByText('Webhook'))
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/留空则使用全局/)).toBeTruthy()
+    })
+  })
+
+  it('全局 URL 和 per-alert URL 均为空时显示 warning banner', async () => {
+    mockFetch({ alerts: [] }, { notify_email: true, webhook_url: null })
+    render(<MemoryRouter><Alerts /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByText('新增告警'))
+    await waitFor(() => expect(screen.getByText('浏览器推送')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('浏览器推送').closest('button'))
+    await waitFor(() => expect(screen.getByText('Webhook')).toBeTruthy())
+    fireEvent.click(screen.getByText('Webhook'))
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Webhook URL 未配置/)).not.toBeNull()
+    })
+  })
+
+  it('全局 URL 已配置时不显示 banner', async () => {
+    mockFetch({ alerts: [] }, { notify_email: true, webhook_url: 'https://example.com/hook' })
+    render(<MemoryRouter><Alerts /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByText('新增告警'))
+    await waitFor(() => expect(screen.getByText('浏览器推送')).toBeTruthy())
+
+    fireEvent.click(screen.getByText('浏览器推送').closest('button'))
+    await waitFor(() => expect(screen.getByText('Webhook')).toBeTruthy())
+    fireEvent.click(screen.getByText('Webhook'))
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Webhook URL 未配置/)).toBeNull()
+    })
+  })
+
+  it('已有 webhook 告警且全局 URL 为空时显示行内 banner', async () => {
+    mockFetch(
+      { alerts: [{ id: '1', kind: 'balance_low', threshold: '5', channel: 'webhook', enabled: true, webhookUrl: null }] },
+      { notify_email: true, webhook_url: null },
+    )
+    render(<MemoryRouter><Alerts /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.queryByText(/Webhook URL 未配置/)).not.toBeNull()
+    })
+  })
+})

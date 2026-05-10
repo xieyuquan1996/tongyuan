@@ -16,22 +16,26 @@ const KINDS = [
 const CHANNELS = [
   { id: "email",   label: "邮件" },
   { id: "browser", label: "浏览器推送" },
-  // { id: "webhook", label: "Webhook" }, // TODO: backend evaluator + URL field not implemented
+  { id: "webhook", label: "Webhook" },
 ];
 
 export default function Alerts() {
   const [tick, setTick] = useState(0);
   const { loading, data, error } = useAsync(() => api("/api/console/alerts"), [tick]);
   const [adding, setAdding] = useState(false);
-  const [newAlert, setNewAlert] = useState({ kind: "balance_low", threshold: 20, channel: "browser" });
+  const [newAlert, setNewAlert] = useState({ kind: "balance_low", threshold: 20, channel: "browser", webhookUrl: "" });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState(null);
   const [overrides, setOverrides] = useState({});
   const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifyEmail, setNotifyEmail] = useState(true);
+  const [webhookUrl, setWebhookUrl] = useState(null);
 
   useEffect(() => {
-    api("/api/console/me").then((u) => setNotifyEmail(!!u.notify_email)).catch(() => {});
+    api("/api/console/me").then((u) => {
+      setNotifyEmail(!!u.notify_email);
+      setWebhookUrl(u.webhook_url || null);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
@@ -87,9 +91,14 @@ export default function Alerts() {
           return;
         }
       }
-      await api("/api/console/alerts", { method: "POST", body: newAlert });
+      await api("/api/console/alerts", { method: "POST", body: {
+        kind: newAlert.kind,
+        threshold: newAlert.threshold,
+        channel: newAlert.channel,
+        webhookUrl: newAlert.webhookUrl || null,
+      }});
       setAdding(false);
-      setNewAlert({ kind: "balance_low", threshold: 20, channel: "browser" });
+      setNewAlert({ kind: "balance_low", threshold: 20, channel: "browser", webhookUrl: "" });
       setTick((t) => t + 1);
       setToast({ tone: "ok", text: "告警已创建" });
     } catch (err) {
@@ -182,6 +191,18 @@ export default function Alerts() {
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
             {KINDS.find((k) => k.id === newAlert.kind)?.desc}
           </div>
+          {newAlert.channel === "webhook" && (
+            <div style={{ marginTop: 8 }}>
+              <input
+                type="url"
+                placeholder="留空则使用全局 Webhook URL"
+                value={newAlert.webhookUrl}
+                onChange={(e) => setNewAlert({ ...newAlert, webhookUrl: e.target.value })}
+                style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-1)", color: "var(--text)", fontSize: 13 }}
+              />
+            </div>
+          )}
+          {newAlert.channel === "webhook" && !newAlert.webhookUrl && !webhookUrl && <WebhookBanner />}
           {newAlert.channel === "email" && !notifyEmail && <EmailBanner />}
         </form>
       )}
@@ -236,6 +257,11 @@ export default function Alerts() {
                 {a.channel === "email" && !notifyEmail && (
                   <div style={{ padding: "0 20px 12px" }}>
                     <EmailBanner />
+                  </div>
+                )}
+                {a.channel === "webhook" && !a.webhookUrl && !webhookUrl && (
+                  <div style={{ padding: "0 20px 12px" }}>
+                    <WebhookBanner />
                   </div>
                 )}
               </div>
@@ -321,6 +347,17 @@ function EmailBanner() {
         邮件通知未开启。请前往{" "}
         <a href="/dashboard/settings" style={{ color: "var(--clay)", textDecoration: "none" }}>账户设置</a>
         {" "}开启邮件通知后，邮件告警才会生效。
+      </span>
+    </div>
+  );
+}
+function WebhookBanner() {
+  return (
+    <div style={{ ...bannerBase, background: "var(--warn-soft)", borderLeftColor: "var(--warn)", marginTop: 8 }}>
+      <span style={{ fontSize: 13 }}>
+        Webhook URL 未配置。请前往{" "}
+        <a href="/dashboard/settings" style={{ color: "var(--clay)", textDecoration: "none" }}>账户设置</a>
+        {" "}填写全局地址，或在此输入覆盖地址。
       </span>
     </div>
   );
