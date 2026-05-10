@@ -126,6 +126,8 @@ export const upstreamKeys = pgTable('upstream_keys', {
   lastErrorAt: timestamp('last_error_at', { withTimezone: true }),
   quotaHintUsd: numeric('quota_hint_usd', { precision: 12, scale: 2 }),
   baseUrl: text('base_url'),
+  adminKeyCiphertext: text('admin_key_ciphertext'),
+  anthropicKeyId: text('anthropic_key_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -160,4 +162,24 @@ export const announcements = pgTable('announcements', {
   visible: boolean('visible').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
+})
+
+export const reconciliationReports = pgTable('reconciliation_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  upstreamKeyId: uuid('upstream_key_id').notNull().references(() => upstreamKeys.id, { onDelete: 'cascade' }),
+  bucketWidth: text('bucket_width').notNull(),
+  bucketAt: timestamp('bucket_at', { withTimezone: true }).notNull(),
+  localInputTokens: numeric('local_input_tokens'),
+  anthropicInputTokens: numeric('anthropic_input_tokens'),
+  localOutputTokens: numeric('local_output_tokens'),
+  anthropicOutputTokens: numeric('anthropic_output_tokens'),
+  localCacheReadTokens: numeric('local_cache_read_tokens'),
+  anthropicCacheReadTokens: numeric('anthropic_cache_read_tokens'),
+  localCacheWriteTokens: numeric('local_cache_write_tokens'),
+  anthropicCacheWriteTokens: numeric('anthropic_cache_write_tokens'),
+  localCostUsd: numeric('local_cost_usd', { precision: 12, scale: 6 }),
+  inputDiffPct: numeric('input_diff_pct', { precision: 8, scale: 4 }),
+  outputDiffPct: numeric('output_diff_pct', { precision: 8, scale: 4 }),
+  status: text('status').notNull(),
+  ranAt: timestamp('ran_at', { withTimezone: true }).notNull().defaultNow(),
 })
