@@ -90,6 +90,66 @@ describe('alerts routes', () => {
     await req(`/api/console/alerts/${j.id}`, { method: 'DELETE' })
   })
 
+  it('creates a webhook-channel alert with webhookUrl', async () => {
+    const r = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: 'balance_low', threshold: '5.00', channel: 'webhook',
+        webhookUrl: 'https://example.com/hook', enabled: true,
+      }),
+    })
+    expect(r.status).toBe(201)
+    const j = await r.json()
+    expect(j.channel).toBe('webhook')
+    expect(j.webhookUrl).toBe('https://example.com/hook')
+    await req(`/api/console/alerts/${j.id}`, { method: 'DELETE' })
+  })
+
+  it('rejects invalid webhookUrl with 400', async () => {
+    const r = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({
+        kind: 'balance_low', threshold: '5.00', channel: 'webhook',
+        webhookUrl: 'not-a-url', enabled: true,
+      }),
+    })
+    expect(r.status).toBe(400)
+  })
+
+  it('patches webhookUrl on existing webhook alert', async () => {
+    const cr = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'webhook', enabled: true }),
+    })
+    const { id } = await cr.json()
+
+    const pr = await req(`/api/console/alerts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ webhookUrl: 'https://new.example.com/hook' }),
+    })
+    expect(pr.status).toBe(200)
+    expect((await pr.json()).webhookUrl).toBe('https://new.example.com/hook')
+
+    await req(`/api/console/alerts/${id}`, { method: 'DELETE' })
+  })
+
+  it('clears webhookUrl when patched to empty string', async () => {
+    const cr = await req('/api/console/alerts', {
+      method: 'POST',
+      body: JSON.stringify({ kind: 'balance_low', threshold: '5.00', channel: 'webhook', webhookUrl: 'https://example.com/hook', enabled: true }),
+    })
+    const { id } = await cr.json()
+
+    const pr = await req(`/api/console/alerts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ webhookUrl: '' }),
+    })
+    expect(pr.status).toBe(200)
+    expect((await pr.json()).webhookUrl).toBeNull()
+
+    await req(`/api/console/alerts/${id}`, { method: 'DELETE' })
+  })
+
   it('cross-user DELETE returns 404 and leaves alert intact', async () => {
     // User A creates an alert (using existing token)
     const cr = await req('/api/console/alerts', {

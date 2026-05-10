@@ -9,12 +9,19 @@ export async function list(userId: string) {
   return db.select().from(alerts).where(eq(alerts.userId, userId))
 }
 
-export async function create(userId: string, input: { kind: string; threshold: string; channel: string; enabled: boolean }) {
+export async function create(
+  userId: string,
+  input: { kind: string; threshold: string; channel: string; enabled: boolean; webhookUrl?: string | null },
+) {
   const [row] = await db.insert(alerts).values({ userId, ...input }).returning()
   return row!
 }
 
-export async function patch(userId: string, id: string, p: Partial<Pick<AlertRow, 'threshold' | 'channel' | 'enabled'>>) {
+export async function patch(
+  userId: string,
+  id: string,
+  p: Partial<Pick<AlertRow, 'threshold' | 'channel' | 'enabled' | 'webhookUrl'>>,
+) {
   const [row] = await db.update(alerts).set(p).where(and(eq(alerts.id, id), eq(alerts.userId, userId))).returning()
   if (!row) throw new AppError('not_found')
   return row
