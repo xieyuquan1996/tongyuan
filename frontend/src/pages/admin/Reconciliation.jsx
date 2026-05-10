@@ -15,6 +15,12 @@ function fmtTokens(n) {
   return Number(n).toLocaleString()
 }
 
+function fmtK(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + 'K'
+  return String(n)
+}
+
 function StatusPill({ status }) {
   const tone = status === 'match' ? 'ok' : status === 'warn' ? 'warn' : 'err'
   return <Pill tone={tone} dot>{status}</Pill>
@@ -107,8 +113,22 @@ export default function Reconciliation() {
 
   useEffect(() => { fetchReports(1) }, [fetchReports])
 
+  const bucketLabel = (r) => bucketWidth === '1d' ? r.bucketAt.slice(0, 10) : r.bucketAt.slice(0, 16).replace('T', ' ')
+
+  // Aggregate by bucket for comparison charts (multiple keys → sum per bucket)
+  const compareByBucket = {}
+  for (const r of reports) {
+    const b = bucketLabel(r)
+    if (!compareByBucket[b]) compareByBucket[b] = { bucket: b, localInput: 0, anthropicInput: 0, localOutput: 0, anthropicOutput: 0 }
+    compareByBucket[b].localInput += Number(r.localInputTokens ?? 0)
+    compareByBucket[b].anthropicInput += Number(r.anthropicInputTokens ?? 0)
+    compareByBucket[b].localOutput += Number(r.localOutputTokens ?? 0)
+    compareByBucket[b].anthropicOutput += Number(r.anthropicOutputTokens ?? 0)
+  }
+  const compareData = Object.values(compareByBucket).sort((a, b) => a.bucket.localeCompare(b.bucket))
+
   const trendData = reports.map((r) => ({
-    bucket: bucketWidth === '1d' ? r.bucketAt.slice(0, 10) : r.bucketAt.slice(0, 16).replace('T', ' '),
+    bucket: bucketLabel(r),
     input: Number(r.inputDiffPct ?? 0),
     output: Number(r.outputDiffPct ?? 0),
   }))
@@ -158,6 +178,46 @@ export default function Reconciliation() {
       </div>
 
       {error && <ErrorBox error={error} />}
+
+      {/* Analytics Comparison Charts */}
+      {compareData.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div style={card}>
+            <div style={chartTitle}>Input Tokens 对比（本地 vs Anthropic）</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={compareData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
+                <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} width={48} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)' }}
+                  formatter={(v) => Number(v).toLocaleString()}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+                <Bar dataKey="localInput" name="本地" fill="var(--clay)" radius={[3, 3, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="anthropicInput" name="Anthropic" fill="var(--ok-text)" radius={[3, 3, 0, 0]} maxBarSize={32} opacity={0.75} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={card}>
+            <div style={chartTitle}>Output Tokens 对比（本地 vs Anthropic）</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={compareData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
+                <YAxis tickFormatter={fmtK} tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} width={48} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)' }}
+                  formatter={(v) => Number(v).toLocaleString()}
+                />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+                <Bar dataKey="localOutput" name="本地" fill="var(--clay)" radius={[3, 3, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="anthropicOutput" name="Anthropic" fill="var(--ok-text)" radius={[3, 3, 0, 0]} maxBarSize={32} opacity={0.75} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       {trendData.length > 0 && (

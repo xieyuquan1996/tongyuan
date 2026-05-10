@@ -60,7 +60,7 @@ interface AnthropicUsageResponse {
 
 export async function fetchAnthropicUsage(
   adminKey: string,
-  anthropicKeyId: string,
+  _anthropicKeyId: string,
   startAt: Date,
   endAt: Date,
   bucketWidth: BucketWidth
@@ -74,7 +74,6 @@ export async function fetchAnthropicUsage(
       ending_at: endAt.toISOString(),
       bucket_width: bucketWidth,
     })
-    params.append('api_key_ids[]', anthropicKeyId)
     if (nextPage) params.set('page', nextPage)
 
     const resp = await fetch(
@@ -92,10 +91,13 @@ export async function fetchAnthropicUsage(
       const key = new Date(bucket.starting_at).toISOString()
       let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0
       for (const row of (bucket.results ?? [])) {
-        inputTokens += row.uncached_input_tokens ?? 0
+        const cacheRead = row.cache_read_input_tokens ?? 0
+        const cacheWrite = (row.cache_creation?.ephemeral_5m_input_tokens ?? 0) + (row.cache_creation?.ephemeral_1h_input_tokens ?? 0)
+        // inputTokens = total input (matches Claude Console "Total tokens in")
+        inputTokens += (row.uncached_input_tokens ?? 0) + cacheRead + cacheWrite
         outputTokens += row.output_tokens ?? 0
-        cacheReadTokens += row.cache_read_input_tokens ?? 0
-        cacheWriteTokens += (row.cache_creation?.ephemeral_5m_input_tokens ?? 0) + (row.cache_creation?.ephemeral_1h_input_tokens ?? 0)
+        cacheReadTokens += cacheRead
+        cacheWriteTokens += cacheWrite
       }
       const existing = result.get(key)
       if (existing) {
@@ -143,7 +145,8 @@ export async function computeLocalUsage(
   const result = new Map<string, BucketData & { costUsd: number }>()
   for (const row of rows) {
     result.set(new Date(row.bucket).toISOString(), {
-      inputTokens: Number(row.inputTokens ?? '0'),
+      // inputTokens = total input (uncached + cache read + cache write), matches Claude Console
+      inputTokens: Number(row.inputTokens ?? '0') + Number(row.cacheReadTokens ?? '0') + Number(row.cacheWriteTokens ?? '0'),
       outputTokens: Number(row.outputTokens ?? '0'),
       cacheReadTokens: Number(row.cacheReadTokens ?? '0'),
       cacheWriteTokens: Number(row.cacheWriteTokens ?? '0'),
