@@ -284,3 +284,30 @@ export function Select({
     </select>
   );
 }
+
+export function FormField({ label, error, children }) {
+  return (
+    <label style={{ display: "block" }}>
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        letterSpacing: "0.04em",
+        color: "var(--text-2)",
+        marginBottom: 6,
+      }}>
+        {label}
+      </div>
+      {children}
+      {error && (
+        <div role="alert" style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          color: "var(--err-text)",
+          marginTop: 4,
+        }}>
+          {error}
+        </div>
+      )}
+    </label>
+  );
+}

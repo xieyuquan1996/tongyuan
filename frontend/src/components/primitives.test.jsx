@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { Input, Select } from "./primitives.jsx";
+import { Input, Select, FormField } from "./primitives.jsx";
 
 describe("Input", () => {
   it("renders with value and responds to change", () => {
@@ -57,5 +57,35 @@ describe("Select", () => {
   it("applies disabled state", () => {
     render(<Select value="" onChange={() => {}} options={options} disabled />);
     expect(screen.getByRole("combobox")).toBeDisabled();
+  });
+});
+
+describe("FormField", () => {
+  it("renders label and children", () => {
+    render(
+      <FormField label="邮箱">
+        <Input value="" onChange={() => {}} />
+      </FormField>
+    );
+    expect(screen.getByText("邮箱")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("displays error message when error prop is set", () => {
+    render(
+      <FormField label="密码" error="密码至少 6 位">
+        <Input value="" onChange={() => {}} type="password" />
+      </FormField>
+    );
+    expect(screen.getByText("密码至少 6 位")).toBeInTheDocument();
+  });
+
+  it("does not display error element when error is null", () => {
+    render(
+      <FormField label="名称" error={null}>
+        <Input value="" onChange={() => {}} />
+      </FormField>
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
