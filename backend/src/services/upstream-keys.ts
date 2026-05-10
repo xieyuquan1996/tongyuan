@@ -7,11 +7,11 @@ import { env } from '../env.js'
 import { AppError } from '../shared/errors.js'
 
 export type UpstreamRow = typeof upstreamKeys.$inferSelect
-export type UpstreamPublic = Omit<UpstreamRow, 'keyCiphertext'>
+export type UpstreamPublic = Omit<UpstreamRow, 'keyCiphertext' | 'adminKeyCiphertext'> & { hasAdminKey: boolean }
 
 export function toPublic(row: UpstreamRow): UpstreamPublic {
-  const { keyCiphertext: _omit, ...rest } = row
-  return rest
+  const { keyCiphertext: _k, adminKeyCiphertext: _a, ...rest } = row
+  return { ...rest, hasAdminKey: !!row.adminKeyCiphertext }
 }
 
 export async function create(input: { alias: string; secret: string; priority?: number; weight?: number; quotaHintUsd?: string; baseUrl?: string }) {
@@ -37,13 +37,27 @@ export async function list() {
   return db.select().from(upstreamKeys).orderBy(asc(upstreamKeys.priority), desc(upstreamKeys.createdAt))
 }
 
-export async function patch(id: string, p: { alias?: string; state?: 'active' | 'cooldown' | 'disabled'; priority?: number; weight?: number }) {
-  const [row] = await db.update(upstreamKeys).set({
-    ...(p.alias !== undefined ? { alias: p.alias } : {}),
-    ...(p.state !== undefined ? { state: p.state } : {}),
-    ...(p.priority !== undefined ? { priority: String(p.priority) } : {}),
-    ...(p.weight !== undefined ? { weight: p.weight } : {}),
-  }).where(eq(upstreamKeys.id, id)).returning()
+export async function patch(id: string, p: {
+  alias?: string
+  state?: 'active' | 'cooldown' | 'disabled'
+  priority?: number
+  weight?: number
+  adminKey?: string
+  anthropicKeyId?: string
+}) {
+  const updates: Partial<typeof upstreamKeys.$inferInsert> = {}
+  if (p.alias !== undefined) updates.alias = p.alias
+  if (p.state !== undefined) updates.state = p.state
+  if (p.priority !== undefined) updates.priority = String(p.priority)
+  if (p.weight !== undefined) updates.weight = p.weight
+  if (p.anthropicKeyId !== undefined) updates.anthropicKeyId = p.anthropicKeyId
+  if (p.adminKey !== undefined) {
+    const key = p.adminKey.trim()
+    if (!key) throw new AppError('missing_fields')
+    updates.adminKeyCiphertext = encryptSecret(key, env.UPSTREAM_KEY_KMS)
+  }
+
+  const [row] = await db.update(upstreamKeys).set(updates).where(eq(upstreamKeys.id, id)).returning()
   if (!row) throw new AppError('not_found')
   return row
 }
