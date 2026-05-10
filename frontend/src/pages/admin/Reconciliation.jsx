@@ -30,7 +30,7 @@ function diffColor(val) {
 
 export default function Reconciliation() {
   const [upstreamKeys, setUpstreamKeys] = useState([])
-  const [selectedKeys, setSelectedKeys] = useState([])
+  const [selectedKeyId, setSelectedKeyId] = useState('')
   const [bucketWidth, setBucketWidth] = useState('1d')
   const [startAt, setStartAt] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10)
@@ -48,7 +48,6 @@ export default function Reconciliation() {
     api('/api/admin/upstream-keys').then((data) => {
       const withAdmin = (data.upstream_keys ?? []).filter((k) => k.hasAdminKey)
       setUpstreamKeys(withAdmin)
-      setSelectedKeys(withAdmin.map((k) => k.id))
     }).catch(() => {})
   }, [])
 
@@ -68,7 +67,7 @@ export default function Reconciliation() {
     setLoading(true)
     try {
       const params = new URLSearchParams({ page: p, pageSize: 50 })
-      if (selectedKeys.length === 1) params.set('upstreamKeyId', selectedKeys[0])
+      if (selectedKeyId) params.set('upstreamKeyId', selectedKeyId)
       if (bucketWidth) params.set('bucketWidth', bucketWidth)
       if (statusFilter) params.set('status', statusFilter)
       params.set('startAt', new Date(startAt).toISOString())
@@ -82,16 +81,17 @@ export default function Reconciliation() {
     } finally {
       setLoading(false)
     }
-  }, [selectedKeys, bucketWidth, statusFilter, startAt, endAt])
+  }, [selectedKeyId, bucketWidth, statusFilter, startAt, endAt])
 
   const handleRun = async () => {
     setRunning(true)
     setError('')
     try {
+      const ids = selectedKeyId ? [selectedKeyId] : upstreamKeys.map((k) => k.id)
       await api('/api/admin/reconciliation/run', {
         method: 'POST',
         body: {
-          upstreamKeyIds: selectedKeys,
+          upstreamKeyIds: ids,
           startAt: new Date(startAt).toISOString(),
           endAt: new Date(endAt + 'T23:59:59Z').toISOString(),
           bucketWidth,
@@ -126,49 +126,32 @@ export default function Reconciliation() {
       <PageHeader title="对账" sub={loading ? '加载中…' : `共 ${total} 条记录`} />
 
       {/* Controls */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16, alignItems: 'flex-end' }}>
-        <div style={filterGroup}>
-          <span style={label}>粒度</span>
-          <select value={bucketWidth} onChange={(e) => setBucketWidth(e.target.value)} style={filterSel}>
-            <option value="1d">按天（最多 31 天）</option>
-            <option value="1h">按小时（最多 7 天）</option>
-          </select>
-        </div>
-        <div style={filterGroup}>
-          <span style={label}>开始日期</span>
-          <input type="date" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={filterSel} />
-        </div>
-        <div style={filterGroup}>
-          <span style={label}>结束日期</span>
-          <input type="date" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={filterSel} />
-        </div>
-        <div style={filterGroup}>
-          <span style={label}>上游 Key</span>
-          <select
-            multiple
-            value={selectedKeys}
-            onChange={(e) => setSelectedKeys([...e.target.selectedOptions].map((o) => o.value))}
-            style={{ ...filterSel, minWidth: 160 }}
-            size={Math.min(upstreamKeys.length + 1, 4)}
-          >
-            {upstreamKeys.map((k) => (
-              <option key={k.id} value={k.id}>{k.alias}</option>
-            ))}
-          </select>
-        </div>
-        <div style={filterGroup}>
-          <span style={label}>状态</span>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={filterSel}>
-            <option value="">全部</option>
-            <option value="match">match</option>
-            <option value="warn">warn</option>
-            <option value="mismatch">mismatch</option>
-          </select>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <select value={bucketWidth} onChange={(e) => setBucketWidth(e.target.value)} style={sel}>
+          <option value="1d">粒度: 按天</option>
+          <option value="1h">粒度: 按小时</option>
+        </select>
+        <select value={selectedKeyId} onChange={(e) => setSelectedKeyId(e.target.value)} style={sel}>
+          <option value="">上游 Key: 全部</option>
+          {upstreamKeys.map((k) => (
+            <option key={k.id} value={k.id}>{k.alias}</option>
+          ))}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={sel}>
+          <option value="">状态: 全部</option>
+          <option value="match">match</option>
+          <option value="warn">warn</option>
+          <option value="mismatch">mismatch</option>
+        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input type="date" value={startAt} onChange={(e) => setStartAt(e.target.value)} style={dateInp} />
+          <span style={{ color: 'var(--text-3)', fontSize: 12 }}>—</span>
+          <input type="date" value={endAt} onChange={(e) => setEndAt(e.target.value)} style={dateInp} />
         </div>
         <button
           onClick={handleRun}
-          disabled={running || selectedKeys.length === 0}
-          style={{ ...cta, opacity: (running || selectedKeys.length === 0) ? 0.5 : 1, cursor: (running || selectedKeys.length === 0) ? 'default' : 'pointer' }}
+          disabled={running || upstreamKeys.length === 0}
+          style={{ ...cta, opacity: (running || upstreamKeys.length === 0) ? 0.5 : 1, cursor: (running || upstreamKeys.length === 0) ? 'default' : 'pointer' }}
         >
           {running ? '执行中…' : '执行对账'}
         </button>
@@ -281,9 +264,8 @@ export default function Reconciliation() {
 const card = { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }
 const th = { fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-3)', textAlign: 'left', padding: '10px 16px', fontWeight: 400 }
 const td = { padding: '12px 16px', color: 'var(--text)' }
-const filterSel = { padding: '8px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', cursor: 'pointer' }
-const filterGroup = { display: 'flex', flexDirection: 'column', gap: 4 }
-const label = { fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }
-const cta = { padding: '8px 14px', background: 'var(--clay)', color: 'var(--on-clay)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-mono)', alignSelf: 'flex-end' }
+const sel = { padding: '8px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', cursor: 'pointer' }
+const dateInp = { padding: '8px 10px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', cursor: 'pointer' }
+const cta = { padding: '8px 14px', background: 'var(--clay)', color: 'var(--on-clay)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 500, fontFamily: 'var(--font-mono)' }
 const chartTitle = { padding: '12px 16px 4px', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)' }
 const pageBtn = (disabled) => ({ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', borderRadius: 4, fontSize: 12, cursor: disabled ? 'default' : 'pointer', color: disabled ? 'var(--text-3)' : 'var(--text-2)', fontFamily: 'var(--font-mono)' })
