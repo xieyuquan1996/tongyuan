@@ -72,9 +72,10 @@ export default function UpstreamKeys() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "var(--surface-3)" }}>
-                {["别名", "前缀", "权重", "状态", "操作"].map(h => (
+                {["别名", "前缀", "权重", "状态"].map(h => (
                   <th key={h} style={th}>{h}</th>
                 ))}
+                <th style={{ ...th, textAlign: "center" }}>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -379,20 +380,22 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
           </span>
         )}
       </td>
-      <td style={{ ...td, display: "flex", gap: 6, alignItems: "center" }}>
-        <button onClick={() => setEditing(true)} disabled={busy} title="编辑" style={iconBtn}>
-          <Save size={13}/> 编辑
-        </button>
-        <button onClick={onEditQuota} disabled={busy} title="编辑限额" style={iconBtn}>
-          <Gauge size={13}/> 限额
-        </button>
-        <button onClick={toggleState} disabled={busy} title={row.state === "active" ? "禁用" : "启用"} style={iconBtn}>
-          <RefreshCw size={13}/>
-          {row.state === "active" ? "禁用" : "启用"}
-        </button>
-        <button onClick={remove} disabled={busy} title="删除" style={{ ...iconBtn, color: "var(--err)" }}>
-          <Trash2 size={13}/>
-        </button>
+      <td style={td}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}>
+          <button onClick={() => setEditing(true)} disabled={busy} title="编辑" style={iconBtn}>
+            <Save size={13}/> 编辑
+          </button>
+          <button onClick={onEditQuota} disabled={busy} title="编辑限额" style={iconBtn}>
+            <Gauge size={13}/> 限额
+          </button>
+          <button onClick={toggleState} disabled={busy} title={row.state === "active" ? "禁用" : "启用"} style={iconBtn}>
+            <RefreshCw size={13}/>
+            {row.state === "active" ? "禁用" : "启用"}
+          </button>
+          <button onClick={remove} disabled={busy} title="删除" style={{ ...iconBtn, color: "var(--err)" }}>
+            <Trash2 size={13}/>
+          </button>
+        </div>
       </td>
     </tr>
   );
