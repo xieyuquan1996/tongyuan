@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { Input, Select, FormField } from "./primitives.jsx";
+import { Input, Select, FormField, Banner } from "./primitives.jsx";
 
 describe("Input", () => {
   it("renders with value and responds to change", () => {
@@ -87,5 +87,29 @@ describe("FormField", () => {
       </FormField>
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("Banner", () => {
+  it("renders children with default info tone", () => {
+    render(<Banner>操作已完成</Banner>);
+    expect(screen.getByText("操作已完成")).toBeInTheDocument();
+  });
+
+  it("renders with err tone", () => {
+    render(<Banner tone="err">请求失败</Banner>);
+    expect(screen.getByText("请求失败")).toBeInTheDocument();
+  });
+
+  it("calls onDismiss when close button is clicked", () => {
+    const onDismiss = vi.fn();
+    render(<Banner tone="warn" dismissible onDismiss={onDismiss}>警告</Banner>);
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not show close button when dismissible is false", () => {
+    render(<Banner tone="ok">成功</Banner>);
+    expect(screen.queryByRole("button", { name: "关闭" })).not.toBeInTheDocument();
   });
 });

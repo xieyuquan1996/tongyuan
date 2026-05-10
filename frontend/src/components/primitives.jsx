@@ -183,24 +183,50 @@ export function Loading({ children = "加载中…" }) {
   );
 }
 
-export function ErrorBox({ error }) {
+export function Banner({ tone = "info", dismissible = false, onDismiss, children }) {
+  const toneMap = {
+    ok: { bg: "var(--ok-soft)", fg: "var(--ok-text)", accent: "var(--ok)" },
+    warn: { bg: "var(--warn-soft)", fg: "var(--warn-text)", accent: "var(--warn)" },
+    err: { bg: "var(--err-soft)", fg: "var(--err-text)", accent: "var(--err)" },
+    info: { bg: "var(--info-soft)", fg: "var(--info-text)", accent: "var(--info)" },
+  };
+  const t = toneMap[tone] || toneMap.info;
   return (
-    <div
-      style={{
-        background: "var(--err-soft)",
-        color: "var(--err-text)",
-        padding: 16,
-        borderRadius: 8,
-        fontSize: 13,
-        borderLeft: "2px solid var(--err)",
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>请求失败</div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
-        {error?.message || String(error)}
-      </div>
+    <div style={{
+      background: t.bg,
+      color: t.fg,
+      padding: "12px 16px",
+      borderRadius: "var(--radius-md)",
+      borderLeft: `2px solid ${t.accent}`,
+      fontSize: 13,
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 8,
+    }}>
+      <div style={{ flex: 1 }}>{children}</div>
+      {dismissible && (
+        <button
+          onClick={onDismiss}
+          aria-label="关闭"
+          style={{
+            background: "none",
+            border: "none",
+            color: t.fg,
+            cursor: "pointer",
+            padding: 0,
+            fontSize: 16,
+            lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
+}
+
+export function ErrorBox({ error }) {
+  return <Banner tone="err">{error?.message || String(error)}</Banner>;
 }
 
 export function Input({
