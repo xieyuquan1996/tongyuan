@@ -238,3 +238,49 @@ export function Input({
     />
   );
 }
+
+export function Select({
+  options = [],
+  placeholder,
+  size = "md",
+  style,
+  ...rest
+}) {
+  const [focused, setFocused] = useState(false);
+  const sizes = {
+    sm: { padding: "6px 10px", fontSize: 13, borderRadius: "var(--radius-sm)" },
+    md: { padding: "10px 14px", fontSize: 14, borderRadius: "var(--radius-md)" },
+    lg: { padding: "12px 16px", fontSize: 15, borderRadius: "var(--radius-md)" },
+  };
+  return (
+    <select
+      {...rest}
+      onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
+      onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
+      style={{
+        width: "100%",
+        boxSizing: "border-box",
+        border: `1px solid ${focused ? "var(--clay)" : "var(--border)"}`,
+        background: "var(--surface-2)",
+        color: "var(--text)",
+        fontFamily: "var(--font-sans)",
+        outline: "none",
+        appearance: "none",
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237A736A' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "right 12px center",
+        paddingRight: 36,
+        transition: `border-color var(--dur) var(--ease)`,
+        opacity: rest.disabled ? 0.5 : 1,
+        cursor: rest.disabled ? "not-allowed" : "pointer",
+        ...sizes[size],
+        ...style,
+      }}
+    >
+      {placeholder && <option value="" disabled>{placeholder}</option>}
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </select>
+  );
+}

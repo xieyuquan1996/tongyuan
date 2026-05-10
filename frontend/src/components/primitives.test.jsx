@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { Input } from "./primitives.jsx";
+import { Input, Select } from "./primitives.jsx";
 
 describe("Input", () => {
   it("renders with value and responds to change", () => {
@@ -24,5 +24,38 @@ describe("Input", () => {
   it("passes type prop to native input", () => {
     render(<Input value="" onChange={() => {}} type="email" />);
     expect(screen.getByRole("textbox")).toHaveAttribute("type", "email");
+  });
+});
+
+describe("Select", () => {
+  const options = [
+    { label: "Claude 3.5", value: "claude-3.5" },
+    { label: "Claude 4", value: "claude-4" },
+  ];
+
+  it("renders options", () => {
+    render(<Select value="" onChange={() => {}} options={options} />);
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+    expect(screen.getByText("Claude 3.5")).toBeInTheDocument();
+    expect(screen.getByText("Claude 4")).toBeInTheDocument();
+  });
+
+  it("renders placeholder as disabled first option", () => {
+    render(<Select value="" onChange={() => {}} options={options} placeholder="选择模型" />);
+    const placeholder = screen.getByText("选择模型");
+    expect(placeholder).toBeInTheDocument();
+    expect(placeholder).toBeDisabled();
+  });
+
+  it("responds to value change", () => {
+    const onChange = vi.fn();
+    render(<Select value="" onChange={onChange} options={options} />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "claude-4" } });
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("applies disabled state", () => {
+    render(<Select value="" onChange={() => {}} options={options} disabled />);
+    expect(screen.getByRole("combobox")).toBeDisabled();
   });
 });
