@@ -379,7 +379,7 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
           </span>
         )}
       </td>
-      <td style={{ ...td, display: "flex", gap: 6 }}>
+      <td style={{ ...td, display: "flex", gap: 6, alignItems: "center" }}>
         <button onClick={() => setEditing(true)} disabled={busy} title="编辑" style={iconBtn}>
           <Save size={13}/> 编辑
         </button>
