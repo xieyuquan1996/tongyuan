@@ -235,6 +235,11 @@ function LabeledInput({ label, value, onChange }) {
 function KeyRow({ row, last, onRefresh, onEditQuota }) {
   const [busy, setBusy] = useState(false);
   const [weight, setWeight] = useState(String(row.weight ?? 100));
+  const [editing, setEditing] = useState(false);
+  const [editAlias, setEditAlias] = useState(row.alias ?? '');
+  const [editAdminKey, setEditAdminKey] = useState('');
+  const [editAnthropicKeyId, setEditAnthropicKeyId] = useState(row.anthropicKeyId ?? '');
+  const [editErr, setEditErr] = useState('');
   const sc = STATE_COLORS[row.state] || STATE_COLORS.disabled;
 
   useEffect(() => { setWeight(String(row.weight ?? 100)); }, [row.weight]);
@@ -272,9 +277,84 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
     setBusy(false);
   }
 
+  async function saveEdit() {
+    setBusy(true);
+    setEditErr('');
+    try {
+      const body = { alias: editAlias };
+      if (editAdminKey) body.admin_key = editAdminKey;
+      if (editAnthropicKeyId !== (row.anthropicKeyId ?? '')) body.anthropic_key_id = editAnthropicKeyId;
+      await api(`/api/admin/upstream-keys/${row.id}`, { method: "PATCH", body });
+      setEditing(false);
+      setEditAdminKey('');
+      onRefresh();
+    } catch (e) {
+      setEditErr(e.message || '保存失败');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <tr style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}>
+        <td colSpan={5} style={{ padding: "16px" }}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1" style={labelStyle}>别名</label>
+              <input
+                type="text"
+                value={editAlias}
+                onChange={(e) => setEditAlias(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Admin API Key（更新才填，留空保持不变）</label>
+              <input
+                type="password"
+                placeholder="sk-ant-admin..."
+                value={editAdminKey}
+                onChange={(e) => setEditAdminKey(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Anthropic Key ID</label>
+              <input
+                type="text"
+                placeholder="apikey_01..."
+                value={editAnthropicKeyId}
+                onChange={(e) => setEditAnthropicKeyId(e.target.value)}
+                style={inputStyle}
+              />
+              <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
+                从 Anthropic Console → Settings → API Keys 复制
+              </p>
+            </div>
+            {editErr && <div style={{ color: "var(--err)", fontSize: 12 }}>{editErr}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={saveEdit} disabled={busy} style={addBtn}>
+                <Save size={13}/> 保存
+              </button>
+              <button onClick={() => { setEditing(false); setEditAdminKey(''); setEditErr(''); }} style={cancelBtn}>取消</button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
   return (
     <tr style={{ borderTop: "1px solid var(--border)", background: "var(--surface-2)" }}>
-      <td style={{ ...td, fontWeight: 500 }}>{row.alias}</td>
+      <td style={{ ...td, fontWeight: 500 }}>
+        <div>{row.alias}</div>
+        <div style={{ marginTop: 4 }}>
+          {row.hasAdminKey
+            ? <span style={{ fontSize: 11, color: "var(--ok-text)" }}>Admin Key 已配置</span>
+            : <span style={{ fontSize: 11, color: "var(--text-3)" }}>无 Admin Key</span>}
+        </div>
+      </td>
       <td style={{ ...td, fontFamily: "var(--font-mono)", color: "var(--text-3)" }}>{row.keyPrefix}…</td>
       <td style={{ ...td, fontFamily: "var(--font-mono)" }}>
         <input
@@ -300,6 +380,9 @@ function KeyRow({ row, last, onRefresh, onEditQuota }) {
         )}
       </td>
       <td style={{ ...td, display: "flex", gap: 6 }}>
+        <button onClick={() => setEditing(true)} disabled={busy} title="编辑" style={iconBtn}>
+          <Save size={13}/> 编辑
+        </button>
         <button onClick={onEditQuota} disabled={busy} title="编辑限额" style={iconBtn}>
           <Gauge size={13}/> 限额
         </button>
