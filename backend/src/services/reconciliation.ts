@@ -36,17 +36,24 @@ export function calcStatus(
   return 'mismatch'
 }
 
-interface AnthropicUsageRow {
-  start_time: string
-  input_tokens: number
+interface AnthropicUsageResult {
+  uncached_input_tokens: number
   output_tokens: number
   cache_read_input_tokens: number
-  cache_creation_input_tokens: number
-  cache_creation_1h_input_tokens?: number
+  cache_creation: {
+    ephemeral_5m_input_tokens: number
+    ephemeral_1h_input_tokens: number
+  }
+}
+
+interface AnthropicUsageBucket {
+  starting_at: string
+  ending_at: string
+  results: AnthropicUsageResult[]
 }
 
 interface AnthropicUsageResponse {
-  data: AnthropicUsageRow[]
+  data: AnthropicUsageBucket[]
   has_more: boolean
   next_page: string | null
 }
@@ -80,21 +87,24 @@ export async function fetchAnthropicUsage(
     }
     const data = await resp.json() as AnthropicUsageResponse
 
-    for (const row of data.data) {
-      const existing = result.get(row.start_time)
-      const cacheWrite = (row.cache_creation_input_tokens ?? 0) + (row.cache_creation_1h_input_tokens ?? 0)
+    for (const bucket of data.data) {
+      if (!bucket.starting_at) continue
+      const key = new Date(bucket.starting_at).toISOString()
+      let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheWriteTokens = 0
+      for (const row of (bucket.results ?? [])) {
+        inputTokens += row.uncached_input_tokens ?? 0
+        outputTokens += row.output_tokens ?? 0
+        cacheReadTokens += row.cache_read_input_tokens ?? 0
+        cacheWriteTokens += (row.cache_creation?.ephemeral_5m_input_tokens ?? 0) + (row.cache_creation?.ephemeral_1h_input_tokens ?? 0)
+      }
+      const existing = result.get(key)
       if (existing) {
-        existing.inputTokens += row.input_tokens
-        existing.outputTokens += row.output_tokens
-        existing.cacheReadTokens += row.cache_read_input_tokens
-        existing.cacheWriteTokens += cacheWrite
+        existing.inputTokens += inputTokens
+        existing.outputTokens += outputTokens
+        existing.cacheReadTokens += cacheReadTokens
+        existing.cacheWriteTokens += cacheWriteTokens
       } else {
-        result.set(row.start_time, {
-          inputTokens: row.input_tokens,
-          outputTokens: row.output_tokens,
-          cacheReadTokens: row.cache_read_input_tokens,
-          cacheWriteTokens: cacheWrite,
-        })
+        result.set(key, { inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens })
       }
     }
     nextPage = data.next_page
