@@ -181,13 +181,15 @@ describe('runReconciliation', () => {
         cacheReadTokens: 200, cacheWriteTokens: 100,
       }]])
     )
+    const mockCost = vi.fn().mockResolvedValueOnce(new Map([['2026-05-01T00:00:00.000Z', 1.23]]))
 
     await svc.runReconciliation(
       testUpstreamKeyId,
       new Date('2026-05-01T00:00:00Z'),
       new Date('2026-05-02T00:00:00Z'),
       '1d',
-      mockFetch
+      mockFetch,
+      mockCost
     )
 
     const [report] = await db.select()
@@ -205,13 +207,15 @@ describe('runReconciliation', () => {
         cacheReadTokens: 200, cacheWriteTokens: 100,
       }]])
     )
+    const mockCost = vi.fn().mockResolvedValue(new Map([['2026-05-01T00:00:00.000Z', 2.5]]))
 
     await svc.runReconciliation(
       testUpstreamKeyId,
       new Date('2026-05-01T00:00:00Z'),
       new Date('2026-05-02T00:00:00Z'),
       '1d',
-      mockFetch
+      mockFetch,
+      mockCost
     )
 
     const reports = await db.select()

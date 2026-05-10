@@ -119,15 +119,17 @@ export default function Reconciliation() {
   const compareByBucket = {}
   for (const r of reports) {
     const b = bucketLabel(r)
-    if (!compareByBucket[b]) compareByBucket[b] = { bucket: b, localInput: 0, anthropicInput: 0, localOutput: 0, anthropicOutput: 0, costUsd: 0 }
+    if (!compareByBucket[b]) compareByBucket[b] = { bucket: b, localInput: 0, anthropicInput: 0, localOutput: 0, anthropicOutput: 0, localCostUsd: 0, anthropicCostUsd: 0 }
     compareByBucket[b].localInput += Number(r.localInputTokens ?? 0)
     compareByBucket[b].anthropicInput += Number(r.anthropicInputTokens ?? 0)
     compareByBucket[b].localOutput += Number(r.localOutputTokens ?? 0)
     compareByBucket[b].anthropicOutput += Number(r.anthropicOutputTokens ?? 0)
-    compareByBucket[b].costUsd += Number(r.localCostUsd ?? 0)
+    compareByBucket[b].localCostUsd += Number(r.localCostUsd ?? 0)
+    if (r.anthropicCostUsd != null) compareByBucket[b].anthropicCostUsd += Number(r.anthropicCostUsd)
   }
   const compareData = Object.values(compareByBucket).sort((a, b) => a.bucket.localeCompare(b.bucket))
-  const totalCostUsd = compareData.reduce((s, d) => s + d.costUsd, 0)
+  const totalLocalCost = compareData.reduce((s, d) => s + d.localCostUsd, 0)
+  const hasAnthropicCost = compareData.some((d) => d.anthropicCostUsd > 0)
 
   const trendData = reports.map((r) => ({
     bucket: bucketLabel(r),
@@ -225,22 +227,32 @@ export default function Reconciliation() {
       {compareData.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <div style={card}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, padding: '12px 16px 4px' }}>
-              <div style={chartTitle}>费用趋势（本地计费 USD）</div>
-              <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-2)' }}>
-                合计 <span style={{ color: 'var(--clay)', fontWeight: 600 }}>${totalCostUsd.toFixed(4)}</span>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px 4px', gap: 12 }}>
+              <span style={chartTitle}>费用对比（USD）</span>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-2)' }}>
+                <span>本地合计 <span style={{ color: 'var(--clay)', fontWeight: 600 }}>${totalLocalCost.toFixed(4)}</span></span>
+                {hasAnthropicCost && (
+                  <span>Anthropic 合计 <span style={{ color: 'var(--ok-text)', fontWeight: 600 }}>${compareData.reduce((s, d) => s + d.anthropicCostUsd, 0).toFixed(4)}</span></span>
+                )}
+                {!hasAnthropicCost && bucketWidth === '1h' && (
+                  <span style={{ color: 'var(--text-3)', fontSize: 11 }}>Anthropic 费用 API 仅支持按天</span>
+                )}
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={compareData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="40%">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={compareData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="bucket" tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} />
-                <YAxis tickFormatter={(v) => '$' + (v >= 1 ? v.toFixed(2) : v.toFixed(4))} tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} width={64} />
+                <YAxis tickFormatter={(v) => '$' + (v >= 1 ? v.toFixed(2) : v.toFixed(3))} tick={{ fontSize: 10, fill: 'var(--text-3)', fontFamily: 'var(--font-mono)' }} width={60} />
                 <Tooltip
                   contentStyle={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)' }}
-                  formatter={(v) => ['$' + Number(v).toFixed(4), '费用']}
+                  formatter={(v) => '$' + Number(v).toFixed(4)}
                 />
-                <Bar dataKey="costUsd" name="费用 (USD)" fill="var(--clay)" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+                <Bar dataKey="localCostUsd" name="本地" fill="var(--clay)" radius={[3, 3, 0, 0]} maxBarSize={32} />
+                {hasAnthropicCost && (
+                  <Bar dataKey="anthropicCostUsd" name="Anthropic" fill="var(--ok-text)" radius={[3, 3, 0, 0]} maxBarSize={32} opacity={0.75} />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -300,14 +312,15 @@ export default function Reconciliation() {
                   <th style={{ ...th, textAlign: 'right' }}>Anthropic Input</th>
                   <th style={{ ...th, textAlign: 'right' }}>本地 Output</th>
                   <th style={{ ...th, textAlign: 'right' }}>Anthropic Output</th>
-                  <th style={{ ...th, textAlign: 'right' }}>费用 (USD)</th>
+                  <th style={{ ...th, textAlign: 'right' }}>本地费用 (USD)</th>
+                  <th style={{ ...th, textAlign: 'right' }}>Anthropic 费用 (USD)</th>
                   <th style={th}>状态</th>
                 </tr>
               </thead>
               <tbody>
                 {reports.length === 0 && (
                   <tr>
-                    <td colSpan={10} style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                    <td colSpan={11} style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                       暂无对账记录
                     </td>
                   </tr>
@@ -334,6 +347,9 @@ export default function Reconciliation() {
                     <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12 }}>{fmtTokens(r.anthropicOutputTokens)}</td>
                     <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12, color: 'var(--clay)' }}>
                       {r.localCostUsd != null ? '$' + Number(r.localCostUsd).toFixed(4) : '—'}
+                    </td>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', textAlign: 'right', fontSize: 12, color: 'var(--ok-text)' }}>
+                      {r.anthropicCostUsd != null ? '$' + Number(r.anthropicCostUsd).toFixed(4) : '—'}
                     </td>
                     <td style={td}><StatusPill status={r.status} /></td>
                   </tr>

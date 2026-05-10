@@ -115,6 +115,63 @@ export async function fetchAnthropicUsage(
   return result
 }
 
+interface AnthropicCostBucket {
+  starting_at: string
+  ending_at: string
+  results: { amount: string; currency: string }[]
+}
+
+interface AnthropicCostResponse {
+  data: AnthropicCostBucket[]
+  has_more: boolean
+  next_page: string | null
+}
+
+// Fetches org-level daily cost from /v1/organizations/cost_report.
+// Returns a Map<bucketIsoDate, costUsd>. Only supports 1d granularity.
+// amount is in cents (lowest unit), divide by 100 to get USD.
+export async function fetchAnthropicCost(
+  adminKey: string,
+  startAt: Date,
+  endAt: Date
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>()
+  let nextPage: string | null = null
+
+  do {
+    const params = new URLSearchParams({
+      starting_at: startAt.toISOString(),
+      ending_at: endAt.toISOString(),
+      bucket_width: '1d',
+    })
+    if (nextPage) params.set('page', nextPage)
+
+    const resp = await fetch(
+      `https://api.anthropic.com/v1/organizations/cost_report?${params}`,
+      { headers: { 'anthropic-version': '2023-06-01', 'x-api-key': adminKey } }
+    )
+    if (!resp.ok) {
+      const body = await resp.text()
+      throw new AppError('upstream_error', `Anthropic Cost API ${resp.status}: ${body}`)
+    }
+    const data = await resp.json() as AnthropicCostResponse
+
+    for (const bucket of data.data) {
+      if (!bucket.starting_at) continue
+      const key = new Date(bucket.starting_at).toISOString()
+      let totalCents = 0
+      for (const row of (bucket.results ?? [])) {
+        totalCents += Number(row.amount ?? 0)
+      }
+      const existing = result.get(key) ?? 0
+      result.set(key, existing + totalCents / 100)
+    }
+    nextPage = data.next_page
+  } while (nextPage)
+
+  return result
+}
+
 export async function computeLocalUsage(
   upstreamKeyId: string,
   startAt: Date,
@@ -156,15 +213,17 @@ export async function computeLocalUsage(
   return result
 }
 
-// Allow injecting fetchAnthropicUsage for testing (vitest ESM spy limitation workaround)
+// Allow injecting fetchAnthropicUsage / fetchAnthropicCost for testing (vitest ESM spy limitation workaround)
 export async function runReconciliation(
   upstreamKeyId: string,
   startAt: Date,
   endAt: Date,
   bucketWidth: BucketWidth,
-  _fetchUsage?: typeof fetchAnthropicUsage
+  _fetchUsage?: typeof fetchAnthropicUsage,
+  _fetchCost?: typeof fetchAnthropicCost
 ) {
   const fetchUsage = _fetchUsage ?? fetchAnthropicUsage
+  const fetchCost = _fetchCost ?? fetchAnthropicCost
 
   const [key] = await db.select().from(upstreamKeys).where(eq(upstreamKeys.id, upstreamKeyId))
   if (!key) throw new AppError('not_found')
@@ -174,9 +233,11 @@ export async function runReconciliation(
 
   const adminKey = decryptSecret(key.adminKeyCiphertext, env.UPSTREAM_KEY_KMS)
 
-  const [anthropicUsage, localUsage] = await Promise.all([
+  // Cost API only supports 1d granularity; skip for hourly runs
+  const [anthropicUsage, localUsage, anthropicCost] = await Promise.all([
     fetchUsage(adminKey, key.anthropicKeyId, startAt, endAt, bucketWidth),
     computeLocalUsage(upstreamKeyId, startAt, endAt, bucketWidth),
+    bucketWidth === '1d' ? fetchCost(adminKey, startAt, endAt) : Promise.resolve(new Map<string, number>()),
   ])
 
   const allBuckets = new Set([...anthropicUsage.keys(), ...localUsage.keys()])
@@ -190,6 +251,7 @@ export async function runReconciliation(
     const outputDiff = diffPct(l.outputTokens, a.outputTokens)
     const status = calcStatus(inputDiff, outputDiff, null)
 
+    const aCost = anthropicCost.get(bucket) ?? null
     reports.push({
       upstreamKeyId,
       bucketWidth,
@@ -203,6 +265,7 @@ export async function runReconciliation(
       localCacheWriteTokens: String(l.cacheWriteTokens),
       anthropicCacheWriteTokens: String(a.cacheWriteTokens),
       localCostUsd: String((l as { costUsd: number }).costUsd),
+      anthropicCostUsd: aCost !== null ? String(aCost) : null,
       inputDiffPct: inputDiff !== null ? String(inputDiff) : null,
       outputDiffPct: outputDiff !== null ? String(outputDiff) : null,
       status,
@@ -224,6 +287,7 @@ export async function runReconciliation(
           localCacheWriteTokens: sql`excluded.local_cache_write_tokens`,
           anthropicCacheWriteTokens: sql`excluded.anthropic_cache_write_tokens`,
           localCostUsd: sql`excluded.local_cost_usd`,
+          anthropicCostUsd: sql`excluded.anthropic_cost_usd`,
           inputDiffPct: sql`excluded.input_diff_pct`,
           outputDiffPct: sql`excluded.output_diff_pct`,
           status: sql`excluded.status`,

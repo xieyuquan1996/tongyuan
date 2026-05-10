@@ -178,6 +178,7 @@ export const reconciliationReports = pgTable('reconciliation_reports', {
   localCacheWriteTokens: numeric('local_cache_write_tokens'),
   anthropicCacheWriteTokens: numeric('anthropic_cache_write_tokens'),
   localCostUsd: numeric('local_cost_usd', { precision: 12, scale: 6 }),
+  anthropicCostUsd: numeric('anthropic_cost_usd', { precision: 12, scale: 6 }),
   inputDiffPct: numeric('input_diff_pct', { precision: 8, scale: 4 }),
   outputDiffPct: numeric('output_diff_pct', { precision: 8, scale: 4 }),
   status: text('status').notNull(),
