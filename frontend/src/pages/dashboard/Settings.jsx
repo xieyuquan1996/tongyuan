@@ -20,6 +20,12 @@ export default function Settings() {
   const [busy, setBusy] = useState({ profile: false, password: false });
   const [toast, setToast] = useState(null);
   const [showDeactivate, setShowDeactivate] = useState(false);
+  const [webhook, setWebhook] = useState({
+    url: user.webhook_url || '',
+    token: '',
+  });
+  const [webhookTokenDirty, setWebhookTokenDirty] = useState(false);
+  const [webhookBusy, setWebhookBusy] = useState(false);
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
 
@@ -47,6 +53,32 @@ export default function Settings() {
       const map = { wrong_password: "当前密码不正确", weak_password: "新密码至少 6 位" };
       setToast({ tone: "err", text: map[err.data?.error] || err.message || "修改失败" });
     } finally { setBusy({ ...busy, password: false }); }
+  }
+
+  async function saveWebhook() {
+    setWebhookBusy(true);
+    try {
+      const body = { webhook_url: webhook.url || null };
+      if (webhookTokenDirty) body.webhook_token = webhook.token || null;
+      await api("/api/console/profile", { method: "PATCH", body });
+      setWebhookTokenDirty(false);
+      setToast({ tone: "ok", text: "Webhook 设置已保存" });
+    } catch (err) {
+      setToast({ tone: "err", text: err.message || "保存失败" });
+    } finally { setWebhookBusy(false); }
+  }
+
+  async function testWebhook() {
+    try {
+      const r = await api("/api/console/webhooks/test", { method: "POST" });
+      if (r.ok) {
+        setToast({ tone: "ok", text: "测试 Webhook 发送成功" });
+      } else {
+        setToast({ tone: "err", text: `Webhook 响应异常（HTTP ${r.status_code ?? '?'}）` });
+      }
+    } catch (err) {
+      setToast({ tone: "err", text: err.message || "测试失败，请检查 URL" });
+    }
   }
 
   return (
@@ -112,6 +144,46 @@ export default function Settings() {
             </div>
           </Field>
         </Row>
+      </div>
+
+      {/* Webhook 通知 */}
+      <div style={card}>
+        <SectionTitle>Webhook 通知</SectionTitle>
+        <Row>
+          <Field label="全局 Webhook URL">
+            <input
+              type="url"
+              placeholder="https://your-service.com/webhook"
+              value={webhook.url}
+              onChange={(e) => setWebhook({ ...webhook, url: e.target.value })}
+              onBlur={saveWebhook}
+              style={ctrl}
+            />
+            <Hint>所有 Webhook 告警默认投递到此地址。每条告警也可单独覆盖。</Hint>
+          </Field>
+          <Field label="Bearer Token">
+            <input
+              type="password"
+              placeholder={user.webhook_token ? "已配置（输入新值可覆盖）" : "可选，用于认证"}
+              value={webhook.token}
+              onChange={(e) => { setWebhook({ ...webhook, token: e.target.value }); setWebhookTokenDirty(true); }}
+              onBlur={saveWebhook}
+              style={ctrl}
+            />
+            {user.webhook_token && !webhookTokenDirty && (
+              <Hint>已配置。输入新值可覆盖，留空并保存可清除。</Hint>
+            )}
+          </Field>
+        </Row>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+          <button type="button" onClick={testWebhook} disabled={!webhook.url && !user.webhook_url} style={ghostBtn}>
+            发送测试
+          </button>
+          <button type="button" onClick={saveWebhook} disabled={webhookBusy} style={ctaBtn}>
+            {webhookBusy && <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }}/>}
+            保存 Webhook
+          </button>
+        </div>
       </div>
 
       {/* Password */}
