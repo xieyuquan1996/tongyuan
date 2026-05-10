@@ -141,7 +141,8 @@ describe('computeLocalUsage', () => {
     expect(result.size).toBe(1)
     const bucket = result.get('2026-05-01T00:00:00.000Z')
     expect(bucket).toBeDefined()
-    expect(bucket!.inputTokens).toBe(3000)
+    // inputTokens = uncached(1000+2000) + cacheRead(200) + cacheWrite(100) = 3300
+    expect(bucket!.inputTokens).toBe(3300)
     expect(bucket!.outputTokens).toBe(1500)
     expect(bucket!.cacheReadTokens).toBe(200)
     expect(bucket!.cacheWriteTokens).toBe(100)
@@ -156,8 +157,10 @@ describe('computeLocalUsage', () => {
     )
     expect(result.size).toBe(2)
     const bucket10 = result.get('2026-05-01T10:00:00.000Z')
-    expect(bucket10!.inputTokens).toBe(1000)
+    // inputTokens = uncached(1000) + cacheRead(200) + cacheWrite(100) = 1300
+    expect(bucket10!.inputTokens).toBe(1300)
     const bucket22 = result.get('2026-05-01T22:00:00.000Z')
+    // inputTokens = uncached(2000) + cacheRead(0) + cacheWrite(0) = 2000
     expect(bucket22!.inputTokens).toBe(2000)
   })
 })
@@ -173,7 +176,8 @@ describe('runReconciliation', () => {
 
     const mockFetch = vi.fn().mockResolvedValueOnce(
       new Map([['2026-05-01T00:00:00.000Z', {
-        inputTokens: 3000, outputTokens: 1500,
+        // Match local total: uncached(1000+2000) + cacheRead(200) + cacheWrite(100) = 3300
+        inputTokens: 3300, outputTokens: 1500,
         cacheReadTokens: 200, cacheWriteTokens: 100,
       }]])
     )
