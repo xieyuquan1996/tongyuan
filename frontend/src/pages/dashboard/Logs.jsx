@@ -29,8 +29,60 @@ export default function Logs() {
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  const [exporting, setExporting] = useState(false);
+
   function handleFilterChange(setter) {
     return (e) => { setter(e.target.value); setPage(0); };
+  }
+
+  async function handleExportCsv() {
+    setExporting(true);
+    try {
+      const BATCH = 200;
+      const MAX_ROWS = 5000;
+      let all = [];
+      let off = 0;
+      while (off < MAX_ROWS) {
+        const p = new URLSearchParams();
+        if (status) p.set("status", status);
+        if (model) p.set("model", model);
+        p.set("limit", String(BATCH));
+        p.set("offset", String(off));
+        const d = await api("/api/console/logs?" + p.toString());
+        const rows = d.logs ?? [];
+        all = all.concat(rows);
+        if (rows.length < BATCH || all.length >= (d.total ?? 0)) break;
+        off += BATCH;
+      }
+
+      const header = ["id", "created_at", "model", "status", "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "cost_usd", "latency_ms", "endpoint"];
+      const escape = (v) => {
+        if (v == null) return "";
+        const s = String(v);
+        return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const csv = [
+        header.join(","),
+        ...all.map((r) => [
+          r.id, r.created_at, r.model, r.status,
+          r.input_tokens, r.output_tokens,
+          r.cache_read_tokens ?? 0, r.cache_write_tokens ?? 0,
+          r.cost, r.latency_ms ?? r.display_latency_ms, r.endpoint,
+        ].map(escape).join(","))
+      ].join("\n");
+
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `logs_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("导出失败：" + (e.message ?? e));
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -49,8 +101,8 @@ export default function Logs() {
             <option key={id} value={id}>{id}</option>
           ))}
         </select>
-        <button style={{ ...filterBtn, marginLeft: "auto" }}>
-          <Download size={14} /> 导出 CSV
+        <button onClick={handleExportCsv} disabled={exporting} style={{ ...filterBtn, marginLeft: "auto", opacity: exporting ? 0.6 : 1 }}>
+          <Download size={14} /> {exporting ? "导出中…" : "导出 CSV"}
         </button>
       </div>
       {error ? <ErrorBox error={error} /> : loading ? <Loading /> : (
