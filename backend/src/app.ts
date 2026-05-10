@@ -14,6 +14,7 @@ import { adminAnnouncementsRoutes } from './routes/admin/announcements.js'
 import { adminAuditRoutes } from './routes/admin/audit.js'
 import { adminKeysRoutes } from './routes/admin/keys.js'
 import { adminSettingsRoutes } from './routes/admin/settings.js'
+import { reconciliationRoutes } from './routes/admin/reconciliation.js'
 import { v1Models } from './routes/v1/models.js'
 import { v1Messages } from './routes/v1/messages.js'
 import { v1CountTokens } from './routes/v1/count-tokens.js'
@@ -98,6 +99,7 @@ export function createApp() {
   app.route('/api/admin/audit', adminAuditRoutes)
   app.route('/api/admin/keys', adminKeysRoutes)
   app.route('/api/admin/settings', adminSettingsRoutes)
+  app.route('/api/admin/reconciliation', reconciliationRoutes)
   app.route('/v1/models', v1Models)
   app.route('/v1/messages', v1Messages)
   app.route('/v1/messages/count_tokens', v1CountTokens)
