@@ -4,7 +4,7 @@ import { desc, gte, sql } from 'drizzle-orm'
 import { requireBearer } from '../../middleware/auth-bearer.js'
 import { requireAdmin } from '../../middleware/auth-admin.js'
 import { db } from '../../db/client.js'
-import { requestLogs, users } from '../../db/schema.js'
+import { requestLogs, users, auditEvents } from '../../db/schema.js'
 
 export const adminOverviewRoutes = new Hono()
 adminOverviewRoutes.use('*', requireBearer, requireAdmin)
@@ -31,6 +31,17 @@ adminOverviewRoutes.get('/', async (c) => {
     spent: sql<string>`coalesce(sum(cost_usd), 0)::text`,
   }).from(requestLogs).where(gte(requestLogs.createdAt, since30d))
 
+  const recentAudit = await db.select({
+    id: auditEvents.id,
+    at: auditEvents.at,
+    actor: auditEvents.actorEmail,
+    action: auditEvents.action,
+    target: auditEvents.target,
+    note: auditEvents.note,
+  }).from(auditEvents)
+    .orderBy(desc(auditEvents.at))
+    .limit(10)
+
   const daily = await db.select({
     date: sql<string>`to_char(created_at::date, 'YYYY-MM-DD')`,
     requests: sql<number>`count(*)::int`,
@@ -55,6 +66,6 @@ adminOverviewRoutes.get('/', async (c) => {
       balance_total: Number(userStats!.balance).toFixed(2),
     },
     daily: daily.map((d) => ({ date: d.date, requests: Number(d.requests), errors: Number(d.errors) })),
-    recent_audit: [], // audit_events table not implemented yet
+    recent_audit: recentAudit.map((e) => ({ id: e.id, at: e.at, actor: e.actor, action: e.action, target: e.target ?? '', note: e.note }))
   })
 })
