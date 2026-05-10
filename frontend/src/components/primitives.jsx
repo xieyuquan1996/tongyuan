@@ -202,3 +202,39 @@ export function ErrorBox({ error }) {
     </div>
   );
 }
+
+export function Input({
+  type = "text",
+  size = "md",
+  style,
+  ...rest
+}) {
+  const [focused, setFocused] = useState(false);
+  const sizes = {
+    sm: { padding: "6px 10px", fontSize: 13, borderRadius: "var(--radius-sm)" },
+    md: { padding: "10px 14px", fontSize: 14, borderRadius: "var(--radius-md)" },
+    lg: { padding: "12px 16px", fontSize: 15, borderRadius: "var(--radius-md)" },
+  };
+  return (
+    <input
+      type={type}
+      {...rest}
+      onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
+      onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
+      style={{
+        width: "100%",
+        boxSizing: "border-box",
+        border: `1px solid ${focused ? "var(--clay)" : "var(--border)"}`,
+        background: "var(--surface-2)",
+        color: "var(--text)",
+        fontFamily: "var(--font-sans)",
+        outline: "none",
+        transition: `border-color var(--dur) var(--ease)`,
+        opacity: rest.disabled ? 0.5 : 1,
+        cursor: rest.disabled ? "not-allowed" : "text",
+        ...sizes[size],
+        ...style,
+      }}
+    />
+  );
+}
