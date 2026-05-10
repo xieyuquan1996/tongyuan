@@ -109,8 +109,9 @@ export async function computeLocalUsage(
   endAt: Date,
   bucketWidth: BucketWidth
 ): Promise<Map<string, BucketData & { costUsd: number }>> {
+  // date_trunc on a timestamptz column returns timestamptz (UTC-aligned)
   const truncUnit = bucketWidth === '1h' ? 'hour' : 'day'
-  const bucketExpr = sql<string>`date_trunc(${truncUnit}, ${requestLogs.createdAt} AT TIME ZONE 'UTC')`
+  const bucketExpr = sql<string>`date_trunc(${sql.raw(`'${truncUnit}'`)}, ${requestLogs.createdAt})`
 
   const rows = await db
     .select({
@@ -142,12 +143,16 @@ export async function computeLocalUsage(
   return result
 }
 
+// Allow injecting fetchAnthropicUsage for testing (vitest ESM spy limitation workaround)
 export async function runReconciliation(
   upstreamKeyId: string,
   startAt: Date,
   endAt: Date,
-  bucketWidth: BucketWidth
+  bucketWidth: BucketWidth,
+  _fetchUsage?: typeof fetchAnthropicUsage
 ) {
+  const fetchUsage = _fetchUsage ?? fetchAnthropicUsage
+
   const [key] = await db.select().from(upstreamKeys).where(eq(upstreamKeys.id, upstreamKeyId))
   if (!key) throw new AppError('not_found')
   if (!key.adminKeyCiphertext || !key.anthropicKeyId) {
@@ -157,7 +162,7 @@ export async function runReconciliation(
   const adminKey = decryptSecret(key.adminKeyCiphertext, env.UPSTREAM_KEY_KMS)
 
   const [anthropicUsage, localUsage] = await Promise.all([
-    fetchAnthropicUsage(adminKey, key.anthropicKeyId, startAt, endAt, bucketWidth),
+    fetchUsage(adminKey, key.anthropicKeyId, startAt, endAt, bucketWidth),
     computeLocalUsage(upstreamKeyId, startAt, endAt, bucketWidth),
   ])
 
