@@ -157,7 +157,13 @@ function SignalCompare() {
         </p>
         <div className="landing-compare-grid" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 16 }}>
           <div style={compareCard}>
-            <Pill tone="clay" dot style={{ marginBottom: 16 }}>枫连</Pill>
+            <Pill tone="clay" dot style={{ marginBottom: 12 }}>枫连</Pill>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>
+              透明传输 (Transparent Pass-through)
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 12, lineHeight: 1.5 }}>
+              完整透传系统提示词，保留 200k 全量上下文
+            </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--clay-press)", marginBottom: 8 }}>完整透传 · 信号干净</div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 80" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} preserveAspectRatio="none" aria-label="clean signal">
               <path d="M 0 40 C 50 40, 100 10, 150 40 S 250 70, 300 40 S 400 10, 450 40 S 550 70, 600 40 S 700 10, 750 40 S 850 70, 900 40 S 1000 10, 1050 40 S 1150 70, 1200 40" fill="none" stroke="var(--text)" strokeWidth="1" strokeLinecap="round"/>
@@ -170,7 +176,13 @@ function SignalCompare() {
             </div>
           </div>
           <div style={compareCard}>
-            <Pill style={{ marginBottom: 16 }} dot>其他中转</Pill>
+            <Pill style={{ marginBottom: 12 }} dot>其他中转</Pill>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-3)", marginBottom: 4 }}>
+              黑箱阉割 (Opaque Modification)
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 12, lineHeight: 1.5 }}>
+              悄悄替换廉价模型，强制截断 System Prompt 导致逻辑崩坏
+            </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>偷换、截断、压缩</div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 80" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} preserveAspectRatio="none" aria-label="diluted signal">
               <path d="M 0 40 L 30 38 L 50 52 L 70 28 L 95 48 L 120 32 L 140 60 L 160 22 L 185 50 L 210 30 L 232 58 L 256 24 L 282 54 L 308 28 L 332 62 L 360 30 L 386 50 L 412 24 L 440 58 L 468 32 L 494 56 L 520 26 L 548 60 L 576 28 L 604 52 L 630 22 L 658 56 L 684 32 L 712 60 L 738 24 L 766 54 L 794 28 L 822 58 L 848 30 L 876 52 L 904 22 L 932 60 L 960 32 L 988 54 L 1016 26 L 1044 58 L 1072 30 L 1100 52 L 1128 24 L 1156 56 L 1184 32 L 1200 40" fill="none" stroke="var(--text-3)" strokeWidth="1" strokeLinejoin="round" strokeLinecap="round"/>
