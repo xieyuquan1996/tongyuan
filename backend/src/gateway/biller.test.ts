@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db, pool } from '../db/client.js'
 import { users, apiKeys } from '../db/schema.js'
-import { commitRequest, holdBalance } from './biller.js'
+import { commitRequest, holdBalance, refundHold } from './biller.js'
 import { eq } from 'drizzle-orm'
 
 describe('commitRequest', () => {
@@ -92,6 +92,14 @@ describe('holdBalance', () => {
     await expect(holdBalance(userId, '0.400000')).rejects.toThrow('insufficient_balance')
     const [u] = await db.select().from(users).where(eq(users.id, userId))
     expect(u!.balanceUsd).toBe('0.300000')
+  })
+
+  // C8: refundHold 把金额加回 balance
+  it('C8: refundHold adds amount back to balance', async () => {
+    await holdBalance(userId, '0.400000')        // balance 1.0 → 0.6
+    await refundHold(userId, '0.400000')         // balance 0.6 → 1.0
+    const [u] = await db.select().from(users).where(eq(users.id, userId))
+    expect(u!.balanceUsd).toBe('1.000000')
   })
 })
 
