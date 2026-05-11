@@ -174,6 +174,55 @@ git branch -d <功能名>
 
 ---
 
+## 创建 Pull Request — `gh pr create`
+
+**禁止直接 `gh pr create` 不带参数。** 在脚本/agent 环境里没有交互终端，会创建出空 title 和空 body 的 PR。
+
+**必须用以下完整形式**：
+
+```bash
+gh pr create \
+  --title "feat(scope): 简短描述" \
+  --body "$(cat <<'EOF'
+## Summary
+- 第一点改动
+- 第二点改动
+
+## 背景（可选）
+为什么做这个改动
+
+## Test plan
+- [x] UT/CT/FT 覆盖的点
+- [x] 全量回归通过
+- [x] npx tsc --noEmit 0 错误
+EOF
+)"
+```
+
+### 关键点
+
+- **HEREDOC `<<'EOF' ... EOF`**：把多行 markdown 完整传给 `--body`，保留换行、列表、代码块
+- **单引号 `'EOF'`**：阻止 shell 把 body 里的 `$`、反引号当变量替换
+- **title 格式**：遵循 `<type>(<scope>): <subject>`，与 commit message 风格一致（feat / fix / refactor / docs / test / chore）
+- **base / head**：默认目标分支 = 仓库默认分支，源分支 = 当前分支。如需指定：`--base main --head <branch>`
+
+### 不接受的形式
+
+```bash
+gh pr create                                # 空 title + 空 body
+gh pr create --title "fix"                  # 缺 body
+gh pr create --title "fix" --body ""        # 空 body
+gh pr create --title "fix" --body "改了点东西"  # body 没有 Test plan
+```
+
+### 如果 gh 没装
+
+提供以下两段文本给用户，让其在浏览器里手动创建：
+1. PR 创建链接（`git push` 后远程返回）
+2. 准备好的 title 和 body（直接复制粘贴）
+
+---
+
 ## 前端界面规范
 
 ### 组件使用
