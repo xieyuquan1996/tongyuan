@@ -4,7 +4,7 @@
 //   client → Hono app → gateway → mock Anthropic upstream → billing
 // Uses a self-contained node:http mock (no external services, no msw).
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import { createApp } from '../app.js'
 import { db, pool } from '../db/client.js'
 import { users, apiKeys, upstreamKeys, models, requestLogs } from '../db/schema.js'
@@ -15,6 +15,7 @@ import { newApiKey } from '../crypto/tokens.js'
 import { hashPassword } from '../crypto/password.js'
 import * as upstreamSvc from '../services/upstream-keys.js'
 import * as quota from '../gateway/quota.js'
+import * as biller from '../gateway/biller.js'
 import { startMockUpstream } from './mock-upstream.js'
 import { delCached } from '../services/api-key-cache.js'
 import { hmacApiKey } from '../crypto/apikey-hmac.js'
@@ -515,6 +516,38 @@ describe('e2e: balance hold', () => {
     }
   })
 
+  // F4: commitRequest 在成功路径中抛异常 → handleNonStream 外层 finally 退还 hold
+  it('F4: refunds hold when commitRequest throws on success path (non-stream)', async () => {
+    const { userId: u, secret } = await seedUser('0.001500')
+    const before = '0.001500'
+    const mock = await startMockUpstream([
+      { kind: 'ok', usage: { input: 10, output: 20 } },
+    ])
+    // 让 commitRequest 第一次调用就抛异常，模拟 DB 故障等场景
+    const spy = vi.spyOn(biller, 'commitRequest').mockRejectedValueOnce(new Error('forced commit failure'))
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f4-secret', 100)
+
+      const r = await postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        messages: [{ role: 'user', content: 'ping' }],
+      })
+      // commitRequest 抛了未捕获异常，应该返回 5xx
+      expect(r.status).toBeGreaterThanOrEqual(500)
+
+      // hold 应被外层 finally 退还
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      expect(Number(after!.balanceUsd)).toBeCloseTo(Number(before), 6)
+    } finally {
+      spy.mockRestore()
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+
   // F3: upstream 全错误 → hold 被退还，balance 不被扣费
   it('F3: upstream failure path refunds the hold', async () => {
     const { userId: u, secret } = await seedUser('0.001500')
@@ -539,6 +572,73 @@ describe('e2e: balance hold', () => {
       // hold 应被全额退还，余额回到初始值
       expect(Number(after!.balanceUsd)).toBeCloseTo(Number(before), 6)
     } finally {
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+
+  // F5: handleStream 流内 commitRequest 抛异常 → 内层 finally 退还 hold
+  it('F5: refunds hold when commitRequest throws inside stream finally', async () => {
+    const { userId: u, secret } = await seedUser('0.001500')
+    const before = '0.001500'
+    const mock = await startMockUpstream([{ kind: 'stream', chunks: 2 }])
+    const spy = vi.spyOn(biller, 'commitRequest').mockRejectedValueOnce(new Error('forced commit failure in stream'))
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f5-secret', 100)
+
+      const r = await postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        stream: true,
+        messages: [{ role: 'user', content: 'stream' }],
+      })
+      // stream 已经开始返回，状态码是 200；commitRequest 在 stream 结束后才抛
+      expect(r.status).toBe(200)
+      await r.text()   // 消费完 stream 让 finally 跑完
+
+      // 给 finally 里的 refundHold 一个 tick 完成
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      expect(Number(after!.balanceUsd)).toBeCloseTo(Number(before), 6)
+    } finally {
+      spy.mockRestore()
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+
+  // F6: handleStream 进入 stream 前的失败路径里 commitRequest 抛异常 → 外层 finally 退还 hold
+  it('F6: refunds hold when pre-stream commitRequest throws', async () => {
+    const { userId: u, secret } = await seedUser('0.001500')
+    const before = '0.001500'
+    // upstream 全失败，会走 if (!response) 分支
+    const mock = await startMockUpstream([
+      { kind: 'error', status: 500 },
+      { kind: 'error', status: 500 },
+      { kind: 'error', status: 500 },
+    ])
+    const spy = vi.spyOn(biller, 'commitRequest').mockRejectedValueOnce(new Error('forced pre-stream commit failure'))
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f6-secret', 100)
+
+      const r = await postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        stream: true,
+        messages: [{ role: 'user', content: 'stream' }],
+      })
+      expect(r.status).toBeGreaterThanOrEqual(500)
+
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      // pre-stream 失败路径里 commitRequest 抛了，外层 finally 退还 hold
+      expect(Number(after!.balanceUsd)).toBeCloseTo(Number(before), 6)
+    } finally {
+      spy.mockRestore()
       await mock.close()
       setAnthropicBaseUrlOverride(undefined)
       await db.delete(users).where(eq(users.id, u))
