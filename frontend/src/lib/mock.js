@@ -415,6 +415,9 @@ async function handle(path, opts) {
   if (path === "/api/public/changelog" && method === "GET") {
     return json(200, { entries: store.changelog });
   }
+  if (path === "/api/public/site" && method === "GET") {
+    return json(200, { contact: { general: "hi@example.com", support: "support@example.com", privacy: "privacy@example.com" } });
+  }
 
   // ---------- AUTH ----------
   if (path === "/api/console/register" && method === "POST") {

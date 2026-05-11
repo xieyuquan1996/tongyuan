@@ -1,5 +1,13 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark } from "../../components/primitives.jsx";
+import { api } from "../../lib/api.js";
+
+function useContact() {
+  const [contact, setContact] = useState(null);
+  useEffect(() => { api("/api/public/site").then(r => setContact(r.contact)).catch(() => {}); }, []);
+  return contact;
+}
 
 function Shell({ title, children }) {
   return (
@@ -22,6 +30,7 @@ const prose = { fontSize: 15, lineHeight: 1.8, color: "var(--text-2)" };
 const h2 = { fontSize: 20, fontWeight: 600, margin: "32px 0 12px", color: "var(--text)" };
 
 export function AboutPage() {
+  const contact = useContact();
   return (
     <Shell title="关于枫连">
       <p style={prose}>枫连（MapleLink）是一个稳定、透明的 Claude API 中转服务。我们的目标是让每一位开发者都能以最低的门槛、最高的可靠性使用 Claude 系列模型。</p>
@@ -29,23 +38,32 @@ export function AboutPage() {
       <p style={prose}>不掺水。你指定什么模型，到 Anthropic 那端就是什么模型。我们对每一次请求计算双向哈希，任何人都可以在控制台验证。</p>
       <h2 style={h2}>技术架构</h2>
       <p style={prose}>多 Key 池自动切换、全量 SSE 流式透传、Redis 限流与幂等、Prometheus 可观测。部署在国内低延迟节点，p99 延迟通常低于 500ms（不含 Anthropic 本身的推理时间）。</p>
-      <h2 style={h2}>联系我们</h2>
-      <p style={prose}>如有商务合作或技术问题，请发邮件至 <a href="mailto:hi@maplelink.ai" style={{ color: "var(--clay-press)" }}>hi@maplelink.ai</a>。</p>
+      {contact?.general && (
+        <>
+          <h2 style={h2}>联系我们</h2>
+          <p style={prose}>如有商务合作或技术问题，请发邮件至 <a href={`mailto:${contact.general}`} style={{ color: "var(--clay-press)" }}>{contact.general}</a>。</p>
+        </>
+      )}
     </Shell>
   );
 }
 
 export function ContactPage() {
+  const contact = useContact();
   return (
     <Shell title="联系我们">
       <p style={prose}>我们欢迎任何反馈、合作意向或技术问题。</p>
       <h2 style={h2}>邮件</h2>
-      <p style={prose}><a href="mailto:hi@maplelink.ai" style={{ color: "var(--clay-press)" }}>hi@maplelink.ai</a> — 一般咨询、商务合作</p>
-      <p style={prose}><a href="mailto:support@maplelink.ai" style={{ color: "var(--clay-press)" }}>support@maplelink.ai</a> — 技术支持、账单问题</p>
+      {contact ? (
+        <>
+          {contact.general && <p style={prose}><a href={`mailto:${contact.general}`} style={{ color: "var(--clay-press)" }}>{contact.general}</a> — 一般咨询、商务合作</p>}
+          {contact.support && <p style={prose}><a href={`mailto:${contact.support}`} style={{ color: "var(--clay-press)" }}>{contact.support}</a> — 技术支持、账单问题</p>}
+        </>
+      ) : (
+        <p style={{ ...prose, color: "var(--text-3)" }}>加载中…</p>
+      )}
       <h2 style={h2}>响应时间</h2>
       <p style={prose}>工作日 24 小时内回复。紧急技术问题请在邮件标题注明「紧急」。</p>
-      <h2 style={h2}>状态与公告</h2>
-      <p style={prose}>服务状态请查看 <Link to="/status" style={{ color: "var(--clay-press)" }}>状态页</Link>。重要更新会通过控制台横幅通知。</p>
     </Shell>
   );
 }
@@ -71,6 +89,7 @@ export function TermsPage() {
 }
 
 export function PrivacyPage() {
+  const contact = useContact();
   return (
     <Shell title="隐私政策">
       <p style={{ ...prose, color: "var(--text-3)", fontSize: 13 }}>最后更新：2026 年 4 月 27 日</p>
@@ -82,8 +101,12 @@ export function PrivacyPage() {
       <p style={prose}>请求日志保留 30 天，账单记录保留 7 年（法规要求）。账户注销后个人信息在 30 天内删除。</p>
       <h2 style={h2}>Cookie</h2>
       <p style={prose}>仅使用必要的会话 Cookie，不使用追踪或广告 Cookie。</p>
-      <h2 style={h2}>联系</h2>
-      <p style={prose}>隐私相关问题请联系 <a href="mailto:privacy@maplelink.ai" style={{ color: "var(--clay-press)" }}>privacy@maplelink.ai</a>。</p>
+      {contact?.privacy && (
+        <>
+          <h2 style={h2}>联系</h2>
+          <p style={prose}>隐私相关问题请联系 <a href={`mailto:${contact.privacy}`} style={{ color: "var(--clay-press)" }}>{contact.privacy}</a>。</p>
+        </>
+      )}
     </Shell>
   );
 }

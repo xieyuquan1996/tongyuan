@@ -34,6 +34,7 @@ import { publicPlans } from './routes/public/plans.js'
 import { publicStatus } from './routes/public/status.js'
 import { publicChangelog } from './routes/public/changelog.js'
 import { publicAnnouncements } from './routes/public/announcements.js'
+import { publicSite } from './routes/public/site.js'
 import { analyticsRoutes } from './routes/console/analytics.js'
 import { installRoutes } from './routes/install.js'
 
@@ -114,6 +115,7 @@ export function createApp() {
   app.route('/api/public/status', publicStatus)
   app.route('/api/public/changelog', publicChangelog)
   app.route('/api/public/announcements', publicAnnouncements)
+  app.route('/api/public/site', publicSite)
   app.route('/api', installRoutes)
   app.notFound((c) => c.json({ error: 'route_not_found' }, 404))
   return app
