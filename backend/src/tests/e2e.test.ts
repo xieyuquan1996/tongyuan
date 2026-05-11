@@ -414,3 +414,134 @@ describe('e2e: streaming', () => {
     }
   })
 })
+
+describe('e2e: balance hold', () => {
+  // 每个测试用独立的用户和密钥，避免相互干扰
+  async function seedUser(balanceUsd: string): Promise<{ userId: string; secret: string }> {
+    const [u] = await db.insert(users).values({
+      email: `hold-ft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`,
+      passwordHash: await hashPassword('secret123'),
+      name: 'hold-ft',
+      balanceUsd,
+    }).returning()
+    const { secret, prefix } = newApiKey()
+    await db.insert(apiKeys).values({
+      userId: u!.id,
+      name: 'hold-ft',
+      prefix,
+      secretHash: await bcrypt.hash(secret, 12),
+      state: 'active',
+    })
+    return { userId: u!.id, secret }
+  }
+
+  async function postAs(secret: string, body: any): Promise<Response> {
+    return app.fetch(new Request('http://x/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': secret,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }))
+  }
+
+  // F1: 并发两请求，余额只够一个 hold → 一个 200，一个 402，balance ≥ 0
+  it('F1: concurrent requests — only one passes admission when balance only fits one hold', async () => {
+    // hold for {model, max_tokens:64, messages:[{role:'user',content:'ping'}]}
+    //   estimateInputTokens ≈ 6 tokens, output = 64
+    //   hold = (6*3 + 64*15) / 1e6 = 0.000978
+    // balance 0.0015 → 单次扣得动（剩 0.000522），两次扣不动（0.001956 > 0.0015）
+    const { userId: u, secret } = await seedUser('0.001500')
+    const mock = await startMockUpstream([
+      { kind: 'ok', usage: { input: 10, output: 20 } },   // 实际成本 ~0.00033，小于 hold
+    ])
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f1-secret', 100)
+
+      const req = () => postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        messages: [{ role: 'user', content: 'ping' }],
+      })
+
+      const [r1, r2] = await Promise.all([req(), req()])
+      const statuses = [r1.status, r2.status].sort()
+      expect(statuses).toEqual([200, 402])
+
+      // 失败那个的响应体应该是 insufficient_balance
+      const failed = r1.status === 402 ? r1 : r2
+      const body = await failed.json() as any
+      expect(body.error).toBe('insufficient_balance')
+
+      // 最终余额必须 ≥ 0（验证不会变负）
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      expect(Number(after!.balanceUsd)).toBeGreaterThanOrEqual(0)
+      // 上游只被命中 1 次（被拒的请求不该转发上游）
+      expect(mock.hits).toBe(1)
+    } finally {
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+
+  // F2: 余额为 0 时发起请求 → 402 insufficient_balance（中间件预检）
+  it('F2: zero balance returns 402 immediately at middleware', async () => {
+    const { userId: u, secret } = await seedUser('0.000000')
+    const mock = await startMockUpstream([])   // 不该被调用
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f2-secret', 100)
+
+      const r = await postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        messages: [{ role: 'user', content: 'ping' }],
+      })
+      expect(r.status).toBe(402)
+      const body = await r.json() as any
+      expect(body.error).toBe('insufficient_balance')
+
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      expect(after!.balanceUsd).toBe('0.000000')
+      expect(mock.hits).toBe(0)
+    } finally {
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+
+  // F3: upstream 全错误 → hold 被退还，balance 不被扣费
+  it('F3: upstream failure path refunds the hold', async () => {
+    const { userId: u, secret } = await seedUser('0.001500')
+    const before = '0.001500'
+    const mock = await startMockUpstream([
+      { kind: 'error', status: 500 },
+      { kind: 'error', status: 500 },
+      { kind: 'error', status: 500 },
+    ])
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f3-secret', 100)
+
+      const r = await postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        messages: [{ role: 'user', content: 'ping' }],
+      })
+      expect(r.status).toBe(502)
+
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      // hold 应被全额退还，余额回到初始值
+      expect(Number(after!.balanceUsd)).toBeCloseTo(Number(before), 6)
+    } finally {
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+})
