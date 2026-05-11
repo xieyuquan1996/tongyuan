@@ -56,6 +56,7 @@ biller.ts（holdBalance 新函数；CommitInput 新增 balanceHoldUsd；commitRe
 | F4 | 非流式 commitRequest 抛异常 | 外层 finally 退还 hold，balance 回到预扣前 |
 | F5 | 流式 stream 内 commitRequest 抛异常 | 内层 finally 退还 hold，balance 回到预扣前 |
 | F6 | 流式 pre-stream commitRequest 抛异常 | 外层 finally 退还 hold，balance 回到预扣前 |
+| F7 | N=20 同用户并发，余额不够全部 | 守恒（final = initial - ok×actual）+ balance ≥ 0 + blocked > 0 |
 
 ---
 
