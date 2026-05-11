@@ -354,18 +354,18 @@ function Pricing() {
 function Faq() {
   const [open, setOpen] = useState(0);
   const items = [
-    ["你们怎么证明没有偷换模型？", "每一次请求我们都会把上行的 model / max_tokens / system 长度做哈希记录，控制台里可以按请求 ID 查询到完整审计。如果发现一次不一致，我们退一个月费用。"],
-    ["延迟为什么比直连快？", "我们在中国大陆有四个机房（上海、北京、深圳）和香港中转，使用 Anthropic 的官方 API endpoint，没有 IP 池漂移。p99 延迟稳定在 500ms 内。"],
-    ["新模型多久会上架？", "Anthropic 发布后通常 4 小时内可用。我们不会自作主张做 alias，所有模型用官方完整 ID。"],
-    ["支持哪些 SDK？", "完全兼容官方 anthropic-sdk-python / anthropic-sdk-typescript。把 base URL 换成 api.maplelink.ai 就可以，其他什么都不用改。"],
-    ["可以发票吗？", "可开 6% 增值税专票，在控制台 → 账单 → 发票申请。"],
+    ["如何验证模型响应的真实性？", "我们为每一笔请求生成唯一的 Audit ID。你可以在控制台中通过该 ID 追溯完整的哈希记录，包含上行 model 字段、max_tokens 参数及 system prompt 长度。我们承诺：若发现单次模型指纹（Fingerprint）不一致，补偿当月全额费用。"],
+    ["中转链路如何实现比直连更低的延迟？", "我们在全球核心节点部署了 BGP 最佳路径优化与 Anycast 网络。通过枫连专线绕过公网拥塞，直接对接 Anthropic 骨干网边缘。对于国内开发者，我们通过 CN2/GIA 极速链路将首字响应（TTFT）优化至毫秒级，有效规避了公网直连的丢包与抖动。"],
+    ["Anthropic 发布新模型后，多久可以接入？", "通常在官方发布后的 4 小时内完成全节点上架。"],
+    ["是否兼容现有的 OpenAI / Anthropic 生态？", "枫连完全兼容 OpenAI 格式接口与 Anthropic 原生格式。无论是直接调用 LangChain、LlamaIndex，还是使用 Cursor、NextChat 等客户端，只需修改 BASE_URL 即可无缝切换。"],
+    ["是否支持企业财务合规报销？", "支持。我们提供正式企业增值税普通发票，类目可选 \"信息技术服务\" 或 \"软件服务\"。针对团队用户，我们支持按月度导出详细账单流水（Consumption Report），满足企业级审计与支出凭证需求。"],
   ];
   return (
     <Section>
-      <div style={{ maxWidth: 880, margin: "0 auto" }}>
+      <div data-testid="faq-content" style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>常见问题</SectionLabel>
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 32px" }}>
-          预先回答几个怀疑。
+          常见FAQ
         </h2>
         <div style={{ borderTop: "1px solid var(--border)" }}>
           {items.map(([q, a], i) => (
