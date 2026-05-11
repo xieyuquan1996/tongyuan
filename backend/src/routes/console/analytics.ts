@@ -50,7 +50,7 @@ analyticsRoutes.get('/', async (c) => {
     model: r.model,
     requests: Number(r.requests),
     tokens_m: Math.round(Number(r.tokens) / 1_000_000 * 100) / 100,
-    cost: '¥' + toCny(Number(r.cost_usd), rate).toFixed(2),
+    cost: toCny(Number(r.cost_usd), rate),
     share: Math.round((Number(r.requests) / totalReqs) * 100),
   }))
 
@@ -88,7 +88,7 @@ analyticsRoutes.get('/', async (c) => {
       date: d.date,
       requests: Number(d.requests),
       tokens: Number(d.tokens),
-      cost: '¥' + toCny(Number(d.cost_usd), rate).toFixed(2),
+      cost: toCny(Number(d.cost_usd), rate),
     })),
     by_model, by_region, errors,
   })

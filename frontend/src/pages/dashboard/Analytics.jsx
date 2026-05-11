@@ -13,7 +13,7 @@ export default function Analytics() {
 
   const reqTotal = data.daily.reduce((a, b) => a + b.requests, 0);
   const tokTotal = data.daily.reduce((a, b) => a + b.tokens, 0);
-  const costTotal = data.daily.reduce((a, b) => a + parseFloat(b.cost), 0);
+  const costTotal = data.daily.reduce((a, b) => a + b.cost, 0);
 
   return (
     <div>
@@ -54,7 +54,7 @@ export default function Analytics() {
               <span style={{ fontFamily: "var(--font-mono)" }}>{m.model}</span>,
               m.requests.toLocaleString(),
               m.tokens_m.toLocaleString() + "M",
-              m.cost,
+              '¥' + m.cost.toFixed(2),
               <BarPercent pct={m.share}/>,
             ])}
           />
