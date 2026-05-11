@@ -26,6 +26,21 @@ function fmt(n: number): string {
   return n.toFixed(6)
 }
 
+import { estimateInputTokens, estimateOutputTokens } from './estimate.js'
+
+// estimateOutputTokens(body, HOLD_OUTPUT_CAP) handles three cases:
+//   max_tokens specified → min(max_tokens, HOLD_OUTPUT_CAP)
+//   max_tokens > cap     → HOLD_OUTPUT_CAP
+//   max_tokens absent    → floor(HOLD_OUTPUT_CAP / 2) ≈ 4096
+const HOLD_OUTPUT_CAP = 8192
+
+export function computeHoldUsd(body: any, model: ModelPricing): string {
+  const estIn  = estimateInputTokens(body)
+  const estOut = estimateOutputTokens(body, HOLD_OUTPUT_CAP)
+  const cost   = mul(estIn, model.inputPriceUsdPerMtok) + mul(estOut, model.outputPriceUsdPerMtok)
+  return fmt(cost * (1 + Number(model.markupPct)))
+}
+
 export function computeCost(u: UsageInput): { costUsd: string; chargeUsd: string } {
   // 1h writes fall back to the 5m price if the 1h price isn't configured,
   // so a partially-configured model still charges something reasonable.
