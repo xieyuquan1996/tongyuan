@@ -178,7 +178,7 @@ git branch -d <功能名>
 
 ### 组件使用
 
-- 所有表单输入使用 `Input` 组件（来自 `primitives.jsx`），禁止内联 style 写裸 `<input>`
+- 所有表单输入使用 `Input` 组件（来自 `primitives.jsx`），禁止直接写原始 `<input>` 标签
 - 所有下拉选择使用 `Select` 组件
 - 表单区域必须用 `FormField` 包裹（提供标签和错误展示）
 - 操作成功/信息提示用 `useToast()`（来自 `Toast.jsx`），错误/警告用 `Banner` 内嵌页面
@@ -196,4 +196,4 @@ git branch -d <功能名>
 
 - 禁止在页面内重新定义 Box / Card / Row 等局部组件，使用 `primitives.jsx` 中的共享组件
 - 禁止 `style={{ color: "#xxx" }}` 等硬编码颜色
-- 禁止绕过 `FormField` 直接裸写 label + input
+- 禁止绕过 `FormField`，直接写原始 label + input 标签
