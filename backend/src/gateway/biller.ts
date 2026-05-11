@@ -45,6 +45,15 @@ export async function holdBalance(userId: string, holdUsd: string): Promise<void
   if (!rowCount || rowCount === 0) throw new AppError('insufficient_balance')
 }
 
+// 退还 hold。用于 commitRequest 没机会跑（异常或崩溃）时兜底；
+// 正常路径下 commitRequest 内部已经做了调平，不会调到这里。
+export async function refundHold(userId: string, holdUsd: string): Promise<void> {
+  await pool.query(
+    `UPDATE users SET balance_usd = balance_usd + $1, updated_at = NOW() WHERE id = $2`,
+    [holdUsd, userId],
+  )
+}
+
 export async function commitRequest(input: CommitInput): Promise<void> {
   const holdUsd   = Number(input.balanceHoldUsd)
   const chargeUsd = Number(input.chargeUsd)
