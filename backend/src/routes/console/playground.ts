@@ -7,6 +7,8 @@ import { getById as getModel } from '../../services/models.js'
 import { handleNonStream, handleStream } from '../../gateway/handle-messages.js'
 import { AppError } from '../../shared/errors.js'
 import { extractUpstreamHeaders, extractQueryString } from '../../shared/proxy-headers.js'
+import { holdBalance } from '../../gateway/biller.js'
+import { computeHoldUsd } from '../../gateway/meter.js'
 
 export const playgroundRoutes = new Hono()
 // Playground 已迁到后台管理，只允许 admin 调用，防止普通用户刷 token。
@@ -32,6 +34,10 @@ playgroundRoutes.post('/', async (c) => {
   if (!model.enabled) throw new AppError('unknown_model')
 
   const apiKey = await ensurePlaygroundKey(user.id)
+
+  const balanceHoldUsd = computeHoldUsd(body, model)
+  await holdBalance(user.id, balanceHoldUsd)
+
   const input = {
     user,
     apiKey,
@@ -41,6 +47,7 @@ playgroundRoutes.post('/', async (c) => {
     idempotencyKey: c.req.header('idempotency-key') ?? null,
     upstreamHeaders: extractUpstreamHeaders(c.req.raw.headers),
     queryString: extractQueryString(c.req.url),
+    balanceHoldUsd,
   }
 
   if (body.stream === true) {

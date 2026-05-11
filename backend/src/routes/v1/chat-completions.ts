@@ -7,6 +7,8 @@ import { handleNonStream, handleStream } from '../../gateway/handle-messages.js'
 import { oaiToAnthropic, anthropicToOai, transformAnthropicStream } from '../../gateway/openai-compat.js'
 import { AppError } from '../../shared/errors.js'
 import { extractUpstreamHeaders, extractQueryString } from '../../shared/proxy-headers.js'
+import { holdBalance } from '../../gateway/biller.js'
+import { computeHoldUsd } from '../../gateway/meter.js'
 
 export const v1ChatCompletions = new Hono()
 
@@ -34,6 +36,9 @@ v1ChatCompletions.post('/', async (c) => {
 
   const { anthropicBody, rawBody } = oaiToAnthropic(oaiBody)
 
+  const balanceHoldUsd = computeHoldUsd(anthropicBody, model)
+  await holdBalance(user.id, balanceHoldUsd)
+
   const input = {
     user, apiKey,
     body: anthropicBody,
@@ -45,6 +50,7 @@ v1ChatCompletions.post('/', async (c) => {
       'anthropic-version': '2023-06-01',  // OAI compat always uses this version
     },
     queryString: extractQueryString(c.req.url),
+    balanceHoldUsd,
   }
 
   if (oaiBody.stream === true) {
