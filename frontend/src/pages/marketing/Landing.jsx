@@ -149,7 +149,7 @@ function SignalCompare() {
     <Section>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>什么是"模型掺水"</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 48px", maxWidth: 760 }}>
+        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 48px", whiteSpace: mobile ? "normal" : "nowrap" }}>
           你付了 Opus 的钱，得到的可能不是 Opus。
         </h2>
         <div className="landing-compare-grid" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 16 }}>
