@@ -149,12 +149,9 @@ function SignalCompare() {
     <Section>
       <div style={{ maxWidth: 1216, margin: "0 auto" }}>
         <SectionLabel>什么是"模型掺水"</SectionLabel>
-        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 12px", maxWidth: 760 }}>
+        <h2 style={{ fontFamily: "var(--font-serif)", fontSize: mobile ? 28 : 40, lineHeight: 1.15, fontWeight: 600, letterSpacing: "-0.015em", margin: "0 0 48px", maxWidth: 760 }}>
           你付了 Opus 的钱，得到的可能不是 Opus。
         </h2>
-        <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--text-2)", maxWidth: 720, margin: "0 0 48px" }}>
-          很多中转站会在请求到达 Anthropic 之前，悄悄把 <code style={codeInline}>model</code> 字段换成更便宜的那个、把 <code style={codeInline}>max_tokens</code> 砍一半、或者直接截断你的 system prompt。我们不会。
-        </p>
         <div className="landing-compare-grid" style={{ display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 16 }}>
           <div style={compareCard}>
             <Pill tone="clay" dot style={{ marginBottom: 12 }}>枫连</Pill>
