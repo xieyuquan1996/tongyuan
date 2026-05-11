@@ -1,5 +1,23 @@
 # Claude Code — Project Guidelines
 
+## 功能开发流程（强制顺序）
+
+新功能从需求到上线必须按以下顺序执行，**不得跳步**：
+
+1. **写计划**（writing-plans）：拆分 task，明确文件改动范围
+2. **设计测试矩阵**：在写任何代码前，先列出所有测试点，覆盖：
+   - UT：纯逻辑单元
+   - CT：service + 真实 DB/Redis
+   - FT：完整 HTTP 栈
+   - Flow FT：跨模块端到端场景
+3. **写代码**：按计划实现，每个 task 提交一次
+4. **跑测试矩阵**：用第 2 步的测试点验证
+5. **诊断根因**：case 不过时，明确判断是哪层的问题——计划、测试点、代码、还是需求理解有误
+
+> **为什么这个顺序不能反？** 先写代码再补测试，测试会不自觉地迁就实现，而不是验证需求。先设计测试矩阵，才能在动代码前发现设计漏洞。
+
+---
+
 ## Testing
 
 **Test-driven development is required.** Write the failing test first, watch it fail, then write the minimum implementation to pass.
