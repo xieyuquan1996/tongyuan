@@ -73,6 +73,9 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       METRICS_TOKEN: ${METRICS_TOKEN}
       DISABLE_USER_QUOTA: true
+      CONTACT_EMAIL_GENERAL: ${CONTACT_EMAIL_GENERAL:-}
+      CONTACT_EMAIL_SUPPORT: ${CONTACT_EMAIL_SUPPORT:-}
+      CONTACT_EMAIL_PRIVACY: ${CONTACT_EMAIL_PRIVACY:-}
     depends_on:
       postgres:
         condition: service_healthy
