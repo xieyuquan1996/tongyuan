@@ -75,7 +75,7 @@
 ```json
 {
   "plans": [
-    { "name": "Starter", "price": "¥0",   "per": "起步赠送 1M tokens", "cta": "免费开始", "features": ["..."] },
+    { "name": "Starter", "price": "¥0",   "per": "自带 key 即可使用", "cta": "立即使用", "features": ["..."] },
     { "name": "Pro",     "price": "¥199", "per": "/ 月起 · 按量计费",   "cta": "升级到 Pro", "featured": true, "features": ["..."] }
   ]
 }

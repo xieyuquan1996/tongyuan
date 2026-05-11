@@ -89,7 +89,7 @@ function Hero() {
         </p>
         <div style={{ display: "flex", gap: 12, marginBottom: 56, flexWrap: "wrap" }}>
           <Link to="/login" style={{ textDecoration: "none" }}>
-            <Button size="lg"><span style={{ whiteSpace: "nowrap" }}>免费试用 · 1M tokens</span></Button>
+            <Button size="lg"><span style={{ whiteSpace: "nowrap" }}>立即使用</span></Button>
           </Link>
           <Link to="/docs" style={{ textDecoration: "none" }}>
             <Button size="lg" variant="secondary"><span style={{ whiteSpace: "nowrap" }}>查看文档 →</span></Button>
@@ -143,7 +143,9 @@ function SignalCompare() {
           <div style={compareCard}>
             <Pill tone="clay" dot style={{ marginBottom: 16 }}>枫连</Pill>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--clay-press)", marginBottom: 8 }}>完整透传 · 信号干净</div>
-            <img src="/assets/signal-line.svg" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} alt="clean signal"/>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 80" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} preserveAspectRatio="none" aria-label="clean signal">
+              <path d="M 0 40 C 50 40, 100 10, 150 40 S 250 70, 300 40 S 400 10, 450 40 S 550 70, 600 40 S 700 10, 750 40 S 850 70, 900 40 S 1000 10, 1050 40 S 1150 70, 1200 40" fill="none" stroke="var(--text)" strokeWidth="1" strokeLinecap="round"/>
+            </svg>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7, color: "var(--text-2)" }}>
               model:        claude-opus-4.7<br/>
               max_tokens:   8192<br/>
@@ -154,7 +156,9 @@ function SignalCompare() {
           <div style={compareCard}>
             <Pill style={{ marginBottom: 16 }} dot>其他中转</Pill>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>偷换、截断、压缩</div>
-            <img src="/assets/signal-line-diluted.svg" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} alt="diluted signal"/>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 80" style={{ width: "100%", height: 80, display: "block", marginBottom: 16 }} preserveAspectRatio="none" aria-label="diluted signal">
+              <path d="M 0 40 L 30 38 L 50 52 L 70 28 L 95 48 L 120 32 L 140 60 L 160 22 L 185 50 L 210 30 L 232 58 L 256 24 L 282 54 L 308 28 L 332 62 L 360 30 L 386 50 L 412 24 L 440 58 L 468 32 L 494 56 L 520 26 L 548 60 L 576 28 L 604 52 L 630 22 L 658 56 L 684 32 L 712 60 L 738 24 L 766 54 L 794 28 L 822 58 L 848 30 L 876 52 L 904 22 L 932 60 L 960 32 L 988 54 L 1016 26 L 1044 58 L 1072 30 L 1100 52 L 1128 24 L 1156 56 L 1184 32 L 1200 40" fill="none" stroke="var(--text-3)" strokeWidth="1" strokeLinejoin="round" strokeLinecap="round"/>
+            </svg>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 1.7, color: "var(--text-3)" }}>
               model:        <span style={{ color: "var(--err)", textDecoration: "line-through" }}>claude-opus-4.7</span> → claude-sonnet-4.5<br/>
               max_tokens:   <span style={{ color: "var(--err)", textDecoration: "line-through" }}>8192</span> → 4096<br/>

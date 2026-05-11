@@ -248,7 +248,7 @@ function seed() {
       { id: "claude-haiku-4.0", context: "200k", price: "$0.25 / $1.25", note: "经济" },
     ],
     plans: [
-      { name: "Starter", price: "¥0", per: "起步赠送 1M tokens", cta: "免费开始",
+      { name: "Starter", price: "¥0", per: "自带 key 即可使用", cta: "立即使用",
         features: ["全部模型可用", "标准延迟（~200ms）", "社区支持"] },
       { name: "Pro", price: "¥199", per: "/ 月起 · 按量计费", cta: "升级到 Pro", featured: true,
         features: ["专属低延迟通道", "p99 ≤ 500ms 保证", "工单支持 · 12h 响应", "审计日志导出"] },

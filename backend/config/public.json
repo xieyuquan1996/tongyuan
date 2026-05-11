@@ -15,9 +15,9 @@
     {
       "name": "Starter",
       "price": "¥0",
-      "per": "起步赠送 $10",
-      "cta": "免费开始",
-      "features": ["3 个 API 密钥", "每月 1M tokens 免费额度", "标准支持"]
+      "per": "自带 key 即可使用",
+      "cta": "立即使用",
+      "features": ["3 个 API 密钥", "自带 Anthropic key", "标准支持"]
     },
     {
       "name": "Pro",

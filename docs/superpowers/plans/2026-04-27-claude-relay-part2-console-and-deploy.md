@@ -339,7 +339,7 @@ Install `prom-client`. Expose counters/histograms per spec §9.
   "stats": { "uptime_30d": "99.97%", "p50_latency": "187ms", "p99_latency": "412ms", "consistency": "100%", "region": "cn-east-1" },
   "regions": [{ "id": "cn-east-1", "name": "上海", "status": "ok", "latency": "187ms" }],
   "plans": [
-    { "name": "Starter", "price": "¥0", "per": "起步赠送 $10", "cta": "免费开始", "features": ["..."] },
+    { "name": "Starter", "price": "¥0", "per": "自带 key 即可使用", "cta": "立即使用", "features": ["..."] },
     { "name": "Pro", "price": "¥199", "per": "/ 月起", "cta": "升级到 Pro", "featured": true, "features": ["..."] }
   ],
   "status": { "overall": "ok", "components": [{ "id": "gateway", "name": "网关", "status": "ok", "note": "" }], "incidents": [] },
