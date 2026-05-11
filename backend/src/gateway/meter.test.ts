@@ -68,3 +68,53 @@ describe('meter', () => {
     expect(c.costUsd).toBe('3.750000')
   })
 })
+
+// ---- computeHoldUsd ----
+
+import { computeHoldUsd } from './meter.js'
+
+const baseModel = {
+  inputPriceUsdPerMtok: '3',
+  outputPriceUsdPerMtok: '15',
+  cacheReadPriceUsdPerMtok: null,
+  cacheWritePriceUsdPerMtok: null,
+  cacheWrite1hPriceUsdPerMtok: null,
+  markupPct: '0',
+}
+
+describe('computeHoldUsd', () => {
+  // U1: max_tokens 已指定
+  it('U1: uses max_tokens as output ceiling', () => {
+    const body = { messages: [{ role: 'user', content: 'hi' }], max_tokens: 1000 }
+    const hold = Number(computeHoldUsd(body, baseModel))
+    const outputFloor = 1000 * 15 / 1_000_000  // 0.015
+    expect(hold).toBeGreaterThanOrEqual(outputFloor)
+    expect(hold).toBeLessThan(0.02)
+  })
+
+  // U2: max_tokens 超过 8192 上限
+  it('U2: caps output at 8192 when max_tokens is very large', () => {
+    const body = { messages: [{ role: 'user', content: 'hi' }], max_tokens: 100_000 }
+    const hold = Number(computeHoldUsd(body, baseModel))
+    const cap = 8192 * 15 / 1_000_000  // 0.12288
+    expect(hold).toBeLessThan(cap + 0.01)
+  })
+
+  // U3: max_tokens 未指定，使用默认约 4096
+  it('U3: falls back to ~4096 output tokens when max_tokens absent', () => {
+    const body = { messages: [{ role: 'user', content: 'hi' }] }
+    const hold = Number(computeHoldUsd(body, baseModel))
+    const expected = 4096 * 15 / 1_000_000  // 0.06144
+    expect(hold).toBeGreaterThanOrEqual(expected * 0.9)
+    expect(hold).toBeLessThan(expected * 1.5)
+  })
+
+  // U4: markup 正确叠加
+  it('U4: applies markup correctly', () => {
+    const modelWith20 = { ...baseModel, markupPct: '0.2' }
+    const body = { messages: [{ role: 'user', content: 'x' }], max_tokens: 100 }
+    const base   = Number(computeHoldUsd(body, baseModel))
+    const marked = Number(computeHoldUsd(body, modelWith20))
+    expect(marked).toBeCloseTo(base * 1.2, 4)
+  })
+})
