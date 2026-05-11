@@ -33,6 +33,7 @@ describe('commitRequest', () => {
       chargeUsd: '0.000000', costUsd: '0.000000',
       requestHash: 'a', upstreamRequestHash: 'a', auditMatch: true,
       idempotencyKey: null,
+      balanceHoldUsd: '0',
     })
     const [u] = await db.select().from(users).where(eq(users.id, userId))
     expect(u!.balanceUsd).toBe('10.000000')   // unchanged

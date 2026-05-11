@@ -30,6 +30,7 @@ export type HandleMessagesInput = {
   // layer will override x-api-key and content-type, so those are safe to include.
   upstreamHeaders: Record<string, string>
   queryString: string | undefined
+  balanceHoldUsd: string  // 入场时已原子预扣的金额，commitRequest 用于调平
 }
 
 // Reconcile the reservation with actual usage. cache_read tokens are excluded
@@ -68,7 +69,7 @@ async function reserveTpm(apiKey: ApiKeyRow, body: any): Promise<tpm.TpmReservat
 
 export async function handleNonStream(c: Context, input: HandleMessagesInput): Promise<Response> {
   const started = Date.now()
-  const { user, apiKey, body, model, idempotencyKey, upstreamHeaders, queryString } = input
+  const { user, apiKey, body, model, idempotencyKey, upstreamHeaders, queryString, balanceHoldUsd } = input
 
   const requestHash = hashBody(body)
   const forwardBody = JSON.stringify(body)
@@ -119,6 +120,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
       requestHash, upstreamRequestHash,
       auditMatch: requestHash === upstreamRequestHash,
       idempotencyKey,
+      balanceHoldUsd,
     })
     checkRequestAlerts(user.id, { errorRate: 1, p99Ms: Date.now() - started })
     throw new AppError((errorCode as any) ?? 'all_upstreams_down')
@@ -175,6 +177,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
       requestHash, upstreamRequestHash,
       auditMatch: requestHash === upstreamRequestHash,
       idempotencyKey,
+      balanceHoldUsd,
     })
 
     checkRequestAlerts(user.id, { errorRate: response.status >= 400 ? 1 : 0, p99Ms: Date.now() - started })
@@ -191,7 +194,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
 
 export async function handleStream(c: Context, input: HandleMessagesInput): Promise<Response> {
   const started = Date.now()
-  const { user, apiKey, body, rawBody, model, idempotencyKey, upstreamHeaders, queryString } = input
+  const { user, apiKey, body, rawBody, model, idempotencyKey, upstreamHeaders, queryString, balanceHoldUsd } = input
 
   const requestHash = hashBody(body)
   const forwardBody = rawBody
@@ -237,6 +240,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
       requestHash, upstreamRequestHash,
       auditMatch: requestHash === upstreamRequestHash,
       idempotencyKey,
+      balanceHoldUsd,
     })
     checkRequestAlerts(user.id, { errorRate: 1, p99Ms: Date.now() - started })
     throw new AppError((errorCode as any) ?? 'all_upstreams_down')
@@ -308,6 +312,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
         requestHash, upstreamRequestHash,
         auditMatch: requestHash === upstreamRequestHash,
         idempotencyKey,
+        balanceHoldUsd,
       })
       checkRequestAlerts(user.id, { errorRate: response!.status >= 400 ? 1 : 0, p99Ms: Date.now() - started })
     }
