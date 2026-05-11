@@ -75,7 +75,25 @@ function Hero() {
         opacity: 0.6, pointerEvents: "none",
       }}/>
       <div style={{ maxWidth: 1216, margin: "0 auto", position: "relative" }}>
-        <SectionLabel>枫连 · MAPLELINK · SAME SOURCE</SectionLabel>
+        <SectionLabel>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            枫连 · MAPLELINK · SAME SOURCE
+            <svg
+              role="img"
+              aria-label="Claude"
+              width={14}
+              height={14}
+              viewBox="0 0 24 24"
+              fill="none"
+              style={{ verticalAlign: "middle", opacity: 0.8 }}
+            >
+              <path
+                d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2.5a7.5 7.5 0 0 1 5.5 12.64V17a5.5 5.5 0 0 0-11 0v.14A7.5 7.5 0 0 1 12 4.5zM12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
+                fill="var(--clay-press)"
+              />
+            </svg>
+          </span>
+        </SectionLabel>
         <h1 style={{
           fontFamily: "var(--font-serif)", fontSize: mobile ? 40 : 76, lineHeight: 1.05,
           fontWeight: 600, letterSpacing: "-0.02em", margin: "0 0 24px",
