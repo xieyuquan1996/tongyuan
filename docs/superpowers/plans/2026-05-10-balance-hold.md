@@ -44,6 +44,7 @@ biller.ts（holdBalance 新函数；CommitInput 新增 balanceHoldUsd；commitRe
 | C5 | commitRequest：actual > hold | balance 额外扣减（actual - hold） |
 | C6 | commitRequest：actual = 0（出错路径） | 全额退还 hold，balance 回到预扣前 |
 | C7 | commitRequest：hold = 0（兼容旧行为） | 直接扣 chargeUsd，行为与改动前一致 |
+| C8 | refundHold 把金额加回 balance | balance 回到调用前 |
 
 ### FT — 完整 HTTP 栈（`src/tests/e2e.test.ts`，追加）
 
@@ -52,6 +53,9 @@ biller.ts（holdBalance 新函数；CommitInput 新增 balanceHoldUsd；commitRe
 | F1 | 并发两请求，余额只够一个 hold | 一个 200，一个 402，最终 balance ≥ 0 |
 | F2 | 余额为 0 时发起请求 | 返回 402 `insufficient_balance` |
 | F3 | upstream 返回 502，hold 被退还 | balance 回到预扣前水平，不被扣费 |
+| F4 | 非流式 commitRequest 抛异常 | 外层 finally 退还 hold，balance 回到预扣前 |
+| F5 | 流式 stream 内 commitRequest 抛异常 | 内层 finally 退还 hold，balance 回到预扣前 |
+| F6 | 流式 pre-stream commitRequest 抛异常 | 外层 finally 退还 hold，balance 回到预扣前 |
 
 ---
 
