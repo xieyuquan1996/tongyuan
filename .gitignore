@@ -47,5 +47,11 @@ drizzle/
 # Git worktrees
 .worktrees/
 
+# AI tool caches
+.claire/
+.claude/worktrees/
+.superpowers/
+.wrangler/
+
 # Misc
 *.local
