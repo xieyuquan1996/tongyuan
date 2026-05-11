@@ -611,6 +611,60 @@ describe('e2e: balance hold', () => {
     }
   })
 
+  // F7: 高并发压力 — N=20 个同用户请求，余额无法全部覆盖，验证守恒和无负余额
+  it('F7: stress test — N=20 concurrent, money conserved, balance never goes negative', async () => {
+    const N = 20
+    // 初始 0.00330 USD：
+    //   hold per req ≈ 0.000978，actual per req = (10*3 + 20*15)/1e6 = 0.00033
+    //   max ok = floor(0.00330 / 0.000978) = 3 个并行 hold 能扣到；
+    //   随着 commit 退还差额（hold - actual = 0.000648），更多 hold 可能挤入。
+    //   实测 ok ∈ [3, 10] 区间，确定有 ≥ 10 个会被拦截。
+    const initial = '0.003300'
+    const actualPerRequest = (10 * 3 + 20 * 15) / 1_000_000  // 0.00033
+
+    const { userId: u, secret } = await seedUser(initial)
+    const mock = await startMockUpstream(
+      Array.from({ length: N }, () => ({ kind: 'ok' as const, usage: { input: 10, output: 20 } })),
+    )
+    try {
+      setAnthropicBaseUrlOverride(mock.baseUrl)
+      await seedUpstream('hold-f7-secret', 100)
+
+      const req = () => postAs(secret, {
+        model: 'e2e-test-model',
+        max_tokens: 64,
+        messages: [{ role: 'user', content: 'ping' }],
+      })
+
+      const results = await Promise.all(Array.from({ length: N }, req))
+      const ok = results.filter((r) => r.status === 200).length
+      const blocked = results.filter((r) => r.status === 402).length
+
+      // 不变量 1：每个请求要么 200 要么 402，不允许 5xx
+      expect(ok + blocked).toBe(N)
+
+      // 不变量 2：必然有部分被拦截（余额不足以覆盖全部 N 个 hold）
+      expect(blocked).toBeGreaterThan(0)
+
+      // 不变量 3：只有成功 hold 的请求才到上游
+      expect(mock.hits).toBe(ok)
+
+      // 不变量 4：余额绝不变负（hold 机制核心保证）
+      const [after] = await db.select().from(users).where(eq(users.id, u))
+      expect(Number(after!.balanceUsd)).toBeGreaterThanOrEqual(0)
+
+      // 不变量 5：货币守恒 final = initial - ok × actual_per_request
+      expect(Number(after!.balanceUsd)).toBeCloseTo(
+        Number(initial) - ok * actualPerRequest,
+        4,
+      )
+    } finally {
+      await mock.close()
+      setAnthropicBaseUrlOverride(undefined)
+      await db.delete(users).where(eq(users.id, u))
+    }
+  })
+
   // F6: handleStream 进入 stream 前的失败路径里 commitRequest 抛异常 → 外层 finally 退还 hold
   it('F6: refunds hold when pre-stream commitRequest throws', async () => {
     const { userId: u, secret } = await seedUser('0.001500')
