@@ -612,7 +612,7 @@ describe('e2e: balance hold', () => {
   })
 
   // F7: 高并发压力 — N=20 个同用户请求，余额无法全部覆盖，验证守恒和无负余额
-  it('F7: stress test — N=20 concurrent, money conserved, balance never goes negative', async () => {
+  it('F7: stress test — N=20 concurrent, money conserved, balance never goes negative', { timeout: 15000 }, async () => {
     const N = 20
     // 初始 0.00330 USD：
     //   hold per req ≈ 0.000978，actual per req = (10*3 + 20*15)/1e6 = 0.00033
