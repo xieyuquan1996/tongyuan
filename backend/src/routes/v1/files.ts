@@ -24,6 +24,7 @@ import { rateLimit, DEFAULT_RPM } from '../../middleware/rate-limit.js'
 import { AppError } from '../../shared/errors.js'
 import { scheduler } from '../../gateway/scheduler.js'
 import { getAnthropicBaseUrl } from '../../env.js'
+import { stickyOrder } from '../../gateway/proxy.js'
 
 export const v1Files = new Hono()
 v1Files.use('*', requireApiKey)
@@ -35,19 +36,19 @@ v1Files.use('*', rateLimit((c) => {
   }
 }))
 
-// Pick the first active upstream — Files API responses include a file_id
-// that's tied to the uploading account, so we can't round-robin across
-// different upstream keys for the same file_id. In practice admins usually
-// run with one primary key; if that's not the case, the caller has to be
-// aware that Anthropic's file_id is account-scoped.
-async function pickUpstream() {
+// Pick the preferred upstream for this apiKey using sticky routing. Files API
+// responses include a file_id tied to the uploading Anthropic account, so the
+// same user should consistently hit the same upstream. If that upstream is down,
+// the next in the sticky order is used (file_ids from the old key won't work,
+// but at least the endpoint stays available).
+async function pickUpstream(apiKeyId: string) {
   const pool = await scheduler.snapshot()
   if (pool.length === 0) throw new AppError('all_upstreams_down')
-  return pool[0]!
+  return stickyOrder(pool, apiKeyId)[0]!
 }
 
-async function forwardFiles(req: Request, pathSuffix: string): Promise<Response> {
-  const upstream = await pickUpstream()
+async function forwardFiles(req: Request, pathSuffix: string, apiKeyId: string): Promise<Response> {
+  const upstream = await pickUpstream(apiKeyId)
   const apiKey = await scheduler.decrypt(upstream)
   const baseUrl = upstream.baseUrl ?? getAnthropicBaseUrl()
   // Carry the original query string through (e.g. ?limit=20&after_id=...).
@@ -92,8 +93,8 @@ async function forwardFiles(req: Request, pathSuffix: string): Promise<Response>
   })
 }
 
-v1Files.post('/', async (c) => forwardFiles(c.req.raw, ''))
-v1Files.get('/', async (c) => forwardFiles(c.req.raw, ''))
-v1Files.get('/:file_id', async (c) => forwardFiles(c.req.raw, '/' + c.req.param('file_id')))
-v1Files.get('/:file_id/content', async (c) => forwardFiles(c.req.raw, '/' + c.req.param('file_id') + '/content'))
-v1Files.delete('/:file_id', async (c) => forwardFiles(c.req.raw, '/' + c.req.param('file_id')))
+v1Files.post('/', async (c) => forwardFiles(c.req.raw, '', c.get('apiKey').id))
+v1Files.get('/', async (c) => forwardFiles(c.req.raw, '', c.get('apiKey').id))
+v1Files.get('/:file_id', async (c) => forwardFiles(c.req.raw, '/' + c.req.param('file_id'), c.get('apiKey').id))
+v1Files.get('/:file_id/content', async (c) => forwardFiles(c.req.raw, '/' + c.req.param('file_id') + '/content', c.get('apiKey').id))
+v1Files.delete('/:file_id', async (c) => forwardFiles(c.req.raw, '/' + c.req.param('file_id'), c.get('apiKey').id))
