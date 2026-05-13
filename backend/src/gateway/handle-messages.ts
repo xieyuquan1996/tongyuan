@@ -93,7 +93,7 @@ export async function handleNonStream(c: Context, input: HandleMessagesInput): P
 
   try {
     try {
-      const att = await forwardNonStream('/v1/messages', upstreamHeaders, forwardBody, queryString)
+      const att = await forwardNonStream('/v1/messages', upstreamHeaders, forwardBody, queryString, apiKey.id)
       upstream = att.upstream
       response = att.response
       reservation = att.reservation
@@ -231,7 +231,7 @@ export async function handleStream(c: Context, input: HandleMessagesInput): Prom
 
   try {
     try {
-      const att = await forwardStream('/v1/messages', upstreamHeaders, forwardBody, queryString)
+      const att = await forwardStream('/v1/messages', upstreamHeaders, forwardBody, queryString, apiKey.id)
       upstream = att.upstream
       response = att.response
       reservation = att.reservation

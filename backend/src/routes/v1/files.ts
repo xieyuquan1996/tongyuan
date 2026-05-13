@@ -13,18 +13,27 @@
 //   GET    /v1/files/:file_id/content    — download
 //   DELETE /v1/files/:file_id            — delete
 //
-// We do NOT run these through the rate-limit or quota machinery — those are
-// tuned for the per-minute token budget on /v1/messages. Files API calls are
-// metadata ops and shouldn't count against ITPM/OTPM.
+// We do NOT run these through the token-quota (ITPM/OTPM) machinery — those
+// are tuned for /v1/messages. But we do apply RPM limiting: file operations
+// still proxy to Anthropic and a misbehaving client could exhaust the upstream
+// account's request quota by bulk-uploading or repeatedly downloading.
 
 import { Hono } from 'hono'
 import { requireApiKey } from '../../middleware/auth-api-key.js'
+import { rateLimit, DEFAULT_RPM } from '../../middleware/rate-limit.js'
 import { AppError } from '../../shared/errors.js'
 import { scheduler } from '../../gateway/scheduler.js'
 import { getAnthropicBaseUrl } from '../../env.js'
 
 export const v1Files = new Hono()
 v1Files.use('*', requireApiKey)
+v1Files.use('*', rateLimit((c) => {
+  const apiKey = c.get('apiKey')
+  return {
+    key: `files:${apiKey.id}`,
+    limit: apiKey.rpmLimit ? Number(apiKey.rpmLimit) : DEFAULT_RPM,
+  }
+}))
 
 // Pick the first active upstream — Files API responses include a file_id
 // that's tied to the uploading account, so we can't round-robin across

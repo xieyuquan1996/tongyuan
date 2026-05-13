@@ -78,6 +78,7 @@ export async function commitRequest(input: CommitInput): Promise<void> {
       cacheWriteTokens: String(input.cacheWriteTokens),
       cacheWrite1hTokens: String(input.cacheWrite1hTokens),
       costUsd: input.costUsd,
+      chargeUsd: input.chargeUsd,
       requestHash: input.requestHash,
       upstreamRequestHash: input.upstreamRequestHash,
       auditMatch: input.auditMatch,

@@ -141,11 +141,8 @@ describe('e2e: failover', () => {
     ])
     try {
       setAnthropicBaseUrlOverride(mock.baseUrl)
-      // Give A an overwhelming weight (9999:1) so weightedShuffle deterministically
-      // picks A first. Without explicit weights, both default to 100 and the 50/50
-      // shuffle makes the test order-dependent and flaky.
-      const a = await upstreamSvc.create({ alias: 'e2e-failover-A', secret: 'e2e-failover-A', priority: 100, weight: 9999 })
-      const b = await upstreamSvc.create({ alias: 'e2e-failover-B', secret: 'e2e-failover-B', priority: 200, weight: 1 })
+      const a = await upstreamSvc.create({ alias: 'e2e-failover-A', secret: 'e2e-failover-A', priority: 100, weight: 100 })
+      const b = await upstreamSvc.create({ alias: 'e2e-failover-B', secret: 'e2e-failover-B', priority: 200, weight: 100 })
 
       const r = await post('/v1/messages', {
         model: 'e2e-test-model',
@@ -158,10 +155,13 @@ describe('e2e: failover', () => {
       // 429 now marks a per-family (not whole-key) cooldown in Redis — other
       // families on the same key should still be usable. Model id
       // 'e2e-test-model' lacks 'opus'/'haiku' so falls under the sonnet family.
-      const cooled = await quota.isFamilyCoolingDown(a.id, 'sonnet')
-      expect(cooled).not.toBeNull()
-      const stillHot = await quota.isFamilyCoolingDown(b.id, 'sonnet')
-      expect(stillHot).toBeNull()
+      // Sticky routing picks one key deterministically for this apiKey — we
+      // don't hard-code which one; instead verify exactly one is cooled down.
+      const aColled = await quota.isFamilyCoolingDown(a.id, 'sonnet')
+      const bCooled = await quota.isFamilyCoolingDown(b.id, 'sonnet')
+      // Exactly one upstream received the 429 and is now in cooldown
+      const cooledCount = [aColled, bCooled].filter(Boolean).length
+      expect(cooledCount).toBe(1)
     } finally {
       await mock.close()
       setAnthropicBaseUrlOverride(undefined)

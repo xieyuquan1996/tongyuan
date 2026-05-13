@@ -30,7 +30,9 @@ export const sessions = pgTable('sessions', {
   tokenHash: text('token_hash').notNull().unique(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (t) => ({
+  userIdIdx: index('sessions_user_id_idx').on(t.userId),
+}))
 
 export const apiKeys = pgTable('api_keys', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -49,7 +51,9 @@ export const apiKeys = pgTable('api_keys', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
-})
+}, (t) => ({
+  userIdIdx: index('api_keys_user_id_idx').on(t.userId),
+}))
 
 export const models = pgTable('models', {
   id: text('id').primaryKey(),
@@ -86,12 +90,19 @@ export const requestLogs = pgTable('request_logs', {
   cacheWriteTokens: numeric('cache_write_tokens').notNull().default('0'),
   cacheWrite1hTokens: numeric('cache_write_1h_tokens').notNull().default('0'),
   costUsd: numeric('cost_usd', { precision: 12, scale: 6 }).notNull().default('0'),
+  // chargeUsd = costUsd × (1 + markupPct): the amount actually billed to the user.
+  // Stored for per-request audit — billing_ledger records the total but not per-request detail.
+  chargeUsd: numeric('charge_usd', { precision: 12, scale: 6 }).notNull().default('0'),
   requestHash: text('request_hash').notNull(),
   upstreamRequestHash: text('upstream_request_hash').notNull(),
   auditMatch: boolean('audit_match').notNull(),
   idempotencyKey: text('idempotency_key'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-})
+}, (t) => ({
+  userIdIdx: index('request_logs_user_id_idx').on(t.userId),
+  apiKeyIdIdx: index('request_logs_api_key_id_idx').on(t.apiKeyId),
+  createdAtIdx: index('request_logs_created_at_idx').on(t.createdAt),
+}))
 
 export const billingLedger = pgTable('billing_ledger', {
   id: uuid('id').primaryKey().defaultRandom(),

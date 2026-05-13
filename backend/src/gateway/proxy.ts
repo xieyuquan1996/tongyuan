@@ -9,6 +9,15 @@ import * as quota from './quota.js'
 import { resolveBudget } from './quota-config.js'
 import { parseRetryAfterMs } from './ratelimit-headers.js'
 
+// djb2 hash: fast, good distribution for sticky routing.
+export function djb2(s: string): number {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  }
+  return h >>> 0
+}
+
 export type Reservation = {
   upstreamId: string
   family: Family
@@ -58,15 +67,36 @@ function weightedShuffle(pool: UpstreamRow[]): UpstreamRow[] {
   return out
 }
 
+// Deterministic pool ordering for a given stickyKey (e.g., apiKey.id).
+// Sort pool by id for stability, then pick the preferred entry by hash so
+// the same stickyKey always tries the same upstream key first. Fallback
+// entries are weighted-shuffled, so quota exhaustion on the preferred key
+// still spreads load across the rest.
+//
+// This preserves Anthropic's prompt cache: cache entries are per-upstream-key
+// (per Anthropic account), so routing the same client apiKey to the same
+// upstream key means cache hits survive across requests.
+export function stickyOrder(pool: UpstreamRow[], stickyKey: string): UpstreamRow[] {
+  if (pool.length <= 1) return [...pool]
+  const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id))
+  const preferredIdx = djb2(stickyKey) % sorted.length
+  const preferred = sorted[preferredIdx]!
+  const rest = sorted.filter((_, i) => i !== preferredIdx)
+  return [preferred, ...weightedShuffle(rest)]
+}
+
 // Walk the active upstream pool looking for a key that can reserve the
 // family's per-minute budget. Returns the reservation + key, or null if none
 // have headroom. Pool is weighted-shuffled per call so two keys with equal
 // weight each get ~50% of traffic; a key with weight 300 vs weight 100
 // gets picked first ~75% of the time.
-async function reserveOne(family: Family, body: any, stream: boolean): Promise<{ upstream: UpstreamRow; res: Reservation } | null> {
+//
+// When stickyKey is provided, the preferred upstream for that key is tried
+// first (consistent hash), and only falls back to others on quota exhaustion.
+async function reserveOne(family: Family, body: any, stream: boolean, stickyKey?: string): Promise<{ upstream: UpstreamRow; res: Reservation } | null> {
   const rawPool = await scheduler.snapshot()
   if (rawPool.length === 0) return null
-  const pool = weightedShuffle(rawPool)
+  const pool = stickyKey ? stickyOrder(rawPool, stickyKey) : weightedShuffle(rawPool)
 
   // When quota is disabled, skip admission control entirely — just pick the
   // first reachable key. Anthropic's own 429 is still handled downstream.
@@ -97,9 +127,10 @@ type ForwardArgs = {
   body: string
   bodyJson: any
   stream: boolean
+  stickyKey?: string
 }
 
-async function forward({ path, queryString, headers, body, bodyJson, stream }: ForwardArgs): Promise<ProxyAttempt> {
+async function forward({ path, queryString, headers, body, bodyJson, stream, stickyKey }: ForwardArgs): Promise<ProxyAttempt> {
   const family = familyOf(String(bodyJson?.model ?? ''))
 
   const tried: { id: string; status: number | 'network' | 'no_budget' }[] = []
@@ -107,7 +138,7 @@ async function forward({ path, queryString, headers, body, bodyJson, stream }: F
   // that land mid-flight after reserve() said we had headroom.
   const MAX_ATTEMPTS = 4
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const got = await reserveOne(family, bodyJson, stream)
+    const got = await reserveOne(family, bodyJson, stream, stickyKey)
     if (!got) {
       // No key has headroom. If we've tried nothing yet and there are no
       // active upstreams at all, the classic all_upstreams_down applies.
@@ -171,10 +202,11 @@ export async function forwardNonStream(
   headers: Record<string, string>,
   body: string,
   queryString?: string,
+  stickyKey?: string,
 ): Promise<ProxyAttempt> {
   let parsed: any = {}
   try { parsed = JSON.parse(body) } catch {}
-  return forward({ path, queryString, headers, body, bodyJson: parsed, stream: false })
+  return forward({ path, queryString, headers, body, bodyJson: parsed, stream: false, stickyKey })
 }
 
 export async function forwardStream(
@@ -182,8 +214,9 @@ export async function forwardStream(
   headers: Record<string, string>,
   body: string,
   queryString?: string,
+  stickyKey?: string,
 ): Promise<ProxyAttempt> {
   let parsed: any = {}
   try { parsed = JSON.parse(body) } catch {}
-  return forward({ path, queryString, headers, body, bodyJson: parsed, stream: true })
+  return forward({ path, queryString, headers, body, bodyJson: parsed, stream: true, stickyKey })
 }

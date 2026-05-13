@@ -104,8 +104,10 @@ export function createApp() {
   app.route('/api/admin/settings', adminSettingsRoutes)
   app.route('/api/admin/reconciliation', reconciliationRoutes)
   app.route('/v1/models', v1Models)
-  app.route('/v1/messages', v1Messages)
+  // count_tokens must be registered BEFORE /v1/messages so Hono's sub-router
+  // prefix matching doesn't run v1Messages middleware on count_tokens requests.
   app.route('/v1/messages/count_tokens', v1CountTokens)
+  app.route('/v1/messages', v1Messages)
   app.route('/v1/chat/completions', v1ChatCompletions)
   app.route('/v1/files', v1Files)
   app.route('/api/public/stats', publicStats)
